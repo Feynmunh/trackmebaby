@@ -53,7 +53,10 @@ async function getMainViewUrl(): Promise<string> {
 	const channel = await Updater.localInfo.channel();
 	if (channel === "dev") {
 		try {
-			await fetch(DEV_SERVER_URL, { method: "HEAD" });
+			const controller = new AbortController();
+			const timeoutId = setTimeout(() => controller.abort(), 2000);
+			await fetch(DEV_SERVER_URL, { method: "HEAD", signal: controller.signal });
+			clearTimeout(timeoutId);
 			console.log(`[trackmebaby] HMR enabled: ${DEV_SERVER_URL}`);
 			return DEV_SERVER_URL;
 		} catch {
@@ -63,35 +66,48 @@ async function getMainViewUrl(): Promise<string> {
 	return "views://mainview/index.html";
 }
 
+// Guard to prevent race condition when creating windows
+let isCreatingWindow = false;
+
 async function createWindow(): Promise<void> {
 	if (mainWindow) {
 		mainWindow.focus();
 		return;
 	}
 
-	const url = await getMainViewUrl();
+	// Prevent concurrent window creation
+	if (isCreatingWindow) {
+		return;
+	}
+	isCreatingWindow = true;
 
-	mainWindow = new BrowserWindow({
-		title: "trackmebaby",
-		url,
-		rpc,
-		styleMask: {
-			Titled: true,
-			Closable: true,
-			Resizable: true,
-			Miniaturizable: true,
-		},
-		frame: {
-			width: 900,
-			height: 700,
-			x: 200,
-			y: 200,
-		},
-	});
+	try {
+		const url = await getMainViewUrl();
 
-	mainWindow.on("close", () => {
-		mainWindow = null;
-	});
+		mainWindow = new BrowserWindow({
+			title: "trackmebaby",
+			url,
+			rpc,
+			styleMask: {
+				Titled: true,
+				Closable: true,
+				Resizable: true,
+				Miniaturizable: true,
+			},
+			frame: {
+				width: 900,
+				height: 700,
+				x: 200,
+				y: 200,
+			},
+		});
+
+		mainWindow.on("close", () => {
+			mainWindow = null;
+		});
+	} finally {
+		isCreatingWindow = false;
+	}
 }
 
 // --- System Tray ---
@@ -108,6 +124,8 @@ tray.setMenu([
 	{ type: "normal", label: "Quit", action: "quit" },
 ]);
 
+// Handle tray menu clicks - both menu items and icon clicks fire "tray-clicked"
+// with action field distinguishing them
 tray.on("tray-clicked", (e: any) => {
 	const action = e.data?.action;
 	if (action === "show") {
