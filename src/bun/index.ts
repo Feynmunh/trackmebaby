@@ -75,6 +75,12 @@ async function createWindow(): Promise<void> {
 		title: "trackmebaby",
 		url,
 		rpc,
+		styleMask: {
+			Titled: true,
+			Closable: true,
+			Resizable: true,
+			Miniaturizable: true,
+		},
 		frame: {
 			width: 900,
 			height: 700,
