@@ -1,0 +1,57 @@
+/**
+ * Shared domain types for trackmebaby
+ * Single source of truth — used by both Bun (backend) and browser (frontend)
+ */
+
+export interface Project {
+    id: string;
+    path: string;
+    name: string;
+    lastActivityAt: string | null;
+    createdAt: string;
+}
+
+export interface ActivityEvent {
+    id: string;
+    projectId: string;
+    timestamp: string;
+    type: "file_create" | "file_modify" | "file_delete";
+    filePath: string;
+    data?: string; // JSON metadata (e.g., line count delta)
+}
+
+export interface GitSnapshot {
+    id: string;
+    projectId: string;
+    timestamp: string;
+    branch: string;
+    lastCommitHash: string | null;
+    lastCommitMessage: string | null;
+    lastCommitTimestamp: string | null;
+    uncommittedCount: number;
+    uncommittedFiles: string[]; // parsed from JSON
+    data?: string; // JSON diff stats
+}
+
+export interface Settings {
+    basePath: string | null;
+    aiProvider: string;
+    aiModel: string;
+    pollInterval: number;    // ms, default 60000
+    watchDebounce: number;   // ms, default 500
+}
+
+export interface ChatMessage {
+    id: string;
+    role: "user" | "assistant";
+    content: string;
+    timestamp: string;
+}
+
+export interface ActivitySummary {
+    date: string;
+    fileCreates: number;
+    fileModifies: number;
+    fileDeletes: number;
+    total: number;
+}
