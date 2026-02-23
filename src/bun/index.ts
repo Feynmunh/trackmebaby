@@ -123,7 +123,7 @@ async function startServices(): Promise<void> {
 
 		// Start file watcher for each project
 		for (const project of projects) {
-			watcher.addProject(project.path);
+			await watcher.addProject(project.path);
 		}
 
 		// Start git tracker

@@ -10,7 +10,7 @@ A background desktop app that watches your projects folder and keeps track of wh
 | Backend | [Bun](https://bun.sh/) (TypeScript) |
 | Frontend | React + Tailwind CSS + Vite |
 | Database | bun:sqlite (WAL mode) |
-| File watching | Node `fs.watch` (recursive, via inotify) |
+| File watching | `@parcel/watcher-wasm` with `fs.watch` fallback |
 | Git tracking | `Bun.$` shell (read-only git commands) |
 | AI | Groq API (LLaMA 3.3 70B, OpenAI-compatible) |
 
@@ -55,7 +55,7 @@ src/
 
 1. **Background daemon**: Runs in system tray. Click to open dashboard.
 2. **Project scanner**: Scans your base folder for git repos (depth 3).
-3. **File watcher**: Monitors each project via `fs.watch` with debouncing and `.gitignore` filtering.
+3. **File watcher**: Monitors each project via `@parcel/watcher-wasm` (or `fs.watch` fallback) with debouncing and `.gitignore` filtering.
 4. **Git tracker**: Polls git status (branch, commits, uncommitted files) every 60s.
 5. **AI chat**: Ask questions about your work — activity context is assembled automatically.
 
@@ -87,7 +87,7 @@ export GROQ_API_KEY="your-api-key-here"
 
 | Decision | Rationale |
 |----------|-----------|
-| `fs.watch` over `@parcel/watcher-wasm` | Parcel watcher has napi-wasm incompatibility with Bun 1.3.8 |
+│ `@parcel/watcher-wasm` with `fs.watch` fallback │ Parcel watcher has napi-wasm incompatibility in Bun test env — graceful fallback │
 | `Bun.$` over `simple-git` | Zero deps, read-only shell commands |
 | UUIDv7 over autoincrement | Time-sortable, globally unique |
 | Fetch-based AI over SDKs | No npm dependency, works with any OpenAI-compatible API |

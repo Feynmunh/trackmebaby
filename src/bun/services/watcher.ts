@@ -1,6 +1,6 @@
 /**
  * File Watcher Service — monitors project directories for file changes
- * Uses Node's fs.watch (backed by inotify on Linux) with recursive mode
+ * Uses @parcel/watcher-wasm with fallback to fs.watch for compatibility
  * Implements debouncing and .gitignore-aware filtering
  */
 import { watch, type FSWatcher } from "node:fs";
@@ -36,13 +36,33 @@ const DEFAULT_IGNORES = [
     "__pycache__",
 ];
 
+interface WatcherInstance {
+    unsubscribe: () => void;
+    ignore: Ignore;
+    useParcel: boolean;
+}
+
+let parcelLoadFailed = false;
+
+async function tryLoadParcelWatcher() {
+    if (parcelLoadFailed) return null;
+    try {
+        const parcel = await import("@parcel/watcher-wasm");
+        return parcel;
+    } catch {
+        parcelLoadFailed = true;
+        console.log("[Watcher] @parcel/watcher-wasm unavailable, using fs.watch fallback");
+        return null;
+    }
+}
+
 export class WatcherService {
-    private watchers: Map<string, FSWatcher> = new Map();
-    private ignoreFilters: Map<string, Ignore> = new Map();
+    private watchers: Map<string, WatcherInstance> = new Map();
     private debounceTimers: Map<string, Timer> = new Map();
     private debounceMs: number;
     private db: Database;
     private callbacks: EventCallback[] = [];
+    private useParcel: boolean = true;
 
     constructor(db: Database, debounceMs: number = 500) {
         this.db = db;
@@ -59,13 +79,63 @@ export class WatcherService {
     /**
      * Start watching a project directory.
      */
-    addProject(projectPath: string): void {
+    async addProject(projectPath: string): Promise<void> {
         if (this.watchers.has(projectPath)) return;
 
-        // Build ignore filter for this project
         const ig = this.buildIgnoreFilter(projectPath);
-        this.ignoreFilters.set(projectPath, ig);
 
+        if (this.useParcel) {
+            const parcel = await tryLoadParcelWatcher();
+            
+            if (parcel) {
+                try {
+                    const unsubscribe = await parcel.subscribe(projectPath, (err, events) => {
+                        if (err) {
+                            console.error(`[Watcher] Error watching ${projectPath}:`, err.message);
+                            return;
+                        }
+                        if (!events || events.length === 0) return;
+
+                        for (const event of events) {
+                            const relativePath = event.path;
+                            if (ig.ignores(relativePath)) continue;
+                            if (ig.ignores(relativePath.replace(/^\//, ""))) continue;
+
+                            this.handleRawEvent(projectPath, event.type, event.path);
+                        }
+                    }, {
+                        ignore: [
+                            "**/node_modules/**",
+                            "**/.git/**",
+                            "**/dist/**",
+                            "**/build/**",
+                            "**/.next/**",
+                            "**/.turbo/**",
+                            "**/*.lock",
+                            "**/.DS_Store",
+                            "**/*.swp",
+                            "**/*.swo",
+                            "**/.env",
+                            "**/coverage/**",
+                            "**/.cache/**",
+                            "**/__pycache__/**",
+                        ],
+                    });
+
+                    this.watchers.set(projectPath, { unsubscribe, ignore: ig, useParcel: true });
+                    console.log(`[Watcher] Watching (parcel): ${projectPath}`);
+                    return;
+                } catch (err: any) {
+                    console.log(`[Watcher] Parcel failed for ${projectPath}, falling back: ${err.message}`);
+                }
+            }
+        }
+
+        this.useParcel = false;
+        this.addProjectFsWatch(projectPath, ig);
+    }
+
+    private addProjectFsWatch(projectPath: string, ig: Ignore): void {
         try {
             const watcher = watch(projectPath, { recursive: true }, (eventType, filename) => {
                 if (!filename) return;
@@ -76,8 +146,12 @@ export class WatcherService {
                 console.error(`[Watcher] Error watching ${projectPath}:`, err.message);
             });
 
-            this.watchers.set(projectPath, watcher);
-            console.log(`[Watcher] Watching: ${projectPath}`);
+            this.watchers.set(projectPath, { 
+                unsubscribe: () => watcher.close(), 
+                ignore: ig,
+                useParcel: false 
+            });
+            console.log(`[Watcher] Watching (fs.watch): ${projectPath}`);
         } catch (err: any) {
             console.error(`[Watcher] Failed to watch ${projectPath}:`, err.message);
         }
@@ -87,11 +161,10 @@ export class WatcherService {
      * Stop watching a project directory.
      */
     removeProject(projectPath: string): void {
-        const watcher = this.watchers.get(projectPath);
-        if (watcher) {
-            watcher.close();
+        const instance = this.watchers.get(projectPath);
+        if (instance) {
+            instance.unsubscribe();
             this.watchers.delete(projectPath);
-            this.ignoreFilters.delete(projectPath);
             console.log(`[Watcher] Stopped watching: ${projectPath}`);
         }
     }
@@ -100,11 +173,10 @@ export class WatcherService {
      * Stop all watchers.
      */
     stopAll(): void {
-        for (const [, watcher] of this.watchers) {
-            watcher.close();
+        for (const [, instance] of this.watchers) {
+            instance.unsubscribe();
         }
         this.watchers.clear();
-        this.ignoreFilters.clear();
         this.debounceTimers.clear();
     }
 
@@ -115,12 +187,12 @@ export class WatcherService {
         return this.watchers.size;
     }
 
-    private handleRawEvent(projectPath: string, eventType: string, filename: string): void {
-        // Filter ignored files
-        const ig = this.ignoreFilters.get(projectPath);
-        if (ig && ig.ignores(filename)) return;
+    private handleRawEvent(projectPath: string, eventType: string | undefined, filename: string): void {
+        const ig = this.watchers.get(projectPath)?.ignore;
+        if (ig) {
+            if (ig.ignores(filename)) return;
+        }
 
-        // Debounce: use project+filename as key
         const debounceKey = `${projectPath}:${filename}`;
         const existingTimer = this.debounceTimers.get(debounceKey);
         if (existingTimer) clearTimeout(existingTimer);
@@ -134,19 +206,26 @@ export class WatcherService {
         );
     }
 
-    private emitEvent(projectPath: string, eventType: string, filename: string): void {
-        // Map fs.watch events to our event types
-        // fs.watch provides "rename" (create/delete) and "change" (modify)
-        // We can't distinguish create from delete with fs.watch alone,
-        // so we check if the file exists
+    private emitEvent(projectPath: string, eventType: string | undefined, filename: string): void {
         let type: WatcherEvent["type"];
+        const useParcel = this.watchers.get(projectPath)?.useParcel;
 
-        if (eventType === "change") {
-            type = "file_modify";
+        if (useParcel) {
+            if (eventType === "update") {
+                type = "file_modify";
+            } else if (eventType === "delete") {
+                type = "file_delete";
+            } else {
+                const fullPath = join(projectPath, filename);
+                type = existsSync(fullPath) ? "file_create" : "file_delete";
+            }
         } else {
-            // "rename" could be create or delete — check existence
-            const fullPath = join(projectPath, filename);
-            type = existsSync(fullPath) ? "file_create" : "file_delete";
+            if (eventType === "change") {
+                type = "file_modify";
+            } else {
+                const fullPath = join(projectPath, filename);
+                type = existsSync(fullPath) ? "file_create" : "file_delete";
+            }
         }
 
         const event: WatcherEvent = { type, path: filename, projectPath };
@@ -174,10 +253,8 @@ export class WatcherService {
     private buildIgnoreFilter(projectPath: string): Ignore {
         const ig = ignore();
 
-        // Add default ignores
         ig.add(DEFAULT_IGNORES);
 
-        // Parse .gitignore if exists
         const gitignorePath = join(projectPath, ".gitignore");
         if (existsSync(gitignorePath)) {
             try {
@@ -188,7 +265,6 @@ export class WatcherService {
                     .filter((line) => line && !line.startsWith("#"));
                 ig.add(patterns);
             } catch {
-                // Ignore parsing errors
             }
         }
 

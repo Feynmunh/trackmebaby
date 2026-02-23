@@ -11,6 +11,7 @@
 		"start": "bun run dev"
 	},
 	"dependencies": {
+		"@parcel/watcher-wasm": "^2.5.6",
 		"electrobun": "1.13.1",
 		"ignore": "^7.0.5",
 		"react": "^18.3.1",
