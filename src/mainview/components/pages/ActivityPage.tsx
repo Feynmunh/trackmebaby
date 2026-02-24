@@ -71,7 +71,7 @@ export default function ActivityPage({ events, isWidget = false }: ActivityPageP
         if (isWidget) return null;
         return (
             <div className="flex flex-col items-center justify-center h-full px-8 select-none">
-                <div className="w-16 h-16 rounded-2xl bg-mac-surface flex items-center justify-center mb-6 shadow-mac border border-mac-border/30">
+                <div className="w-16 h-16 rounded-2xl bg-mac-surface flex items-center justify-center mb-6 shadow-mac border border-mac-border">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-8 h-8 text-mac-secondary">
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                     </svg>
@@ -101,7 +101,7 @@ export default function ActivityPage({ events, isWidget = false }: ActivityPageP
                 <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6 border-b border-mac-border/30 pb-4">
                     Workspace Focus
                 </h3>
-                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-6 border border-mac-border/30 shadow-mac">
+                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-6 border border-mac-border shadow-mac">
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest">Type Distribution</span>
                         <div className="flex -space-x-1">
@@ -147,7 +147,7 @@ export default function ActivityPage({ events, isWidget = false }: ActivityPageP
     return (
         <div className="flex flex-col h-full px-24 py-12 select-none">
             {/* Header / Summary Section */}
-            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-16 border-b border-mac-border/30 pb-10">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-16 border-b border-mac-border pb-10">
                 <div className="max-w-md">
                     <h2 className="text-sm font-bold text-mac-secondary uppercase tracking-[0.2em] mb-4">Activity Insights</h2>
                     <h3 className="text-2xl font-black text-mac-text mb-3">Development Focus</h3>
@@ -156,7 +156,7 @@ export default function ActivityPage({ events, isWidget = false }: ActivityPageP
                     </p>
                 </div>
 
-                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border/30 shadow-mac flex-1 lg:max-w-sm">
+                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac flex-1 lg:max-w-sm">
                     <div className="flex items-center justify-between mb-4">
                         <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest">Type Distribution</span>
                         <div className="flex -space-x-1">
@@ -202,7 +202,7 @@ export default function ActivityPage({ events, isWidget = false }: ActivityPageP
                         <div key={group.label} className="mb-12">
                             <div className="flex items-center gap-4 mb-8">
                                 <h4 className="text-xs font-black text-mac-secondary uppercase tracking-[0.2em]">{group.label}</h4>
-                                <div className="h-px flex-1 bg-mac-border/30" />
+                                <div className="h-px flex-1 bg-mac-border" />
                             </div>
 
                             <div className="space-y-4">
@@ -213,7 +213,7 @@ export default function ActivityPage({ events, isWidget = false }: ActivityPageP
                                     return (
                                         <div
                                             key={ev.id}
-                                            className="group flex items-center gap-6 p-4 rounded-2xl hover:bg-mac-surface/50 border border-transparent hover:border-mac-border/30 transition-all cursor-default"
+                                            className="group flex items-center gap-6 p-4 rounded-2xl hover:bg-mac-surface/50 border border-transparent hover:border-mac-border transition-all cursor-default"
                                         >
                                             <div className="w-16 shrink-0 text-[10px] font-bold text-mac-secondary font-mono tracking-tighter tabular-nums opacity-60 group-hover:opacity-100 transition-opacity">
                                                 {formatTime(ev.timestamp)}

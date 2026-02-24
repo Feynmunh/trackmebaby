@@ -14,7 +14,7 @@ export default function ProjectCard({
     const projectPathParts = project.path.split('/');
 
     return (
-        <div className="bg-mac-surface rounded-xl p-5 shadow-mac hover:shadow-mac-md transition-all duration-200 hover:scale-[1.01] group cursor-pointer flex flex-col h-full">
+        <div className="bg-mac-surface rounded-xl p-5 shadow-mac border border-mac-border hover:shadow-mac-md transition-all duration-200 hover:scale-[1.01] group cursor-pointer flex flex-col h-full">
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -45,9 +45,13 @@ export default function ProjectCard({
                                 <span className="w-1.5 h-1.5 rounded-full bg-mac-accent" />
                                 {gitSnapshot.branch}
                             </span>
-                            {gitSnapshot.uncommittedCount > 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-mac-bg text-xs font-medium text-mac-secondary">
-                                    {gitSnapshot.uncommittedCount} pending
+                            {gitSnapshot.uncommittedCount > 0 ? (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-mac-accent/10 text-xs font-bold text-mac-accent border border-mac-accent/20 uppercase tracking-tight">
+                                    {gitSnapshot.uncommittedCount} changes
+                                </span>
+                            ) : (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-mac-bg text-xs font-medium text-mac-secondary border border-mac-border uppercase tracking-tight">
+                                    0 changes
                                 </span>
                             )}
                         </>

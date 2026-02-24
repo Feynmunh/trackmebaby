@@ -66,7 +66,7 @@ async function getMainViewUrl(): Promise<string> {
 	return "views://mainview/index.html";
 }
 
-// Guard to prevent race condition when creating windows
+const isLinux = process.platform === "linux";
 let isCreatingWindow = false;
 
 async function createWindow(): Promise<void> {
@@ -88,8 +88,10 @@ async function createWindow(): Promise<void> {
 			title: "trackmebaby",
 			url,
 			rpc,
-			titleBarStyle: "hiddenInset",
-			transparent: true,
+			// hiddenInset causes double titlebars and potential crashes on some Linux setups
+			titleBarStyle: isLinux ? "default" : "hiddenInset",
+			// Transparency on Linux can cause GLX/OpenGL segmentation faults (0x0)
+			transparent: !isLinux,
 			styleMask: {
 				Titled: true,
 				Closable: true,
@@ -107,6 +109,8 @@ async function createWindow(): Promise<void> {
 		mainWindow.on("close", () => {
 			mainWindow = null;
 		});
+	} catch (err) {
+		console.error("[trackmebaby] Failed to create window:", err);
 	} finally {
 		isCreatingWindow = false;
 	}

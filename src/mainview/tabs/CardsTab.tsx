@@ -168,25 +168,27 @@ export default function CardsTab() {
                                 <div
                                     key={project.id}
                                     onClick={() => openDashboard(project.id)}
-                                    className="bg-mac-surface rounded-2xl p-6 shadow-mac hover:shadow-mac-md transition-all duration-200 cursor-pointer group active:scale-[0.98]"
+                                    className="bg-mac-surface rounded-2xl p-6 shadow-mac border border-mac-border hover:shadow-mac-md transition-all duration-200 cursor-pointer group active:scale-[0.98]"
                                 >
                                     <h3 className="text-lg font-semibold text-mac-text mb-4 group-hover:text-mac-accent transition-colors">{project.name}</h3>
-
-                                    <div className="flex flex-wrap gap-2 mb-4">
-                                        <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-bg text-mac-secondary px-2 py-0.5 rounded border border-mac-border">
-                                            {snapshot?.branch || "main"}
-                                        </span>
-                                        {snapshot && snapshot.uncommittedCount > 0 && (
-                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-accent/10 text-mac-accent px-2 py-0.5 rounded border border-mac-accent/20">
-                                                {snapshot.uncommittedCount} changes
-                                            </span>
-                                        )}
-                                        {project.worktrees && project.worktrees.length > 1 && (
-                                            <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20">
-                                                {project.worktrees.length} worktrees
-                                            </span>
-                                        )}
-                                    </div>
+                                    {snapshot && (
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            {snapshot.uncommittedCount > 0 ? (
+                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-accent/10 text-mac-accent px-2 py-0.5 rounded border border-mac-accent/20">
+                                                    {snapshot.uncommittedCount} changes
+                                                </span>
+                                            ) : (
+                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-bg text-mac-secondary px-2 py-0.5 rounded border border-mac-border">
+                                                    0 changes
+                                                </span>
+                                            )}
+                                            {project.worktrees && project.worktrees.length > 1 && (
+                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20">
+                                                    {project.worktrees.length} worktrees
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
 
                                     <div className="mt-auto pt-4 border-t border-mac-border flex items-center justify-between">
                                         <span className="text-xs text-mac-secondary">
@@ -202,7 +204,6 @@ export default function CardsTab() {
                                                 })()
                                             ) : 'Never active'}
                                         </span>
-                                        <div className="w-2 h-2 rounded-full bg-mac-accent animate-pulse" />
                                     </div>
                                 </div>
                             );
