@@ -3,7 +3,7 @@
  * Uses @parcel/watcher-wasm with fallback to fs.watch for compatibility
  * Implements debouncing and .gitignore-aware filtering
  */
-import { watch, type FSWatcher } from "node:fs";
+import { watch } from "node:fs";
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import ignore, { type Ignore } from "ignore";
@@ -34,6 +34,14 @@ const DEFAULT_IGNORES = [
     "coverage",
     ".cache",
     "__pycache__",
+    ".venv",
+    "venv",
+    "env",
+    ".idea",
+    ".vscode",
+    ".pytest_cache",
+    ".mypy_cache",
+    ".ruff_cache",
 ];
 
 interface WatcherInstance {
@@ -86,7 +94,7 @@ export class WatcherService {
 
         if (this.useParcel) {
             const parcel = await tryLoadParcelWatcher();
-            
+
             if (parcel) {
                 try {
                     const unsubscribe = await parcel.subscribe(projectPath, (err, events) => {
@@ -122,7 +130,13 @@ export class WatcherService {
                         ],
                     });
 
-                    this.watchers.set(projectPath, { unsubscribe, ignore: ig, useParcel: true });
+                    this.watchers.set(projectPath, {
+                        unsubscribe: () => {
+                            (unsubscribe as any).unsubscribe();
+                        },
+                        ignore: ig,
+                        useParcel: true
+                    });
                     console.log(`[Watcher] Watching (parcel): ${projectPath}`);
                     return;
                 } catch (err: any) {
@@ -136,24 +150,66 @@ export class WatcherService {
     }
 
     private addProjectFsWatch(projectPath: string, ig: Ignore): void {
+        const watchers: (() => void)[] = [];
+
+        const watchRecursive = (dir: string) => {
+            try {
+                const relativeDir = dir === projectPath ? "" : dir.slice(projectPath.length + 1);
+
+                // If it's a directory we're about to watch, check if it's ignored
+                if (relativeDir !== "" && ig.ignores(relativeDir)) {
+                    return;
+                }
+
+                // Add non-recursive watcher to this directory
+                const watcher = watch(dir, { recursive: false }, (eventType, filename) => {
+                    if (!filename) return;
+                    const relativePath = join(relativeDir, filename);
+                    if (ig.ignores(relativePath)) return;
+
+                    this.handleRawEvent(projectPath, eventType, relativePath);
+
+                    // If a new directory is created, we need to watch it too
+                    if (eventType === "rename") {
+                        const fullPath = join(dir, filename);
+                        if (existsSync(fullPath) && require("node:fs").statSync(fullPath).isDirectory()) {
+                            watchRecursive(fullPath);
+                        }
+                    }
+                });
+
+                watcher.on("error", (err: any) => {
+                    if (err.code === "ENOSPC") {
+                        console.error(`[Watcher] ENOSPC error on ${dir}. inotify limit too low. Run: sudo sysctl fs.inotify.max_user_watches=524288`);
+                    } else {
+                        console.error(`[Watcher] Error on ${dir}:`, err.message);
+                    }
+                });
+
+                watchers.push(() => watcher.close());
+
+                // Recursively walk subdirectories
+                const files = require("node:fs").readdirSync(dir, { withFileTypes: true });
+                for (const file of files) {
+                    if (file.isDirectory()) {
+                        watchRecursive(join(dir, file.name));
+                    }
+                }
+            } catch (err: any) {
+                // Ignore access errors for restricted dirs
+            }
+        };
+
         try {
-            const watcher = watch(projectPath, { recursive: true }, (eventType, filename) => {
-                if (!filename) return;
-                this.handleRawEvent(projectPath, eventType, filename);
-            });
-
-            watcher.on("error", (err) => {
-                console.error(`[Watcher] Error watching ${projectPath}:`, err.message);
-            });
-
-            this.watchers.set(projectPath, { 
-                unsubscribe: () => watcher.close(), 
+            watchRecursive(projectPath);
+            this.watchers.set(projectPath, {
+                unsubscribe: () => watchers.forEach(un => un()),
                 ignore: ig,
-                useParcel: false 
+                useParcel: false
             });
-            console.log(`[Watcher] Watching (fs.watch): ${projectPath}`);
+            console.log(`[Watcher] Watching (manual-recursive): ${projectPath}`);
         } catch (err: any) {
-            console.error(`[Watcher] Failed to watch ${projectPath}:`, err.message);
+            console.error(`[Watcher] Failed manual watch for ${projectPath}:`, err.message);
         }
     }
 

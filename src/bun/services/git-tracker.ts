@@ -3,13 +3,14 @@
  * Uses Bun.$ shell for all git operations (no simple-git)
  * Read-only: never modifies the user's git state
  */
+import { join } from "node:path";
 import type { Database } from "bun:sqlite";
 import {
     insertGitSnapshot,
     getLatestGitSnapshot,
     getProjectByPath,
 } from "../db/queries.ts";
-import type { GitSnapshot } from "../../shared/types.ts";
+import type { GitSnapshot, ProjectStats, RecentCommit } from "../../shared/types.ts";
 
 export interface GitStatus {
     branch: string;
@@ -19,6 +20,7 @@ export interface GitStatus {
     uncommittedCount: number;
     uncommittedFiles: string[];
     diffStats: string | null;
+    activityTimestamp: string;
 }
 
 type GitStatusCallback = (projectPath: string, snapshot: GitSnapshot) => void;
@@ -115,6 +117,115 @@ export class GitTrackerService {
         }
     }
 
+    async getProjectStats(projectPath: string): Promise<ProjectStats | null> {
+        try {
+            // Verify it's a git repo
+            try {
+                await Bun.$`git -C ${projectPath} rev-parse --git-dir`.quiet();
+            } catch {
+                return null;
+            }
+
+            // Branch count
+            let branchCount = 0;
+            try {
+                const result = await Bun.$`git -C ${projectPath} branch --list`.quiet();
+                branchCount = result.text().trim().split("\n").filter(Boolean).length;
+            } catch { }
+
+            // Total commits
+            let totalCommits = 0;
+            try {
+                const result = await Bun.$`git -C ${projectPath} rev-list --count HEAD`.quiet();
+                totalCommits = parseInt(result.text().trim()) || 0;
+            } catch { }
+
+            // Repo age (first commit)
+            let repoAgeFirstCommit: string | null = null;
+            try {
+                const result = await Bun.$`git -C ${projectPath} log --reverse --format=%aI`.quiet();
+                repoAgeFirstCommit = result.text().split("\n")[0]?.trim() || null;
+            } catch { }
+
+            // Last 25 commits with stats
+            let recentCommits: RecentCommit[] = [];
+            try {
+                // We use --shortstat to get additions/deletions. 
+                // Note: Merge commits might not show stats unless we add -m/--cc, but usually we want clean stats.
+                const result = await Bun.$`git -C ${projectPath} log -25 -m --format="===%H|%s|%aI|%an" --numstat`.quiet();
+                const lines = result.text().trim().split("\n");
+
+                let currentCommit: RecentCommit | null = null;
+                for (const line of lines) {
+                    const trimmed = line.trim();
+                    if (!trimmed) continue;
+
+                    if (trimmed.startsWith("===")) {
+                        if (currentCommit) recentCommits.push(currentCommit);
+
+                        const [hashAndPrefix, message, timestamp, author] = trimmed.split("|");
+                        const hash = hashAndPrefix.replace("===", "");
+                        currentCommit = { hash, message, timestamp, author, insertions: 0, deletions: 0 };
+                    } else if (currentCommit) {
+                        const parts = trimmed.split(/\s+/);
+                        if (parts.length >= 2) {
+                            const ins = parseInt(parts[0]);
+                            const del = parseInt(parts[1]);
+                            if (!isNaN(ins)) currentCommit.insertions += ins;
+                            if (!isNaN(del)) currentCommit.deletions += del;
+                        }
+                    }
+                }
+                if (currentCommit) recentCommits.push(currentCommit);
+            } catch (err: any) {
+                console.error(`[GitTracker] Error fetching recent commits:`, err.message);
+            }
+
+            // Diff summary
+            let diffSummary: ProjectStats['diffSummary'] = null;
+            try {
+                const result = await Bun.$`git -C ${projectPath} diff --shortstat`.quiet();
+                const output = result.text().trim();
+                // Example: 2 files changed, 10 insertions(+), 5 deletions(-)
+                if (output) {
+                    const filesMatch = output.match(/(\d+) files? changed/);
+                    const insMatch = output.match(/(\d+) insertions?\(\+\)/);
+                    const delMatch = output.match(/(\d+) deletions?\(-\)/);
+                    diffSummary = {
+                        filesChanged: filesMatch ? parseInt(filesMatch[1]) : 0,
+                        insertions: insMatch ? parseInt(insMatch[1]) : 0,
+                        deletions: delMatch ? parseInt(delMatch[1]) : 0
+                    };
+                }
+            } catch { }
+
+            // Top contributors
+            let contributors: { name: string; commits: number }[] = [];
+            try {
+                const result = await Bun.$`git -C ${projectPath} shortlog -sn --no-merges`.quiet();
+                contributors = result.text().trim().split("\n").filter(Boolean).slice(0, 3).map(line => {
+                    const match = line.trim().match(/^(\d+)\s+(.+)$/);
+                    return {
+                        name: match ? match[2] : "Unknown",
+                        commits: match ? parseInt(match[1]) : 0
+                    };
+                });
+            } catch { }
+
+            return {
+                branchCount,
+                totalCommits,
+                repoAgeFirstCommit,
+                recentCommits,
+                diffSummary,
+                contributors
+            };
+        } catch (err: any) {
+            console.error(`[GitTracker] Error getting stats for ${projectPath}:`, err.message);
+            return null;
+        }
+    }
+
     private async pollProject(projectPath: string): Promise<void> {
         try {
             const status = await this.fetchGitStatus(projectPath);
@@ -129,7 +240,6 @@ export class GitTrackerService {
                 return; // No changes — skip storing
             }
 
-            // Store new snapshot
             const snapshot = insertGitSnapshot(
                 this.db,
                 project.id,
@@ -141,6 +251,9 @@ export class GitTrackerService {
                 status.uncommittedFiles,
                 status.diffStats ?? undefined
             );
+
+            // Correct the project's last_activity_at using our derived source-of-truth
+            this.db.query("UPDATE projects SET last_activity_at = ? WHERE id = ?").run(status.activityTimestamp, project.id);
 
             // Notify callbacks
             for (const cb of this.callbacks) {
@@ -175,7 +288,7 @@ export class GitTrackerService {
         let lastCommitMessage: string | null = null;
         let lastCommitTimestamp: string | null = null;
         try {
-            const result = await Bun.$`git -C ${projectPath} log -1 --format=%H|%s|%aI`.quiet();
+            const result = await Bun.$`git -C ${projectPath} log -1 --format="%H|%s|%aI"`.quiet();
             const parts = result.text().trim().split("|");
             if (parts.length >= 3) {
                 lastCommitHash = parts[0];
@@ -186,8 +299,9 @@ export class GitTrackerService {
             // No commits yet
         }
 
-        // Get uncommitted files
+        // Get uncommitted files and their latest mtime
         let uncommittedFiles: string[] = [];
+        let latestMtime: Date | null = null;
         try {
             const result = await Bun.$`git -C ${projectPath} status --porcelain`.quiet();
             const output = result.text().trim();
@@ -196,7 +310,19 @@ export class GitTrackerService {
                     .split("\n")
                     .map((line) => line.trim())
                     .filter(Boolean)
-                    .map((line) => line.substring(3)); // Strip status prefix (e.g., "M  ", "?? ")
+                    .map((line) => line.substring(3));
+
+                // Strategy: Find the most recent mtime among uncommitted files
+                const { statSync } = require("node:fs");
+                for (const file of uncommittedFiles) {
+                    try {
+                        const fullPath = join(projectPath, file);
+                        const stats = statSync(fullPath);
+                        if (!latestMtime || stats.mtime > latestMtime) {
+                            latestMtime = stats.mtime;
+                        }
+                    } catch { /* skip missing/permission-denied files */ }
+                }
             }
         } catch { }
 
@@ -210,6 +336,9 @@ export class GitTrackerService {
             }
         } catch { }
 
+        // Derive true activity: mtime of unsaved files OR last commit time
+        const activityTimestamp = latestMtime ? latestMtime.toISOString() : (lastCommitTimestamp || new Date().toISOString());
+
         return {
             branch,
             lastCommitHash,
@@ -218,6 +347,7 @@ export class GitTrackerService {
             uncommittedCount: uncommittedFiles.length,
             uncommittedFiles,
             diffStats,
+            activityTimestamp
         };
     }
 

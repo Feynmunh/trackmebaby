@@ -3,12 +3,22 @@
  * Single source of truth — used by both Bun (backend) and browser (frontend)
  */
 
+export interface Worktree {
+    path: string;              // Absolute path to worktree directory
+    branch: string;            // Currently checked-out branch
+    isMain: boolean;           // Is this the main working directory?
+    lastActivityAt: string | null; // Derived: mtime of uncommitted files or last commit
+    uncommittedCount: number;
+    uncommittedFiles: string[];
+}
+
 export interface Project {
     id: string;
     path: string;
     name: string;
     lastActivityAt: string | null;
     createdAt: string;
+    worktrees: Worktree[];     // Empty array if no worktrees
 }
 
 export interface ActivityEvent {
@@ -54,4 +64,26 @@ export interface ActivitySummary {
     fileModifies: number;
     fileDeletes: number;
     total: number;
+}
+
+export interface ProjectStats {
+    branchCount: number;
+    totalCommits: number;
+    repoAgeFirstCommit: string | null; // ISO date of first commit
+    recentCommits: RecentCommit[];
+    diffSummary: {
+        filesChanged: number;
+        insertions: number;
+        deletions: number;
+    } | null;
+    contributors: { name: string; commits: number }[];
+}
+
+export interface RecentCommit {
+    hash: string;
+    message: string;
+    timestamp: string;
+    author: string;
+    insertions: number;
+    deletions: number;
 }

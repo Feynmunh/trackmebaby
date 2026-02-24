@@ -40,14 +40,14 @@ const scanner = new ProjectScanner(db);
 const watcher = new WatcherService(db, settingsService.getWatchDebounce());
 const gitTracker = new GitTrackerService(db, settingsService.getPollInterval());
 
-// --- RPC ---
-const rpc = createRPC(db, settingsService, scanner);
-
 // --- Window Management ---
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
 
 let mainWindow: BrowserWindow | null = null;
+
+// --- RPC (needs getMainWindow for window control handlers) ---
+const rpc = createRPC(db, settingsService, scanner, gitTracker, () => mainWindow);
 
 async function getMainViewUrl(): Promise<string> {
 	const channel = await Updater.localInfo.channel();

@@ -2,23 +2,27 @@
  * RPC Bridge — wires backend services to frontend via Electrobun typed RPC
  * This module connects all services and exposes them as RPC request handlers
  */
-import { BrowserView } from "electrobun/bun";
+import { BrowserView, BrowserWindow } from "electrobun/bun";
 import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
 import type { Database } from "bun:sqlite";
 import {
     getProjects,
     getRecentEvents,
     getLatestGitSnapshot,
+    getProjectById,
 } from "../db/queries.ts";
 import { SettingsService } from "../services/settings.ts";
 import { ProjectScanner } from "../services/project-scanner.ts";
+import { GitTrackerService } from "../services/git-tracker.ts";
 import { createAIProvider, type AIProvider } from "../services/ai/index.ts";
 import { assembleContext } from "../services/ai/context-assembler.ts";
 
 export function createRPC(
     db: Database,
     settingsService: SettingsService,
-    scanner: ProjectScanner
+    scanner: ProjectScanner,
+    gitTracker: GitTrackerService,
+    getMainWindow: () => BrowserWindow | null
 ) {
     // Create AI provider from current settings
     let aiProvider: AIProvider | null = null;
@@ -51,8 +55,38 @@ export function createRPC(
                     return getRecentEvents(db, projectId, new Date(since));
                 },
 
-                getGitStatus: ({ projectId }) => {
-                    return getLatestGitSnapshot(db, projectId);
+                getGitStatus: async ({ projectId }) => {
+                    // Try DB first (fast)
+                    const cached = getLatestGitSnapshot(db, projectId);
+                    if (cached) return cached;
+
+                    // No snapshot yet — live fetch and store so the UI isn't empty
+                    const project = getProjectById(db, projectId);
+                    if (!project) return null;
+                    try {
+                        const snapshot = await gitTracker.getSnapshot(project.path);
+                        if (!snapshot) return null;
+                        // Store it so subsequent calls are instant
+                        const { insertGitSnapshot } = await import("../db/queries.ts");
+                        return insertGitSnapshot(
+                            db,
+                            project.id,
+                            snapshot.branch,
+                            snapshot.lastCommitHash,
+                            snapshot.lastCommitMessage,
+                            snapshot.lastCommitTimestamp,
+                            snapshot.uncommittedCount,
+                            snapshot.uncommittedFiles,
+                            snapshot.diffStats ?? undefined
+                        );
+                    } catch {
+                        return null;
+                    }
+                },
+                getProjectStats: async ({ projectId }) => {
+                    const project = getProjectById(db, projectId);
+                    if (!project) return null;
+                    return await gitTracker.getProjectStats(project.path);
                 },
 
                 queryAI: async ({ question }) => {
@@ -82,6 +116,58 @@ export function createRPC(
                     settingsService.setBasePath(basePath);
                     return projects;
                 },
+
+                getPlatform: () => {
+                    return process.platform;
+                },
+
+                windowMinimize: () => {
+                    const win = getMainWindow();
+                    if (win) {
+                        win.minimize();
+                        return { success: true };
+                    }
+                    return { success: false };
+                },
+
+                windowMaximize: () => {
+                    const win = getMainWindow();
+                    if (win) {
+                        if (win.isMaximized()) {
+                            win.unmaximize();
+                        } else {
+                            win.maximize();
+                        }
+                        return { success: true };
+                    }
+                    return { success: false };
+                },
+
+                windowClose: () => {
+                    const win = getMainWindow();
+                    if (win) {
+                        win.close();
+                        return { success: true };
+                    }
+                    return { success: false };
+                },
+
+                windowGetPosition: () => {
+                    const win = getMainWindow();
+                    if (win) {
+                        return win.getPosition();
+                    }
+                    return { x: 0, y: 0 };
+                },
+
+                windowSetPosition: ({ x, y }) => {
+                    const win = getMainWindow();
+                    if (win) {
+                        win.setPosition(x, y);
+                        return { success: true };
+                    }
+                    return { success: false };
+                },
             },
             messages: {
                 log: ({ msg }) => {
@@ -93,3 +179,4 @@ export function createRPC(
 
     return rpc;
 }
+

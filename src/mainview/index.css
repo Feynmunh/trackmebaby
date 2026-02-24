@@ -50,3 +50,42 @@
     opacity: 0.8;
   }
 }
+
+/* Reel layout — snap-scroll containers */
+.reel-vertical {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.reel-vertical::-webkit-scrollbar {
+  display: none;
+}
+
+.reel-horizontal {
+  scroll-snap-type: x mandatory;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.reel-horizontal::-webkit-scrollbar {
+  display: none;
+}
+
+.reel-snap-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Page dot indicator */
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mac-secondary);
+  opacity: 0.3;
+  transition: all 200ms ease-out;
+}
+.page-dot.active {
+  opacity: 1;
+  background: var(--mac-accent);
+  transform: scale(1.3);
+}
