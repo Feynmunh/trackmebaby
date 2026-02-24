@@ -68,6 +68,7 @@ export interface ActivitySummary {
 
 export interface ProjectStats {
     branchCount: number;
+    branches: string[];
     totalCommits: number;
     repoAgeFirstCommit: string | null; // ISO date of first commit
     recentCommits: RecentCommit[];

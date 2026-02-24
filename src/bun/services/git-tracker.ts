@@ -126,11 +126,14 @@ export class GitTrackerService {
                 return null;
             }
 
-            // Branch count
+            // Branch count & names
             let branchCount = 0;
+            let branches: string[] = [];
             try {
                 const result = await Bun.$`git -C ${projectPath} branch --list`.quiet();
-                branchCount = result.text().trim().split("\n").filter(Boolean).length;
+                const branchLines = result.text().trim().split("\n").filter(Boolean);
+                branchCount = branchLines.length;
+                branches = branchLines.map(line => line.replace(/^\*?\s+/, "").trim());
             } catch { }
 
             // Total commits
@@ -214,6 +217,7 @@ export class GitTrackerService {
 
             return {
                 branchCount,
+                branches,
                 totalCommits,
                 repoAgeFirstCommit,
                 recentCommits,

@@ -1,7 +1,8 @@
+import { useRef } from "react";
 import type { Project, GitSnapshot, ActivityEvent, ProjectStats, Worktree } from "../../shared/types.ts";
 import OverviewPage from "./pages/OverviewPage";
 import GitPage from "./pages/GitPage";
-import ActivityPage from "./pages/ActivityPage";
+
 
 function timeAgo(dateStr: string | null): string {
     if (!dateStr) return "Never";
@@ -31,6 +32,7 @@ export default function ProjectDashboard({
     events,
     onBack,
 }: ProjectDashboardProps) {
+    const timelineRef = useRef<HTMLDivElement>(null);
     const todayEventCount = events.filter((e) => {
         const d = new Date(e.timestamp);
         const now = new Date();
@@ -42,7 +44,7 @@ export default function ProjectDashboard({
     return (
         <div className="flex flex-col w-full h-full bg-mac-bg select-none">
             {/* Unified Dashboard Header */}
-            <header className="h-20 border-b border-mac-border/50 bg-mac-surface/30 backdrop-blur-md px-12 flex items-center justify-between shrink-0">
+            <header className="h-20 bg-mac-surface/30 backdrop-blur-md px-12 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-6">
                     <button
                         onClick={onBack}
@@ -70,7 +72,7 @@ export default function ProjectDashboard({
 
             {/* Worktree Cards — stacked horizontal row */}
             {hasWorktrees && (
-                <div className="border-b border-mac-border/30 bg-mac-surface/20 px-12 py-4 shrink-0">
+                <div className="bg-mac-surface/20 px-12 py-4 shrink-0">
                     <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-1">
                         {project.worktrees.map((wt) => (
                             <WorktreeCard key={wt.path} worktree={wt} />
@@ -94,11 +96,12 @@ export default function ProjectDashboard({
                                 eventCount={todayEventCount}
                                 events={events}
                                 isWidget={true}
+                                onCommitsClick={() => timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                             />
                         </section>
 
                         {/* Git History Timeline */}
-                        <section>
+                        <section ref={timelineRef} className="scroll-mt-12">
                             <GitPage
                                 gitSnapshot={gitSnapshot}
                                 projectStats={projectStats}
@@ -120,14 +123,7 @@ export default function ProjectDashboard({
                             />
                         </section>
 
-                        {/* File Distribution */}
-                        <section>
-                            <ActivityPage
-                                events={events}
-                                projectStats={projectStats}
-                                isWidget={true}
-                            />
-                        </section>
+
                     </div>
 
                 </div>

@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Project, GitSnapshot, ProjectStats, ActivityEvent } from "../../../shared/types.ts";
 
 interface OverviewPageProps {
@@ -7,6 +8,8 @@ interface OverviewPageProps {
     eventCount: number;
     events: ActivityEvent[];
     isWidget?: boolean;
+    onBranchesClick?: () => void;
+    onCommitsClick?: () => void;
 }
 
 function timeAgo(dateStr: string | null): string {
@@ -28,7 +31,11 @@ export default function OverviewPage({
     eventCount,
     events,
     isWidget = false,
+    onBranchesClick,
+    onCommitsClick,
 }: OverviewPageProps) {
+    const [showingBranches, setShowingBranches] = useState(false);
+
     if (isWidget) {
         // Calculate last 7 days activity chart
         const dailyCounts = Array.from({ length: 7 }, (_, i) => {
@@ -51,20 +58,45 @@ export default function OverviewPage({
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                     <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
                         {/* Stat Cards */}
-                        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all">
-                            <div className="w-8 h-8 rounded-lg bg-mac-accent/10 flex items-center justify-center mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 text-mac-accent">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                        <div
+                            onClick={() => {
+                                onBranchesClick?.();
+                                setShowingBranches(!showingBranches);
+                            }}
+                            className={`group relative bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98] ${showingBranches ? 'z-[60]' : 'z-0'}`}
+                        >
+                            <div className="w-8 h-8 rounded-lg bg-mac-accent/10 flex items-center justify-center mb-4 group-hover:bg-mac-accent/20 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 text-mac-accent">
+                                    <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
                                 </svg>
                             </div>
                             <div className="text-2xl font-black text-mac-text mb-1">{projectStats?.branchCount ?? "-"}</div>
                             <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Branches</div>
+
+                            {showingBranches && projectStats?.branches && (
+                                <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-mac-surface border border-mac-border rounded-xl shadow-mac-lg p-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                                    <h4 className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest mb-3 pb-2 border-b border-mac-border/50">All Branches</h4>
+                                    <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                        {projectStats.branches.map(branch => (
+                                            <div key={branch} className="flex items-center gap-2 text-[13px] text-mac-text py-1.5 px-2 rounded-lg hover:bg-mac-accent/10 hover:text-mac-accent transition-colors font-medium">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 opacity-60">
+                                                    <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
+                                                </svg>
+                                                <span className="truncate">{branch}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
 
-                        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all">
-                            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 text-green-500">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        <div
+                            onClick={onCommitsClick}
+                            className="group bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]"
+                        >
+                            <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center mb-4 group-hover:bg-green-500/20 transition-colors">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 text-green-500">
+                                    <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                                 </svg>
                             </div>
                             <div className="text-2xl font-black text-mac-text mb-1">{projectStats?.totalCommits ?? "-"}</div>
@@ -142,20 +174,45 @@ export default function OverviewPage({
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
                 {/* Stat Cards */}
-                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all">
-                    <div className="w-10 h-10 rounded-xl bg-mac-accent/10 flex items-center justify-center mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-mac-accent">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h7" />
+                <div
+                    onClick={() => {
+                        onBranchesClick?.();
+                        setShowingBranches(!showingBranches);
+                    }}
+                    className={`group relative bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98] ${showingBranches ? 'z-[60]' : 'z-0'}`}
+                >
+                    <div className="w-10 h-10 rounded-xl bg-mac-accent/10 flex items-center justify-center mb-6 group-hover:bg-mac-accent/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-5 h-5 text-mac-accent">
+                            <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
                         </svg>
                     </div>
                     <div className="text-3xl font-black text-mac-text mb-1">{projectStats?.branchCount ?? "-"}</div>
                     <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">Active Branches</div>
+
+                    {showingBranches && projectStats?.branches && (
+                        <div className="absolute top-full left-0 right-0 mt-4 z-50 bg-mac-surface border border-mac-border rounded-2xl shadow-mac-lg p-6 animate-in fade-in slide-in-from-top-2 duration-200">
+                            <h4 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-4 pb-3 border-b border-mac-border/50">All Project Branches</h4>
+                            <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
+                                {projectStats.branches.map(branch => (
+                                    <div key={branch} className="flex items-center gap-3 text-[15px] text-mac-text py-3 px-4 rounded-xl hover:bg-mac-accent/10 hover:text-mac-accent transition-all border border-transparent hover:border-mac-accent/20 font-medium">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 opacity-60">
+                                            <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
+                                        </svg>
+                                        <span className="truncate">{branch}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-green-500">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <div
+                    onClick={onCommitsClick}
+                    className="group bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]"
+                >
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 flex items-center justify-center mb-6 group-hover:bg-green-500/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-5 h-5 text-green-500">
+                            <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                         </svg>
                     </div>
                     <div className="text-3xl font-black text-mac-text mb-1">{projectStats?.totalCommits ?? "-"}</div>

@@ -23,6 +23,235 @@ function timeAgo(dateStr: string | null) {
     return date.toLocaleDateString();
 }
 
+/** Mini trend graph for additions/deletions */
+function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onExpandAndScroll?: (hash: string) => void }) {
+    const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+
+    if (commits.length < 2) return null;
+
+    const data = [...commits].reverse().slice(-20);
+    const width = 600;
+    const height = 140;
+    const paddingTop = 16;
+    const paddingBottom = 36; // extra room for x-axis labels
+    const paddingX = 30;
+    const chartHeight = height - paddingTop - paddingBottom;
+
+    const maxDelta = Math.max(...data.map(c => Math.max(c.insertions || 0, c.deletions || 0)), 10);
+
+    const getX = (i: number) => data.length === 1 ? width / 2 : (i * (width - 2 * paddingX)) / (data.length - 1) + paddingX;
+    const getY = (v: number) => paddingTop + chartHeight - (v * chartHeight) / maxDelta;
+
+    const insPoints = data.map((c, i) => `${getX(i)},${getY(c.insertions || 0)}`).join(' ');
+    const delPoints = data.map((c, i) => `${getX(i)},${getY(c.deletions || 0)}`).join(' ');
+
+    // Gradient fill polygons (area under lines)
+    const insArea = `${paddingX},${height - paddingBottom} ${insPoints} ${getX(data.length - 1)},${height - paddingBottom}`;
+    const delArea = `${paddingX},${height - paddingBottom} ${delPoints} ${getX(data.length - 1)},${height - paddingBottom}`;
+
+    // Format time for x-axis labels
+    const formatTime = (ts: string) => {
+        const d = new Date(ts);
+        const now = new Date();
+        const diffMs = now.getTime() - d.getTime();
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        if (diffDays === 0) {
+            return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+        if (diffDays < 7) {
+            return d.toLocaleDateString([], { weekday: 'short' });
+        }
+        return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+    };
+
+    // Pick ~5 evenly-spaced x-axis labels to avoid crowding
+    const labelCount = Math.min(5, data.length);
+    const labelIndices: number[] = [];
+    for (let i = 0; i < labelCount; i++) {
+        labelIndices.push(Math.round((i * (data.length - 1)) / (labelCount - 1)));
+    }
+
+    const hovered = hoveredIdx !== null ? data[hoveredIdx] : null;
+
+    return (
+        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac mb-6">
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex gap-4">
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Additions</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Deletions</span>
+                    </div>
+                </div>
+                {hovered && (
+                    <div className="flex items-center gap-3 animate-in fade-in duration-150">
+                        <span className="text-[10px] font-bold text-green-500">+{hovered.insertions || 0}</span>
+                        <span className="text-[10px] font-bold text-red-500">-{hovered.deletions || 0}</span>
+                    </div>
+                )}
+            </div>
+
+            <div
+                className="relative w-full"
+                style={{ height: `${height}px` }}
+                onMouseLeave={() => setHoveredIdx(null)}
+            >
+                <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
+                    <defs>
+                        <linearGradient id="insGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.25" />
+                            <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                        </linearGradient>
+                        <linearGradient id="delGrad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.15" />
+                            <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+                        </linearGradient>
+                    </defs>
+
+                    {/* Horizontal grid lines */}
+                    {[0.25, 0.5, 0.75].map(frac => (
+                        <line
+                            key={frac}
+                            x1={paddingX}
+                            y1={paddingTop + chartHeight * (1 - frac)}
+                            x2={width - paddingX}
+                            y2={paddingTop + chartHeight * (1 - frac)}
+                            stroke="currentColor"
+                            className="text-mac-border/20"
+                            strokeWidth="0.5"
+                            strokeDasharray="4 4"
+                        />
+                    ))}
+                    {/* Baseline */}
+                    <line x1={paddingX} y1={height - paddingBottom} x2={width - paddingX} y2={height - paddingBottom} stroke="currentColor" className="text-mac-border/30" strokeWidth="1" />
+
+                    {/* Gradient fills under lines */}
+                    <polygon points={insArea} fill="url(#insGrad)" />
+                    <polygon points={delArea} fill="url(#delGrad)" />
+
+                    {/* Lines */}
+                    <polyline points={insPoints} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={delPoints} fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+
+                    {/* Hover vertical guide line */}
+                    {hoveredIdx !== null && (
+                        <line
+                            x1={getX(hoveredIdx)}
+                            y1={paddingTop}
+                            x2={getX(hoveredIdx)}
+                            y2={height - paddingBottom}
+                            stroke="currentColor"
+                            className="text-mac-accent/40"
+                            strokeWidth="1"
+                            strokeDasharray="3 3"
+                        />
+                    )}
+
+                    {/* Data points + hit areas */}
+                    {data.map((c, i) => {
+                        const isHovered = hoveredIdx === i;
+                        const colWidth = data.length > 1 ? (width - 2 * paddingX) / (data.length - 1) : width;
+                        return (
+                            <g key={i}>
+                                {/* Invisible hit area */}
+                                <rect
+                                    x={getX(i) - colWidth / 2}
+                                    y={0}
+                                    width={colWidth}
+                                    height={height}
+                                    fill="transparent"
+                                    className="cursor-pointer"
+                                    onMouseEnter={() => setHoveredIdx(i)}
+                                    onClick={() => {
+                                        const el = document.getElementById(`commit-${c.hash}`);
+                                        if (el) {
+                                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                            el.classList.add('ring-2', 'ring-mac-accent/60');
+                                            setTimeout(() => el.classList.remove('ring-2', 'ring-mac-accent/60'), 2000);
+                                        } else {
+                                            // Commit not visible — expand first, then scroll
+                                            onExpandAndScroll?.(c.hash);
+                                        }
+                                    }}
+                                />
+                                {/* Points */}
+                                <circle cx={getX(i)} cy={getY(c.insertions || 0)} r={isHovered ? 5 : 3} fill={isHovered ? "#22c55e" : "transparent"} stroke="#22c55e" strokeWidth={isHovered ? 2 : 0} className="transition-all duration-150" />
+                                <circle cx={getX(i)} cy={getY(c.deletions || 0)} r={isHovered ? 5 : 3} fill={isHovered ? "#ef4444" : "transparent"} stroke="#ef4444" strokeWidth={isHovered ? 2 : 0} className="transition-all duration-150" />
+                            </g>
+                        );
+                    })}
+
+                    {/* X-axis time labels */}
+                    {labelIndices.map(i => (
+                        <text
+                            key={i}
+                            x={getX(i)}
+                            y={height - 6}
+                            textAnchor="middle"
+                            className="text-mac-secondary"
+                            fill="currentColor"
+                            fontSize="9"
+                            fontWeight="700"
+                            opacity="0.4"
+                            style={{ fontFamily: 'ui-monospace, monospace', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                        >
+                            {formatTime(data[i].timestamp)}
+                        </text>
+                    ))}
+                </svg>
+
+                {/* Hover tooltip */}
+                {hoveredIdx !== null && hovered && (
+                    <div
+                        className="absolute z-50 pointer-events-none animate-in fade-in duration-100"
+                        style={{
+                            left: `${(getX(hoveredIdx) / width) * 100}%`,
+                            top: `${((getY(Math.max(hovered.insertions || 0, hovered.deletions || 0)) - 12) / height) * 100}%`,
+                            transform: 'translate(-50%, -100%)',
+                        }}
+                    >
+                        <div className="bg-mac-surface border border-mac-border rounded-xl shadow-mac-lg px-3 py-2 min-w-[140px] max-w-[220px]">
+                            <p className="text-[10px] text-mac-text font-bold leading-snug mb-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{hovered.message}</p>
+                            <div className="flex items-center gap-3">
+                                <span className="text-[9px] font-black text-green-500">+{hovered.insertions || 0}</span>
+                                <span className="text-[9px] font-black text-red-500">-{hovered.deletions || 0}</span>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+}
+
+/** Copyable hash button with tooltip */
+function CopyableHash({ hash }: { hash: string }) {
+    const [copied, setCopied] = useState(false);
+
+    const copy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigator.clipboard.writeText(hash);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <button
+            onClick={copy}
+            className="group/copy relative text-[9px] text-mac-secondary font-mono bg-mac-bg px-2 py-0.5 rounded border border-mac-border/50 hover:border-mac-accent/40 hover:text-mac-accent transition-all"
+        >
+            {hash.slice(0, 7)}
+            <span className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded bg-mac-surface border border-mac-border text-[8px] font-bold text-mac-text whitespace-nowrap shadow-mac-lg z-50 transition-all pointer-events-none ${copied ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-90 group-hover/copy:opacity-100 group-hover/copy:translate-y-0 group-hover/copy:scale-100'}`}>
+                {copied ? "Copied!" : "Click to copy"}
+            </span>
+        </button>
+    );
+}
+
+
 export default function GitPage({
     gitSnapshot,
     projectStats,
@@ -45,10 +274,21 @@ export default function GitPage({
                     <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest">
                         Commit Timeline
                     </h3>
-                    <span className="text-[10px] font-bold text-mac-accent bg-mac-accent/10 px-2 py-0.5 rounded uppercase tracking-tighter">Recent</span>
                 </div>
 
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
+                <CommitTrendGraph commits={allCommits} onExpandAndScroll={(hash) => {
+                    setShowAllCommits(true);
+                    setTimeout(() => {
+                        const el = document.getElementById(`commit-${hash}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('ring-2', 'ring-mac-accent/60');
+                            setTimeout(() => el.classList.remove('ring-2', 'ring-mac-accent/60'), 2000);
+                        }
+                    }, 100);
+                }} />
+
+                <div className={`space-y-4 pr-4 custom-scrollbar ${showAllCommits ? '' : 'max-h-[600px] overflow-y-auto'}`}>
                     {isLoading ? (
                         /* Loading Skeleton */
                         [1, 2, 3].map(i => (
@@ -69,13 +309,11 @@ export default function GitPage({
                     ) : (
                         /* Actual Commits */
                         commits.map((commit) => (
-                            <div key={commit.hash} className="group bg-mac-surface/40 hover:bg-mac-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-mac-border hover:border-mac-accent/40 shadow-mac transition-all cursor-default">
+                            <div key={commit.hash} id={`commit-${commit.hash}`} className="group bg-mac-surface/40 hover:bg-mac-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-mac-border hover:border-mac-accent/40 shadow-mac transition-all cursor-default scroll-mt-4">
                                 <div className="flex items-start gap-4">
                                     <div className="w-8 h-8 rounded-lg bg-mac-bg flex items-center justify-center shrink-0 border border-mac-border/20 group-hover:border-mac-accent/20 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 text-mac-secondary group-hover:text-mac-accent transition-colors">
-                                            <circle cx="12" cy="12" r="3" />
-                                            <line x1="12" y1="3" x2="12" y2="9" />
-                                            <line x1="12" y1="15" x2="12" y2="21" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-4 h-4 text-mac-secondary group-hover:text-mac-accent transition-colors">
+                                            <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                                         </svg>
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -89,11 +327,8 @@ export default function GitPage({
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-5 h-5 rounded-full bg-mac-accent/20 flex items-center justify-center text-[8px] text-mac-accent font-black">
-                                                    {commit.author[0].toUpperCase()}
-                                                </div>
-                                                <span className="text-[10px] text-mac-secondary font-medium tracking-tight truncate max-w-[80px]">
-                                                    {commit.author.split(' ')[0]}
+                                                <span className="text-[10px] text-mac-secondary font-medium tracking-tight truncate max-w-[120px]">
+                                                    {commit.author}
                                                 </span>
                                             </div>
 
@@ -108,9 +343,7 @@ export default function GitPage({
                                                         )}
                                                     </div>
                                                 )}
-                                                <span className="text-[9px] text-mac-secondary font-mono bg-mac-bg px-1.5 py-0.5 rounded border border-mac-border opacity-60">
-                                                    {commit.hash.slice(0, 7)}
-                                                </span>
+                                                <CopyableHash hash={commit.hash} />
                                             </div>
                                         </div>
                                     </div>
@@ -268,17 +501,27 @@ export default function GitPage({
                         <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest">
                             Commit Timeline
                         </h3>
-                        <span className="text-[10px] font-bold text-mac-accent bg-mac-accent/10 px-2 py-0.5 rounded uppercase tracking-tighter">Recent</span>
                     </div>
-                    <div className="flex-1 overflow-y-auto space-y-4 pr-4 custom-scrollbar">
+
+                    <CommitTrendGraph commits={projectStats?.recentCommits ?? []} onExpandAndScroll={(hash) => {
+                        setShowAllCommits(true);
+                        setTimeout(() => {
+                            const el = document.getElementById(`commit-${hash}`);
+                            if (el) {
+                                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                el.classList.add('ring-2', 'ring-mac-accent/60');
+                                setTimeout(() => el.classList.remove('ring-2', 'ring-mac-accent/60'), 2000);
+                            }
+                        }, 100);
+                    }} />
+
+                    <div className={`flex-1 space-y-4 pr-4 custom-scrollbar ${showAllCommits ? '' : 'overflow-y-auto'}`}>
                         {(showAllCommits ? (projectStats?.recentCommits ?? []) : (projectStats?.recentCommits?.slice(0, 10) ?? [])).map((commit) => (
-                            <div key={commit.hash} className="group bg-mac-surface/40 hover:bg-mac-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-mac-border hover:border-mac-accent/40 shadow-mac transition-all cursor-default">
+                            <div key={commit.hash} id={`commit-${commit.hash}`} className="group bg-mac-surface/40 hover:bg-mac-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-mac-border hover:border-mac-accent/40 shadow-mac transition-all cursor-default scroll-mt-4">
                                 <div className="flex items-start gap-4">
                                     <div className="w-10 h-10 rounded-xl bg-mac-bg flex items-center justify-center shrink-0 border border-mac-border/20 group-hover:border-mac-accent/20 transition-colors">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-mac-secondary group-hover:text-mac-accent transition-colors">
-                                            <circle cx="12" cy="12" r="3" />
-                                            <line x1="12" y1="3" x2="12" y2="9" />
-                                            <line x1="12" y1="15" x2="12" y2="21" />
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-5 h-5 text-mac-secondary group-hover:text-mac-accent transition-colors">
+                                            <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                                         </svg>
                                     </div>
                                     <div className="flex-1 min-w-0">
@@ -292,10 +535,7 @@ export default function GitPage({
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-6 h-6 rounded-full bg-mac-accent/20 flex items-center justify-center text-[10px] text-mac-accent font-black">
-                                                    {commit.author[0].toUpperCase()}
-                                                </div>
-                                                <span className="text-xs text-mac-secondary font-medium tracking-tight">{commit.author.split(' ')[0]}</span>
+                                                <span className="text-xs text-mac-secondary font-medium tracking-tight">{commit.author}</span>
                                             </div>
 
                                             <div className="flex items-center gap-4">
@@ -315,7 +555,7 @@ export default function GitPage({
                                                         )}
                                                     </div>
                                                 )}
-                                                <span className="text-[10px] text-mac-secondary font-mono tracking-tighter bg-mac-bg px-2 py-1 rounded border border-mac-border/30">{commit.hash.slice(0, 7)}</span>
+                                                <CopyableHash hash={commit.hash} />
                                             </div>
                                         </div>
                                     </div>
