@@ -6,100 +6,84 @@ interface ProjectCardProps {
     recentFiles?: string[];
 }
 
-function formatRelativeTime(dateStr: string | null): string {
-    if (!dateStr) return "Never";
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMinutes = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMinutes / 60);
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffMinutes < 1) return "Just now";
-    if (diffMinutes < 60) return `${diffMinutes}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-}
-
 export default function ProjectCard({
     project,
     gitSnapshot,
     recentFiles = [],
 }: ProjectCardProps) {
-    const hasUncommitted = (gitSnapshot?.uncommittedCount ?? 0) > 0;
+    const projectPathParts = project.path.split('/');
 
     return (
-        <div className="bg-gray-900/80 rounded-2xl border border-gray-800/60 p-5 hover:border-gray-700/60 transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/5 group">
+        <div className="bg-mac-surface rounded-xl p-5 shadow-mac hover:shadow-mac-md transition-all duration-200 hover:scale-[1.01] group cursor-pointer flex flex-col h-full">
             {/* Header */}
             <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-white truncate group-hover:text-violet-300 transition-colors">
-                        {project.name}
-                    </h3>
-                    <p className="text-xs text-gray-500 truncate mt-0.5" title={project.path}>
-                        {project.path.replace(/^\/home\/[^/]+\//, "~/")}
-                    </p>
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-mac bg-mac-bg flex items-center justify-center shrink-0 group-hover:bg-mac-accent group-hover:text-white text-mac-secondary transition-all duration-200">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" className="w-[18px] h-[18px]">
+                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
+                        </svg>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                        <h3 className="text-[15px] font-semibold text-mac-text truncate leading-tight">
+                            {project.name}
+                        </h3>
+                        <p className="text-xs text-mac-secondary truncate mt-0.5" title={project.path}>
+                            {projectPathParts.length > 2 ? `.../${projectPathParts.slice(-2).join('/')}` : projectPathParts.join('/')}
+                        </p>
+                    </div>
                 </div>
-                <span className="text-[10px] text-gray-500 whitespace-nowrap ml-2">
-                    {formatRelativeTime(project.lastActivityAt)}
-                </span>
+                {/* Status dot */}
+                <div className="w-2 h-2 rounded-full bg-[#34C759] shadow-[0_0_6px_rgba(52,199,89,0.4)] mt-2" />
             </div>
 
             {/* Git Info */}
-            {gitSnapshot && (
+            <div className="flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                    {/* Branch */}
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-gray-800 text-xs text-gray-300">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 16 16"
-                            fill="currentColor"
-                            className="w-3 h-3 text-gray-500"
-                        >
-                            <path d="M9.5 3.25a2.25 2.25 0 1 1 3 2.122V6A2.5 2.5 0 0 1 10 8.5H6a1 1 0 0 0-1 1v1.128a2.251 2.251 0 1 1-1.5 0V5.372a2.25 2.25 0 1 1 1.5 0v1.836A2.5 2.5 0 0 1 6 7h4a1 1 0 0 0 1-1v-.628A2.25 2.25 0 0 1 9.5 3.25Z" />
-                        </svg>
-                        {gitSnapshot.branch}
-                    </span>
-
-                    {/* Uncommitted badge */}
-                    {hasUncommitted && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-xs text-amber-400 border border-amber-500/20">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                            {gitSnapshot.uncommittedCount} uncommitted
-                        </span>
+                    {gitSnapshot && (
+                        <>
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-mac-bg text-xs font-medium text-mac-secondary">
+                                <span className="w-1.5 h-1.5 rounded-full bg-mac-accent" />
+                                {gitSnapshot.branch}
+                            </span>
+                            {gitSnapshot.uncommittedCount > 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-mac-bg text-xs font-medium text-mac-secondary">
+                                    {gitSnapshot.uncommittedCount} pending
+                                </span>
+                            )}
+                        </>
                     )}
                 </div>
-            )}
 
-            {/* Last commit */}
-            {gitSnapshot?.lastCommitMessage && (
-                <div className="mb-3 px-2.5 py-1.5 rounded-lg bg-gray-800/50 border border-gray-800">
-                    <p className="text-xs text-gray-400 truncate">
-                        <span className="text-gray-500 font-mono">
-                            {gitSnapshot.lastCommitHash?.substring(0, 7)}
-                        </span>{" "}
-                        {gitSnapshot.lastCommitMessage}
-                    </p>
-                </div>
-            )}
+                {/* Last commit */}
+                {gitSnapshot?.lastCommitMessage && (
+                    <div className="mb-3">
+                        <div className="bg-mac-bg rounded-lg p-2.5 flex items-start gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 text-mac-secondary mt-0.5 shrink-0">
+                                <path fillRule="evenodd" d="M11.986 3H12a2 2 0 0 1 2 2v6a2 2 0 0 1-1.5 1.937V7A2.5 2.5 0 0 0 10 4.5H4.063A2 2 0 0 1 6 3h.014A2.25 2.25 0 0 1 8.25 1h.5a2.25 2.25 0 0 1 2.236 2ZM10.5 4v-.75a.75.75 0 0 0-.75-.75h-3.5a.75.75 0 0 0-.75.75V4h5Z" clipRule="evenodd" />
+                                <path fillRule="evenodd" d="M2 7a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v7a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V7Z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-xs text-mac-secondary leading-relaxed line-clamp-2">
+                                {gitSnapshot.lastCommitMessage}
+                            </p>
+                        </div>
+                    </div>
+                )}
+            </div>
 
             {/* Recent files */}
             {recentFiles.length > 0 && (
-                <div className="space-y-1">
-                    <p className="text-[10px] uppercase tracking-wider text-gray-600 font-medium">
-                        Recent files
-                    </p>
-                    {recentFiles.slice(0, 3).map((file) => (
-                        <p
-                            key={file}
-                            className="text-xs text-gray-500 truncate font-mono"
-                            title={file}
-                        >
-                            {file}
-                        </p>
-                    ))}
+                <div className="mt-auto border-t border-mac-border pt-3">
+                    <h4 className="text-[11px] font-medium text-mac-secondary uppercase tracking-wider mb-1.5">Recent</h4>
+                    <div className="space-y-0.5">
+                        {recentFiles.slice(0, 3).map((file, i) => (
+                            <div key={i} className="flex items-center gap-2 px-1.5 py-1 -mx-1.5 hover:bg-mac-hover rounded-md transition-colors cursor-default">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 text-mac-secondary shrink-0">
+                                    <path d="M4 2a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7.414A2 2 0 0 0 13.414 6L10 2.586A2 2 0 0 0 8.586 2H4Z" />
+                                </svg>
+                                <span className="text-[12px] text-mac-secondary truncate">{file}</span>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

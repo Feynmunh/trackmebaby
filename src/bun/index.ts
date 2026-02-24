@@ -88,6 +88,8 @@ async function createWindow(): Promise<void> {
 			title: "trackmebaby",
 			url,
 			rpc,
+			titleBarStyle: "hiddenInset",
+			transparent: true,
 			styleMask: {
 				Titled: true,
 				Closable: true,
@@ -113,7 +115,6 @@ async function createWindow(): Promise<void> {
 // --- System Tray ---
 const tray = new Tray({
 	title: "trackmebaby",
-	image: "",
 	width: 22,
 	height: 22,
 });
@@ -156,6 +157,7 @@ async function startServices(): Promise<void> {
 		console.log(`[trackmebaby] Tracking ${projects.length} projects`);
 	} else {
 		console.log("[trackmebaby] No base path configured. Open Settings to get started.");
+		createWindow();
 	}
 }
 

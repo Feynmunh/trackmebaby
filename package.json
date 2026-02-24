@@ -14,6 +14,7 @@
 		"@parcel/watcher-wasm": "^2.5.6",
 		"electrobun": "1.13.1",
 		"ignore": "^7.0.5",
+		"lucide-react": "^0.575.0",
 		"react": "^18.3.1",
 		"react-dom": "^18.3.1"
 	},
