@@ -1,3 +1,52 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    --mac-bg: #FAFAFA;
+    --mac-surface: #FFFFFF;
+    --mac-sidebar: rgba(250, 250, 250, 0.8);
+    --mac-border: rgba(0, 0, 0, 0.05);
+    --mac-text: #000000;
+    --mac-secondary: rgba(0, 0, 0, 0.5);
+    --mac-accent: #E1510E;
+    --mac-hover: rgba(0, 0, 0, 0.04);
+  }
+
+  .dark {
+    --mac-bg: #000000;
+    --mac-surface: #050505;
+    --mac-sidebar: rgba(0, 0, 0, 0.8);
+    --mac-border: rgba(255, 255, 255, 0.1);
+    --mac-text: #FFFFFF;
+    --mac-secondary: rgba(255, 255, 255, 0.5);
+    --mac-accent: #E1510E;
+    --mac-hover: rgba(255, 255, 255, 0.06);
+  }
+
+  * {
+    transition-property: background-color, border-color, color;
+    transition-duration: 150ms;
+    transition-timing-function: ease-out;
+  }
+
+  /* macOS-style thin scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--mac-secondary);
+    border-radius: 3px;
+    opacity: 0.5;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    opacity: 0.8;
+  }
+}
