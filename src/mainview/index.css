@@ -7,7 +7,7 @@
     --mac-bg: #FAFAFA;
     --mac-surface: #FFFFFF;
     --mac-sidebar: rgba(250, 250, 250, 0.8);
-    --mac-border: rgba(0, 0, 0, 0.05);
+    --mac-border: rgba(0, 0, 0, 0.12);
     --mac-text: #000000;
     --mac-secondary: rgba(0, 0, 0, 0.5);
     --mac-accent: #E1510E;
@@ -18,7 +18,7 @@
     --mac-bg: #000000;
     --mac-surface: #050505;
     --mac-sidebar: rgba(0, 0, 0, 0.8);
-    --mac-border: rgba(255, 255, 255, 0.1);
+    --mac-border: rgba(255, 255, 255, 0.2);
     --mac-text: #FFFFFF;
     --mac-secondary: rgba(255, 255, 255, 0.5);
     --mac-accent: #E1510E;
@@ -49,4 +49,46 @@
   ::-webkit-scrollbar-thumb:hover {
     opacity: 0.8;
   }
+}
+
+/* Reel layout — snap-scroll containers */
+.reel-vertical {
+  scroll-snap-type: y mandatory;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.reel-vertical::-webkit-scrollbar {
+  display: none;
+}
+
+.reel-horizontal {
+  scroll-snap-type: x mandatory;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.reel-horizontal::-webkit-scrollbar {
+  display: none;
+}
+
+.reel-snap-item {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+}
+
+/* Page dot indicator */
+.page-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--mac-secondary);
+  opacity: 0.3;
+  transition: all 200ms ease-out;
+}
+
+.page-dot.active {
+  opacity: 1;
+  background: var(--mac-accent);
+  transform: scale(1.3);
 }

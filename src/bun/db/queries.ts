@@ -3,30 +3,58 @@
  * All CRUD operations with UUIDv7 primary keys
  */
 import type { Database } from "bun:sqlite";
-import type { Project, ActivityEvent, GitSnapshot, ActivitySummary } from "../../shared/types.ts";
+import type { Project, Worktree, ActivityEvent, GitSnapshot, ActivitySummary } from "../../shared/types.ts";
 
 // --- Projects ---
 
-export function upsertProject(db: Database, path: string, name: string): Project {
+export function upsertProject(db: Database, path: string, name: string, lastActivityAt?: string, worktrees?: Worktree[]): Project {
     const existing = db.query("SELECT * FROM projects WHERE path = ?").get(path) as any;
+    const worktreesJson = JSON.stringify(worktrees || []);
 
     if (existing) {
-        db.query("UPDATE projects SET name = ?, last_activity_at = ? WHERE path = ?")
-            .run(name, new Date().toISOString(), path);
-        return mapProject(db.query("SELECT * FROM projects WHERE path = ?").get(path) as any);
+        let shouldUpdate = false;
+        if (existing.name !== name) shouldUpdate = true;
+        if (lastActivityAt && existing.last_activity_at !== lastActivityAt) shouldUpdate = true;
+        if (worktrees && worktrees.length > 0 && existing.worktrees !== worktreesJson) shouldUpdate = true;
+
+        if (shouldUpdate) {
+            db.query("UPDATE projects SET name = ?, last_activity_at = ?, worktrees = ? WHERE path = ?")
+                .run(name, lastActivityAt || existing.last_activity_at, worktreesJson, path);
+            return mapProject(db.query("SELECT * FROM projects WHERE path = ?").get(path) as any);
+        }
+        return mapProject(existing);
     }
 
     const id = Bun.randomUUIDv7();
     const now = new Date().toISOString();
-    db.query("INSERT INTO projects (id, path, name, last_activity_at, created_at) VALUES (?, ?, ?, ?, ?)")
-        .run(id, path, name, now, now);
+    const finalActivity = lastActivityAt || now;
+    db.query("INSERT INTO projects (id, path, name, last_activity_at, created_at, worktrees) VALUES (?, ?, ?, ?, ?, ?)")
+        .run(id, path, name, finalActivity, now, worktreesJson);
 
-    return { id, path, name, lastActivityAt: now, createdAt: now };
+    return { id, path, name, lastActivityAt: finalActivity, createdAt: now, worktrees: worktrees || [] };
 }
 
 export function getProjects(db: Database): Project[] {
-    const rows = db.query("SELECT * FROM projects ORDER BY last_activity_at DESC").all() as any[];
-    return rows.map(mapProject);
+    // We derive lastActive strictly from data:
+    // 1. The latest event in the events table
+    // 2. The latest commit timestamp from git_snapshots
+    // 3. The historical activity date from the scanner (last_activity_at)
+    // 4. Falling back to the project's own created_at
+    const rows = db.query(`
+        SELECT 
+            p.*,
+            (SELECT MAX(timestamp) FROM events WHERE project_id = p.id) as last_event_at,
+            (SELECT MAX(last_commit_timestamp) FROM git_snapshots WHERE project_id = p.id) as last_commit_at
+        FROM projects p
+        ORDER BY COALESCE(last_event_at, last_commit_at, last_activity_at, created_at) DESC
+    `).all() as any[];
+
+    return rows.map(row => {
+        const project = mapProject(row);
+        // Priority: File Events > Git Snapshots > Scanner History > Creation Date
+        project.lastActivityAt = row.last_event_at || row.last_commit_at || row.last_activity_at || row.created_at;
+        return project;
+    });
 }
 
 export function getProjectById(db: Database, id: string): Project | null {
@@ -40,12 +68,18 @@ export function getProjectByPath(db: Database, path: string): Project | null {
 }
 
 function mapProject(row: any): Project {
+    let worktrees: Worktree[] = [];
+    try {
+        worktrees = row.worktrees ? JSON.parse(row.worktrees) : [];
+    } catch { /* malformed JSON — treat as no worktrees */ }
+
     return {
         id: row.id,
         path: row.path,
         name: row.name,
         lastActivityAt: row.last_activity_at,
         createdAt: row.created_at,
+        worktrees,
     };
 }
 
@@ -132,8 +166,8 @@ export function insertGitSnapshot(
         commitTs, uncommittedCount, JSON.stringify(uncommittedFiles), data ?? null
     );
 
-    // Update project last_activity_at
-    db.query("UPDATE projects SET last_activity_at = ? WHERE id = ?").run(timestamp, projectId);
+    // Note: We don't update projects.last_activity_at here anymore.
+    // Activity should only be updated by direct file events in insertEvent().
 
     return {
         id, projectId, timestamp, branch,

@@ -9,6 +9,7 @@ import type {
     ActivityEvent,
     GitSnapshot,
     Settings,
+    ProjectStats,
 } from "../../shared/types.ts";
 
 // Initialize RPC
@@ -61,6 +62,12 @@ export async function getGitStatus(
     return electroview.rpc.request.getGitStatus({ projectId });
 }
 
+export async function getProjectStats(
+    projectId: string
+): Promise<ProjectStats | null> {
+    return electroview.rpc.request.getProjectStats({ projectId });
+}
+
 export async function queryAI(question: string): Promise<string> {
     return electroview.rpc.request.queryAI({ question });
 }
@@ -77,6 +84,33 @@ export async function updateSettings(
 
 export async function scanProjects(basePath: string): Promise<Project[]> {
     return electroview.rpc.request.scanProjects({ basePath });
+}
+
+export async function getPlatform(): Promise<string> {
+    return electroview.rpc.request.getPlatform({});
+}
+
+export async function windowMinimize(): Promise<{ success: boolean }> {
+    return electroview.rpc.request.windowMinimize({});
+}
+
+export async function windowMaximize(): Promise<{ success: boolean }> {
+    return electroview.rpc.request.windowMaximize({});
+}
+
+export async function windowClose(): Promise<{ success: boolean }> {
+    return electroview.rpc.request.windowClose({});
+}
+
+export async function windowGetPosition(): Promise<{ x: number; y: number }> {
+    return electroview.rpc.request.windowGetPosition({});
+}
+
+export async function windowSetPosition(
+    x: number,
+    y: number
+): Promise<{ success: boolean }> {
+    return electroview.rpc.request.windowSetPosition({ x, y });
 }
 
 // --- Push Message Subscriptions ---

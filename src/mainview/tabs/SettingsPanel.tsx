@@ -105,8 +105,8 @@ export default function SettingsPanel() {
                             <button
                                 onClick={() => applyTheme("light")}
                                 className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-all ${theme === "light"
-                                        ? "bg-mac-surface text-mac-text shadow-mac"
-                                        : "text-mac-secondary hover:text-mac-text"
+                                    ? "bg-mac-surface text-mac-text shadow-mac"
+                                    : "text-mac-secondary hover:text-mac-text"
                                     }`}
                             >
                                 Light
@@ -114,8 +114,8 @@ export default function SettingsPanel() {
                             <button
                                 onClick={() => applyTheme("dark")}
                                 className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition-all ${theme === "dark"
-                                        ? "bg-mac-surface text-mac-text shadow-mac"
-                                        : "text-mac-secondary hover:text-mac-text"
+                                    ? "bg-mac-surface text-mac-text shadow-mac"
+                                    : "text-mac-secondary hover:text-mac-text"
                                     }`}
                             >
                                 Dark

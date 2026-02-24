@@ -8,6 +8,7 @@ import type {
     ActivityEvent,
     GitSnapshot,
     Settings,
+    ProjectStats,
 } from "./types.ts";
 
 export type TrackmeBabyRPC = {
@@ -25,6 +26,10 @@ export type TrackmeBabyRPC = {
                 params: { projectId: string };
                 response: GitSnapshot | null;
             };
+            getProjectStats: {
+                params: { projectId: string };
+                response: ProjectStats | null;
+            };
             queryAI: {
                 params: { question: string };
                 response: string;
@@ -40,6 +45,30 @@ export type TrackmeBabyRPC = {
             scanProjects: {
                 params: { basePath: string };
                 response: Project[];
+            };
+            getPlatform: {
+                params: {};
+                response: string;
+            };
+            windowMinimize: {
+                params: {};
+                response: { success: boolean };
+            };
+            windowMaximize: {
+                params: {};
+                response: { success: boolean };
+            };
+            windowClose: {
+                params: {};
+                response: { success: boolean };
+            };
+            windowGetPosition: {
+                params: {};
+                response: { x: number; y: number };
+            };
+            windowSetPosition: {
+                params: { x: number; y: number };
+                response: { success: boolean };
             };
         };
         messages: {
