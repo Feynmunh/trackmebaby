@@ -88,3 +88,30 @@ export interface RecentCommit {
     insertions: number;
     deletions: number;
 }
+
+export interface GitHubIssue {
+    number: number;
+    title: string;
+    state: "open" | "closed";
+    url: string;
+    createdAt: string;
+    user: string;
+}
+
+export interface GitHubPR {
+    number: number;
+    title: string;
+    state: "open" | "closed";
+    url: string;
+    createdAt: string;
+    user: string;
+    draft: boolean;
+}
+
+export interface GitHubData {
+    openIssues: number;
+    openPRs: number;
+    repoUrl: string | null;
+    issues: GitHubIssue[];
+    pullRequests: GitHubPR[];
+}

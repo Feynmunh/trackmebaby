@@ -56,7 +56,7 @@ function App() {
 
 				{/* Main content area */}
 				<div className="flex-1 overflow-y-auto">
-					{activeTab === "cards" && <CardsTab />}
+					{activeTab === "cards" && <CardsTab onNavigateToSettings={() => setActiveTab("settings")} />}
 					{activeTab === "ai" && <AITab />}
 					{activeTab === "settings" && <SettingsPanel />}
 				</div>

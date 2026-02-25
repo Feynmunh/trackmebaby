@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { GitSnapshot, ProjectStats } from "../../../shared/types.ts";
+import Tooltip from "../ui/Tooltip.tsx";
 
 interface GitPageProps {
     gitSnapshot?: GitSnapshot | null;
     projectStats?: ProjectStats | null;
     isWidget?: boolean;
-    section?: 'timeline' | 'workstate' | 'all';
+    section?: 'timeline' | 'workstate' | 'contributors' | 'all';
 }
 
 function timeAgo(dateStr: string | null) {
@@ -239,15 +240,14 @@ function CopyableHash({ hash }: { hash: string }) {
     };
 
     return (
-        <button
-            onClick={copy}
-            className="group/copy relative text-[9px] text-mac-secondary font-mono bg-mac-bg px-2 py-0.5 rounded border border-mac-border/50 hover:border-mac-accent/40 hover:text-mac-accent transition-all"
-        >
-            {hash.slice(0, 7)}
-            <span className={`absolute -top-8 left-1/2 -translate-x-1/2 px-2 py-1 rounded bg-mac-surface border border-mac-border text-[8px] font-bold text-mac-text whitespace-nowrap shadow-mac-lg z-50 transition-all pointer-events-none ${copied ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-1 scale-90 group-hover/copy:opacity-100 group-hover/copy:translate-y-0 group-hover/copy:scale-100'}`}>
-                {copied ? "Copied!" : "Click to copy"}
-            </span>
-        </button>
+        <Tooltip content={copied ? "Copied!" : "Click to copy"}>
+            <button
+                onClick={copy}
+                className="text-xs text-mac-secondary font-mono bg-mac-bg px-2.5 py-1 rounded-lg border border-mac-border/50 hover:border-mac-accent/40 hover:text-mac-accent transition-all block"
+            >
+                {hash.slice(0, 7)}
+            </button>
+        </Tooltip>
     );
 }
 
@@ -288,7 +288,7 @@ export default function GitPage({
                     }, 100);
                 }} />
 
-                <div className={`space-y-4 pr-4 custom-scrollbar ${showAllCommits ? '' : 'max-h-[600px] overflow-y-auto'}`}>
+                <div className="space-y-4 pr-4">
                     {isLoading ? (
                         /* Loading Skeleton */
                         [1, 2, 3].map(i => (
@@ -381,78 +381,81 @@ export default function GitPage({
     }
 
     if (isWidget && section === 'workstate') {
+        const [showAllFiles, setShowAllFiles] = useState(false);
         return (
-            <div className="space-y-10">
-                <section className="flex flex-col min-h-0">
-                    <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
-                        Local Environment
-                    </h3>
-                    <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-6 border border-mac-border shadow-mac">
-                        {gitSnapshot.uncommittedCount > 0 ? (
-                            <>
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                                        <span className="text-sm font-bold text-mac-text">
-                                            {gitSnapshot.uncommittedCount} Modded Files
-                                        </span>
-                                    </div>
-                                    <div className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[9px] font-black uppercase tracking-widest">Unsaved</div>
+            <section className="flex flex-col min-h-0">
+                <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
+                    Local Environment
+                </h3>
+                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-6 border border-mac-border shadow-mac">
+                    {gitSnapshot.uncommittedCount > 0 ? (
+                        <>
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
+                                    <span className="text-sm font-bold text-mac-text">
+                                        {gitSnapshot.uncommittedCount} Modded Files
+                                    </span>
                                 </div>
-                                <div className="space-y-2 pr-2 custom-scrollbar flex flex-col">
-                                    {(showAllFiles ? gitSnapshot.uncommittedFiles : gitSnapshot.uncommittedFiles.slice(0, 5)).map((file, i) => (
-                                        <div key={i} className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-mac-bg/50 text-[11px] text-mac-secondary border border-mac-border/20">
-                                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 text-amber-500/70">
-                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                            </svg>
-                                            <span className="truncate">{file.split('/').pop()}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                                {gitSnapshot.uncommittedFiles.length > 5 && (
-                                    <button
-                                        onClick={() => setShowAllFiles(!showAllFiles)}
-                                        className="w-full mt-4 py-2 text-[9px] font-bold text-mac-secondary uppercase tracking-widest hover:text-mac-accent transition-colors border-t border-mac-border/20 pt-4"
-                                    >
-                                        {showAllFiles ? "Show Less" : `+ ${gitSnapshot.uncommittedFiles.length - 5} More Files`}
-                                    </button>
-                                )}
-                            </>
-                        ) : (
-                            <div className="flex flex-col items-center py-6 text-center">
-                                <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mb-3 border border-green-500/20">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-6 h-6">
-                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </div>
-                                <h4 className="text-xs font-bold text-mac-text mb-1">Workspace Clean</h4>
-                                <p className="text-[10px] text-mac-secondary leading-tight max-w-[140px]">Synchronized with {gitSnapshot.branch}.</p>
+                                <div className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[9px] font-black uppercase tracking-widest">Unsaved</div>
                             </div>
-                        )}
-                    </div>
-                </section>
-
-                <section className="flex flex-col min-h-0">
-                    <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
-                        Contributors
-                    </h3>
-                    <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-4 border border-mac-border shadow-mac">
-                        <div className="space-y-2">
-                            {projectStats?.contributors?.slice(0, 4).map(c => (
-                                <div key={c.name} className="flex items-center justify-between p-2 rounded-xl hover:bg-mac-surface/50 transition-all border border-transparent hover:border-mac-border/30">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-xl bg-mac-bg flex items-center justify-center text-mac-text font-black border border-mac-border/20 text-xs">
-                                            {c.name[0].toUpperCase()}
-                                        </div>
-                                        <span className="text-xs font-bold text-mac-text tracking-tight">{c.name}</span>
+                            <div className="space-y-2 pr-2 custom-scrollbar flex flex-col">
+                                {(showAllFiles ? gitSnapshot.uncommittedFiles : gitSnapshot.uncommittedFiles.slice(0, 5)).map((file, i) => (
+                                    <div key={i} className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-mac-bg/50 text-[11px] text-mac-secondary border border-mac-border/20">
+                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 text-amber-500/70">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        </svg>
+                                        <span className="truncate">{file.split('/').pop()}</span>
                                     </div>
-                                    <span className="text-xs font-black text-mac-accent">{c.commits}</span>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
+                            {gitSnapshot.uncommittedFiles.length > 5 && (
+                                <button
+                                    onClick={() => setShowAllFiles(!showAllFiles)}
+                                    className="w-full mt-4 py-2 text-[9px] font-bold text-mac-secondary uppercase tracking-widest hover:text-mac-accent transition-colors border-t border-mac-border/20 pt-4"
+                                >
+                                    {showAllFiles ? "Show Less" : `+ ${gitSnapshot.uncommittedFiles.length - 5} More Files`}
+                                </button>
+                            )}
+                        </>
+                    ) : (
+                        <div className="flex flex-col items-center py-6 text-center">
+                            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mb-3 border border-green-500/20">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-6 h-6">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h4 className="text-xs font-bold text-mac-text mb-1">Workspace Clean</h4>
+                            <p className="text-[10px] text-mac-secondary leading-tight max-w-[140px]">Synchronized with {gitSnapshot.branch}.</p>
                         </div>
+                    )}
+                </div>
+            </section>
+        );
+    }
+
+    if (isWidget && section === 'contributors') {
+        return (
+            <section className="flex flex-col min-h-0">
+                <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
+                    Contributors
+                </h3>
+                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-4 border border-mac-border shadow-mac">
+                    <div className="space-y-2">
+                        {projectStats?.contributors?.slice(0, 4).map(c => (
+                            <div key={c.name} className="flex items-center justify-between p-2 rounded-xl hover:bg-mac-surface/50 transition-all border border-transparent hover:border-mac-border/30">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-xl bg-mac-bg flex items-center justify-center text-mac-text font-black border border-mac-border/20 text-xs">
+                                        {c.name[0].toUpperCase()}
+                                    </div>
+                                    <span className="text-xs font-bold text-mac-text tracking-tight">{c.name}</span>
+                                </div>
+                                <span className="text-xs font-black text-mac-accent">{c.commits}</span>
+                            </div>
+                        ))}
                     </div>
-                </section>
-            </div>
+                </div>
+            </section>
         );
     }
 

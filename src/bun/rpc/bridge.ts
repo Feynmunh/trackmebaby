@@ -16,6 +16,7 @@ import { ProjectScanner } from "../services/project-scanner.ts";
 import { GitTrackerService } from "../services/git-tracker.ts";
 import { createAIProvider, type AIProvider } from "../services/ai/index.ts";
 import { assembleContext } from "../services/ai/context-assembler.ts";
+import { GitHubService } from "../services/github.ts";
 
 export function createRPC(
     db: Database,
@@ -43,6 +44,9 @@ export function createRPC(
     function getSavedApiKey(): string {
         return process.env.GROQ_API_KEY || process.env.AI_API_KEY || "";
     }
+
+    // GitHub service
+    const githubService = new GitHubService(db);
 
     const rpc = BrowserView.defineRPC<TrackmeBabyRPC>({
         handlers: {
@@ -167,6 +171,35 @@ export function createRPC(
                         return { success: true };
                     }
                     return { success: false };
+                },
+
+                // --- GitHub Integration ---
+
+                githubStartAuth: () => {
+                    const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
+                    const clientSecret = process.env.GITHUB_OAUTH_CLIENT_SECRET;
+                    if (!clientId || !clientSecret) {
+                        return { success: false, error: "GitHub OAuth credentials not configured" };
+                    }
+                    return githubService.startOAuthFlow(clientId, clientSecret);
+                },
+
+                githubSignOut: () => {
+                    githubService.clearAuth();
+                    return { success: true };
+                },
+
+                getGitHubAuthStatus: () => {
+                    return {
+                        authenticated: githubService.isAuthenticated(),
+                        username: githubService.getUsername() ?? undefined,
+                    };
+                },
+
+                getGitHubData: async ({ projectId }) => {
+                    const project = getProjectById(db, projectId);
+                    if (!project) return null;
+                    return await githubService.getGitHubData(project.path);
                 },
             },
             messages: {

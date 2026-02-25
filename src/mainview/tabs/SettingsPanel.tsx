@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import type { Settings } from "../../shared/types.ts";
+import { githubStartAuth, githubSignOut, getGitHubAuthStatus } from "../rpc";
 
 // Try to import RPC
 let rpcApi: {
@@ -31,9 +32,30 @@ export default function SettingsPanel() {
     const [scanResult, setScanResult] = useState<string | null>(null);
     const [saveResult, setSaveResult] = useState<string | null>(null);
 
+    // GitHub auth state
+    const [githubAuthenticated, setGithubAuthenticated] = useState(false);
+    const [githubUsername, setGithubUsername] = useState<string | null>(null);
+    const [githubLoading, setGithubLoading] = useState(false);
+    const [githubMessage, setGithubMessage] = useState<string | null>(null);
+    const pollRef = useRef<Timer | null>(null);
+
     useEffect(() => {
         loadSettings();
+        checkGitHubAuth();
+
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
     }, []);
+
+    function checkGitHubAuth() {
+        getGitHubAuthStatus()
+            .then(({ authenticated, username }) => {
+                setGithubAuthenticated(authenticated);
+                setGithubUsername(username ?? null);
+            })
+            .catch(() => setGithubAuthenticated(false));
+    }
 
     async function loadSettings() {
         if (!rpcApi) return;
@@ -85,15 +107,62 @@ export default function SettingsPanel() {
         }
     }
 
+    async function handleGitHubSignIn() {
+        setGithubLoading(true);
+        setGithubMessage(null);
+        try {
+            const result = await githubStartAuth();
+            if (!result.success) {
+                setGithubMessage(result.error || "Failed to start sign-in");
+                setGithubLoading(false);
+                setTimeout(() => setGithubMessage(null), 5000);
+                return;
+            }
+
+            // Poll for auth completion (the OAuth flow happens in the browser)
+            setGithubMessage("Waiting for GitHub authorization…");
+            let attempts = 0;
+            const maxAttempts = 60; // 60 * 2s = 120s
+
+            pollRef.current = setInterval(async () => {
+                attempts++;
+                try {
+                    const status = await getGitHubAuthStatus();
+                    if (status.authenticated) {
+                        // Success!
+                        if (pollRef.current) clearInterval(pollRef.current);
+                        pollRef.current = null;
+                        setGithubAuthenticated(true);
+                        setGithubUsername(status.username ?? null);
+                        setGithubLoading(false);
+                        setGithubMessage(null);
+                    } else if (attempts >= maxAttempts) {
+                        if (pollRef.current) clearInterval(pollRef.current);
+                        pollRef.current = null;
+                        setGithubLoading(false);
+                        setGithubMessage("Sign-in timed out. Please try again.");
+                        setTimeout(() => setGithubMessage(null), 5000);
+                    }
+                } catch {
+                    // Keep polling
+                }
+            }, 2000);
+        } catch (err) {
+            setGithubLoading(false);
+            setGithubMessage("Failed to start sign-in");
+            setTimeout(() => setGithubMessage(null), 5000);
+        }
+    }
+
     return (
-        <div className="p-8 max-w-2xl mx-auto h-full flex flex-col">
+        <div className="p-8 max-w-2xl mx-auto">
             {/* Header */}
-            <div className="mb-6 shrink-0">
+            <div className="mb-6">
                 <h1 className="text-2xl font-semibold text-mac-text tracking-tight">Settings</h1>
                 <p className="text-mac-secondary text-sm mt-0.5">Configure your trackmebaby workspace</p>
             </div>
 
-            <div className="flex-1 overflow-y-auto space-y-5 pb-8">
+            <div className="space-y-5 pb-8">
                 {/* Appearance */}
                 <div className="bg-mac-surface rounded-xl shadow-mac overflow-hidden">
                     <div className="px-4 py-3 border-b border-mac-border">
@@ -121,6 +190,78 @@ export default function SettingsPanel() {
                                 Dark
                             </button>
                         </div>
+                    </div>
+                </div>
+
+                {/* GitHub Integration */}
+                <div className="bg-mac-surface rounded-xl shadow-mac overflow-hidden">
+                    <div className="px-4 py-3 border-b border-mac-border">
+                        <h2 className="text-[13px] font-semibold text-mac-text uppercase tracking-wide">GitHub</h2>
+                    </div>
+                    <div className="px-4 py-4">
+                        <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                {/* GitHub Logo */}
+                                <div className="w-9 h-9 rounded-lg flex items-center justify-center bg-mac-bg">
+                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-5 h-5 text-mac-secondary">
+                                        <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    {githubAuthenticated ? (
+                                        <>
+                                            <span className="text-[14px] text-mac-text font-medium">
+                                                Signed in as <span className="text-mac-accent font-semibold">{githubUsername || "unknown"}</span>
+                                            </span>
+                                            <p className="text-[12px] text-mac-secondary">
+                                                Issues and pull requests are visible in dashboards
+                                            </p>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <span className="text-[14px] text-mac-text font-medium">GitHub Account</span>
+                                            <p className="text-[12px] text-mac-secondary">
+                                                Sign in to view issues and pull requests
+                                            </p>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            {githubAuthenticated ? (
+                                <button
+                                    id="settings-github-signout"
+                                    onClick={async () => {
+                                        await githubSignOut();
+                                        setGithubAuthenticated(false);
+                                        setGithubUsername(null);
+                                    }}
+                                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all active:scale-[0.98] bg-mac-bg hover:bg-red-500/10 hover:text-red-400 text-mac-secondary"
+                                >
+                                    Sign out
+                                </button>
+                            ) : (
+                                <button
+                                    id="settings-github-signin"
+                                    onClick={handleGitHubSignIn}
+                                    disabled={githubLoading}
+                                    className="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all active:scale-[0.98] bg-mac-bg hover:bg-mac-hover text-mac-text disabled:opacity-40"
+                                >
+                                    {githubLoading ? (
+                                        <span className="flex items-center gap-2">
+                                            <div className="w-3 h-3 rounded-full border-2 border-mac-text border-t-transparent animate-spin" />
+                                            Waiting…
+                                        </span>
+                                    ) : (
+                                        "Sign in with GitHub"
+                                    )}
+                                </button>
+                            )}
+                        </div>
+                        {githubMessage && (
+                            <p className={`text-[12px] mt-3 ${githubAuthenticated ? 'text-emerald-500' : 'text-mac-secondary'}`}>
+                                {githubMessage}
+                            </p>
+                        )}
                     </div>
                 </div>
 
@@ -221,34 +362,34 @@ export default function SettingsPanel() {
                         </div>
                     </div>
                 </div>
-            </div>
 
-            {/* Actions footer */}
-            <div className="flex gap-3 pt-4 border-t border-mac-border shrink-0 mt-auto">
-                <button
-                    id="settings-scan"
-                    onClick={handleScan}
-                    disabled={scanning || !settings.basePath}
-                    className="px-4 py-2 bg-mac-bg hover:bg-mac-hover disabled:opacity-40 text-mac-text text-[14px] font-medium rounded-lg transition-all flex items-center gap-2"
-                >
-                    {scanning ? (
-                        <>
-                            <div className="w-3.5 h-3.5 rounded-full border-2 border-mac-text border-t-transparent animate-spin" />
-                            Scanning...
-                        </>
-                    ) : (
-                        <>{scanResult || "Scan Projects"}</>
-                    )}
-                </button>
-                <div className="flex-1" />
-                <button
-                    id="settings-save"
-                    onClick={saveSettings}
-                    disabled={saving}
-                    className="px-5 py-2 bg-mac-accent hover:opacity-90 disabled:opacity-40 text-white text-[14px] font-medium rounded-lg transition-all active:scale-[0.98] min-w-[120px]"
-                >
-                    {saving ? "Saving..." : saveResult || "Save Settings"}
-                </button>
+                {/* Actions */}
+                <div className="flex gap-3 pt-2">
+                    <button
+                        id="settings-scan"
+                        onClick={handleScan}
+                        disabled={scanning || !settings.basePath}
+                        className="px-4 py-2 bg-mac-bg hover:bg-mac-hover disabled:opacity-40 text-mac-text text-[14px] font-medium rounded-lg transition-all flex items-center gap-2"
+                    >
+                        {scanning ? (
+                            <>
+                                <div className="w-3.5 h-3.5 rounded-full border-2 border-mac-text border-t-transparent animate-spin" />
+                                Scanning...
+                            </>
+                        ) : (
+                            <>{scanResult || "Scan Projects"}</>
+                        )}
+                    </button>
+                    <div className="flex-1" />
+                    <button
+                        id="settings-save"
+                        onClick={saveSettings}
+                        disabled={saving}
+                        className="px-5 py-2 bg-mac-accent hover:opacity-90 disabled:opacity-40 text-white text-[14px] font-medium rounded-lg transition-all active:scale-[0.98] min-w-[120px]"
+                    >
+                        {saving ? "Saving..." : saveResult || "Save Settings"}
+                    </button>
+                </div>
             </div>
         </div>
     );
