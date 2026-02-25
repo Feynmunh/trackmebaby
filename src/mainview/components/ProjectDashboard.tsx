@@ -1,7 +1,9 @@
-import { useRef } from "react";
-import type { Project, GitSnapshot, ActivityEvent, ProjectStats, Worktree } from "../../shared/types.ts";
+import { useRef, useState, useEffect, useCallback } from "react";
+import type { Project, GitSnapshot, ActivityEvent, ProjectStats, Worktree, GitHubData } from "../../shared/types.ts";
+import { getGitHubAuthStatus, getGitHubData, githubStartAuth } from "../rpc";
 import OverviewPage from "./pages/OverviewPage";
 import GitPage from "./pages/GitPage";
+import GitHubPage from "./pages/GitHubPage";
 
 
 function timeAgo(dateStr: string | null): string {
@@ -23,6 +25,7 @@ interface ProjectDashboardProps {
     projectStats?: ProjectStats | null;
     events: ActivityEvent[];
     onBack: () => void;
+    onNavigateToSettings?: () => void;
 }
 
 export default function ProjectDashboard({
@@ -31,8 +34,11 @@ export default function ProjectDashboard({
     projectStats,
     events,
     onBack,
+    onNavigateToSettings,
 }: ProjectDashboardProps) {
     const timelineRef = useRef<HTMLDivElement>(null);
+    const githubRef = useRef<HTMLDivElement>(null);
+    const pollRef = useRef<Timer | null>(null);
     const todayEventCount = events.filter((e) => {
         const d = new Date(e.timestamp);
         const now = new Date();
@@ -40,6 +46,66 @@ export default function ProjectDashboard({
     }).length;
 
     const hasWorktrees = project.worktrees && project.worktrees.length > 1;
+
+    // --- GitHub Integration State ---
+    const [isGitHubAuthenticated, setIsGitHubAuthenticated] = useState(false);
+    const [githubData, setGithubData] = useState<GitHubData | null>(null);
+    const [githubLoading, setGithubLoading] = useState(false);
+
+    // Check GitHub auth status on mount
+    useEffect(() => {
+        getGitHubAuthStatus()
+            .then(({ authenticated }) => {
+                setIsGitHubAuthenticated(authenticated);
+                if (authenticated) {
+                    setGithubLoading(true);
+                    getGitHubData(project.id)
+                        .then(setGithubData)
+                        .catch(() => setGithubData(null))
+                        .finally(() => setGithubLoading(false));
+                }
+            })
+            .catch(() => setIsGitHubAuthenticated(false));
+
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current);
+        };
+    }, [project.id]);
+
+    const handleGitHubSignIn = useCallback(async () => {
+        setGithubLoading(true);
+        try {
+            const result = await githubStartAuth();
+            if (!result.success) {
+                setGithubLoading(false);
+                return;
+            }
+
+            // Poll for auth completion (OAuth happens in browser)
+            let attempts = 0;
+            pollRef.current = setInterval(async () => {
+                attempts++;
+                try {
+                    const status = await getGitHubAuthStatus();
+                    if (status.authenticated) {
+                        if (pollRef.current) clearInterval(pollRef.current);
+                        pollRef.current = null;
+                        setIsGitHubAuthenticated(true);
+                        const data = await getGitHubData(project.id);
+                        setGithubData(data);
+                        setGithubLoading(false);
+                    } else if (attempts >= 60) {
+                        if (pollRef.current) clearInterval(pollRef.current);
+                        pollRef.current = null;
+                        setGithubLoading(false);
+                    }
+                } catch { /* keep polling */ }
+            }, 2000);
+        } catch (err) {
+            console.error("GitHub sign-in failed:", err);
+            setGithubLoading(false);
+        }
+    }, [project.id]);
 
     return (
         <div className="flex flex-col w-full h-full bg-mac-bg select-none">
@@ -97,6 +163,12 @@ export default function ProjectDashboard({
                                 events={events}
                                 isWidget={true}
                                 onCommitsClick={() => timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                                onGitHubClick={() => githubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                                isGitHubAuthenticated={isGitHubAuthenticated}
+                                githubData={githubData}
+                                githubLoading={githubLoading}
+                                onGitHubSignIn={isGitHubAuthenticated ? handleGitHubSignIn : (onNavigateToSettings || handleGitHubSignIn)}
+                                statsLoading={projectStats === undefined}
                             />
                         </section>
 
@@ -107,6 +179,17 @@ export default function ProjectDashboard({
                                 projectStats={projectStats}
                                 isWidget={true}
                                 section="timeline"
+                            />
+                        </section>
+
+                        {/* Remote Environment */}
+                        <section ref={githubRef} className="scroll-mt-12">
+                            <GitHubPage
+                                githubData={githubData}
+                                githubLoading={githubLoading}
+                                isGitHubAuthenticated={isGitHubAuthenticated}
+                                isWidget={true}
+                                section="environment"
                             />
                         </section>
                     </div>
@@ -123,7 +206,15 @@ export default function ProjectDashboard({
                             />
                         </section>
 
-
+                        {/* Contributors */}
+                        <section>
+                            <GitPage
+                                gitSnapshot={gitSnapshot}
+                                projectStats={projectStats}
+                                isWidget={true}
+                                section="contributors"
+                            />
+                        </section>
                     </div>
 
                 </div>

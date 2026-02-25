@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Project, GitSnapshot, ProjectStats, ActivityEvent } from "../../../shared/types.ts";
+import type { Project, GitSnapshot, ProjectStats, ActivityEvent, GitHubData } from "../../../shared/types.ts";
 
 interface OverviewPageProps {
     project: Project;
@@ -8,8 +8,13 @@ interface OverviewPageProps {
     eventCount: number;
     events: ActivityEvent[];
     isWidget?: boolean;
-    onBranchesClick?: () => void;
+    onGitHubClick?: () => void;
     onCommitsClick?: () => void;
+    isGitHubAuthenticated?: boolean;
+    githubData?: GitHubData | null;
+    githubLoading?: boolean;
+    onGitHubSignIn?: () => void;
+    statsLoading?: boolean;
 }
 
 function timeAgo(dateStr: string | null): string {
@@ -24,6 +29,45 @@ function timeAgo(dateStr: string | null): string {
     return `${days}d ago`;
 }
 
+/** GitHub Octicon: IssueOpened (circle-dot) */
+function IssueIcon({ className }: { className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className={className}>
+            <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+            <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" />
+        </svg>
+    );
+}
+
+/** GitHub Octicon: GitPullRequest */
+function PullRequestIcon({ className }: { className?: string }) {
+    return (
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className={className}>
+            <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+        </svg>
+    );
+}
+
+/** GitHub sign-in prompt shown inside a card when not authenticated */
+function GitHubSignInPrompt({ onClick, loading }: { onClick?: () => void; loading?: boolean }) {
+    return (
+        <button
+            onClick={onClick}
+            disabled={loading}
+            className="w-full text-left group/signin"
+        >
+            <div className="flex items-center gap-1.5 mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3 h-3 text-mac-secondary opacity-60">
+                    <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z" />
+                </svg>
+                <span className="text-[10px] font-semibold text-mac-secondary group-hover/signin:text-mac-text transition-colors">
+                    {loading ? "Signing in…" : "Sign in to access"}
+                </span>
+            </div>
+        </button>
+    );
+}
+
 export default function OverviewPage({
     project,
     gitSnapshot,
@@ -31,8 +75,13 @@ export default function OverviewPage({
     eventCount,
     events,
     isWidget = false,
-    onBranchesClick,
+    onGitHubClick,
     onCommitsClick,
+    isGitHubAuthenticated = false,
+    githubData = null,
+    githubLoading = false,
+    onGitHubSignIn,
+    statsLoading = false,
 }: OverviewPageProps) {
     const [showingBranches, setShowingBranches] = useState(false);
 
@@ -56,11 +105,10 @@ export default function OverviewPage({
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-                        {/* Stat Cards */}
+                    <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {/* Branches Card */}
                         <div
                             onClick={() => {
-                                onBranchesClick?.();
                                 setShowingBranches(!showingBranches);
                             }}
                             className={`group relative bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98] ${showingBranches ? 'z-[60]' : 'z-0'}`}
@@ -70,7 +118,13 @@ export default function OverviewPage({
                                     <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
                                 </svg>
                             </div>
-                            <div className="text-2xl font-black text-mac-text mb-1">{projectStats?.branchCount ?? "-"}</div>
+                            <div className="text-2xl font-black text-mac-text mb-1 h-8 flex items-center">
+                                {statsLoading ? (
+                                    <div className="w-4 h-4 border-2 border-mac-text/20 border-t-mac-accent rounded-full animate-spin" />
+                                ) : (
+                                    projectStats?.branchCount ?? "-"
+                                )}
+                            </div>
                             <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Branches</div>
 
                             {showingBranches && projectStats?.branches && (
@@ -90,6 +144,7 @@ export default function OverviewPage({
                             )}
                         </div>
 
+                        {/* Commits Card */}
                         <div
                             onClick={onCommitsClick}
                             className="group bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]"
@@ -99,23 +154,72 @@ export default function OverviewPage({
                                     <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                                 </svg>
                             </div>
-                            <div className="text-2xl font-black text-mac-text mb-1">{projectStats?.totalCommits ?? "-"}</div>
+                            <div className="text-2xl font-black text-mac-text mb-1 h-8 flex items-center">
+                                {statsLoading ? (
+                                    <div className="w-4 h-4 border-2 border-mac-text/20 border-t-green-500 rounded-full animate-spin" />
+                                ) : (
+                                    projectStats?.totalCommits ?? "-"
+                                )}
+                            </div>
                             <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Commits</div>
                         </div>
 
-                        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all">
-                            <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center mb-4">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-4 h-4 text-amber-500">
-                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                        {/* Issues Card */}
+                        <div
+                            onClick={isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn}
+                            className={`group bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]`}
+                        >
+                            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:bg-emerald-500/20 transition-colors">
+                                <IssueIcon className="w-4 h-4 text-emerald-500" />
                             </div>
-                            <div className="text-2xl font-black text-mac-text mb-1">
-                                {projectStats?.repoAgeFirstCommit
-                                    ? `${Math.floor((Date.now() - new Date(projectStats.repoAgeFirstCommit).getTime()) / (1000 * 60 * 60 * 24))}d`
-                                    : "-"
-                                }
+                            {isGitHubAuthenticated ? (
+                                <>
+                                    <div className="text-2xl font-black text-mac-text mb-1 h-8 flex items-center">
+                                        {githubLoading ? (
+                                            <div className="w-4 h-4 border-2 border-mac-text/20 border-t-mac-accent rounded-full animate-spin" />
+                                        ) : (
+                                            githubData?.openIssues ?? "-"
+                                        )}
+                                    </div>
+                                    <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Issues</div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-2xl mb-1">
+                                        <GitHubSignInPrompt onClick={onGitHubSignIn} loading={githubLoading} />
+                                    </div>
+                                    <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Issues</div>
+                                </>
+                            )}
+                        </div>
+
+                        {/* Pull Requests Card */}
+                        <div
+                            onClick={isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn}
+                            className={`group bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]`}
+                        >
+                            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 transition-colors">
+                                <PullRequestIcon className="w-4 h-4 text-purple-500" />
                             </div>
-                            <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Project Age</div>
+                            {isGitHubAuthenticated ? (
+                                <>
+                                    <div className="text-2xl font-black text-mac-text mb-1 h-8 flex items-center">
+                                        {githubLoading ? (
+                                            <div className="w-4 h-4 border-2 border-mac-text/20 border-t-mac-accent rounded-full animate-spin" />
+                                        ) : (
+                                            githubData?.openPRs ?? "-"
+                                        )}
+                                    </div>
+                                    <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Pull Requests</div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-2xl mb-1">
+                                        <GitHubSignInPrompt onClick={onGitHubSignIn} loading={githubLoading} />
+                                    </div>
+                                    <div className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Pull Requests</div>
+                                </>
+                            )}
                         </div>
                     </div>
 
@@ -172,11 +276,10 @@ export default function OverviewPage({
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-                {/* Stat Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+                {/* Branches Card */}
                 <div
                     onClick={() => {
-                        onBranchesClick?.();
                         setShowingBranches(!showingBranches);
                     }}
                     className={`group relative bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98] ${showingBranches ? 'z-[60]' : 'z-0'}`}
@@ -206,6 +309,7 @@ export default function OverviewPage({
                     )}
                 </div>
 
+                {/* Commits Card */}
                 <div
                     onClick={onCommitsClick}
                     className="group bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]"
@@ -219,19 +323,54 @@ export default function OverviewPage({
                     <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">Total Commits</div>
                 </div>
 
-                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all">
-                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-amber-500">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
+                {/* Issues Card */}
+                <div
+                    onClick={!isGitHubAuthenticated ? onGitHubSignIn : undefined}
+                    className={`group bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all ${!isGitHubAuthenticated ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                >
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center mb-6 group-hover:bg-emerald-500/20 transition-colors">
+                        <IssueIcon className="w-5 h-5 text-emerald-500" />
                     </div>
-                    <div className="text-3xl font-black text-mac-text mb-1">
-                        {projectStats?.repoAgeFirstCommit
-                            ? `${Math.floor((Date.now() - new Date(projectStats.repoAgeFirstCommit).getTime()) / (1000 * 60 * 60 * 24))}d`
-                            : "-"
-                        }
+                    {isGitHubAuthenticated ? (
+                        <>
+                            <div className="text-3xl font-black text-mac-text mb-1">
+                                {githubLoading ? "…" : (githubData?.openIssues ?? "-")}
+                            </div>
+                            <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">Open Issues</div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="text-3xl mb-1">
+                                <GitHubSignInPrompt onClick={onGitHubSignIn} loading={githubLoading} />
+                            </div>
+                            <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">Issues</div>
+                        </>
+                    )}
+                </div>
+
+                {/* Pull Requests Card */}
+                <div
+                    onClick={!isGitHubAuthenticated ? onGitHubSignIn : undefined}
+                    className={`group bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac hover:shadow-mac-md transition-all ${!isGitHubAuthenticated ? 'cursor-pointer active:scale-[0.98]' : ''}`}
+                >
+                    <div className="w-10 h-10 rounded-xl bg-purple-500/10 flex items-center justify-center mb-6 group-hover:bg-purple-500/20 transition-colors">
+                        <PullRequestIcon className="w-5 h-5 text-purple-500" />
                     </div>
-                    <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">Project Age</div>
+                    {isGitHubAuthenticated ? (
+                        <>
+                            <div className="text-3xl font-black text-mac-text mb-1">
+                                {githubLoading ? "…" : (githubData?.openPRs ?? "-")}
+                            </div>
+                            <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">Pull Requests</div>
+                        </>
+                    ) : (
+                        <>
+                            <div className="text-3xl mb-1">
+                                <GitHubSignInPrompt onClick={onGitHubSignIn} loading={githubLoading} />
+                            </div>
+                            <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">Pull Requests</div>
+                        </>
+                    )}
                 </div>
             </div>
 

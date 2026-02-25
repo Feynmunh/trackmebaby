@@ -9,6 +9,7 @@ import type {
     GitSnapshot,
     Settings,
     ProjectStats,
+    GitHubData,
 } from "./types.ts";
 
 export type TrackmeBabyRPC = {
@@ -69,6 +70,26 @@ export type TrackmeBabyRPC = {
             windowSetPosition: {
                 params: { x: number; y: number };
                 response: { success: boolean };
+            };
+            githubStartAuth: {
+                params: {};
+                response: { success: boolean; error?: string };
+            };
+            githubSignOut: {
+                params: {};
+                response: { success: boolean };
+            };
+            getGitHubAuthStatus: {
+                params: {};
+                response: { authenticated: boolean; username?: string };
+            };
+            getGitHubData: {
+                params: { projectId: string };
+                response: GitHubData | null;
+            };
+            openExternalUrl: {
+                params: { url: string };
+                response: { success: boolean; error?: string };
             };
         };
         messages: {

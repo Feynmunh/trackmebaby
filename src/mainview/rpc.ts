@@ -10,6 +10,7 @@ import type {
     GitSnapshot,
     Settings,
     ProjectStats,
+    GitHubData,
 } from "../../shared/types.ts";
 
 // Initialize RPC
@@ -111,6 +112,28 @@ export async function windowSetPosition(
     y: number
 ): Promise<{ success: boolean }> {
     return electroview.rpc.request.windowSetPosition({ x, y });
+}
+
+// --- GitHub Integration ---
+
+export async function githubStartAuth(): Promise<{ success: boolean; error?: string }> {
+    return electroview.rpc.request.githubStartAuth({});
+}
+
+export async function githubSignOut(): Promise<{ success: boolean }> {
+    return electroview.rpc.request.githubSignOut({});
+}
+
+export async function getGitHubAuthStatus(): Promise<{ authenticated: boolean; username?: string }> {
+    return electroview.rpc.request.getGitHubAuthStatus({});
+}
+
+export async function getGitHubData(projectId: string): Promise<GitHubData | null> {
+    return electroview.rpc.request.getGitHubData({ projectId });
+}
+
+export async function openExternalUrl(url: string): Promise<{ success: boolean; error?: string }> {
+    return electroview.rpc.request.openExternalUrl({ url });
 }
 
 // --- Push Message Subscriptions ---

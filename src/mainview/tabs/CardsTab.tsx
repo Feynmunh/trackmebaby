@@ -17,7 +17,7 @@ try {
     // RPC not available (outside Electrobun)
 }
 
-export default function CardsTab() {
+export default function CardsTab({ onNavigateToSettings }: { onNavigateToSettings?: () => void }) {
     const [projects, setProjects] = useState<Project[]>([]);
     const [gitSnapshots, setGitSnapshots] = useState<Record<string, GitSnapshot | null>>({});
     const [projectEvents, setProjectEvents] = useState<Record<string, ActivityEvent[]>>({});
@@ -223,6 +223,7 @@ export default function CardsTab() {
                                 projectStats={projectStats[projects[activeIndex].id]}
                                 events={projectEvents[projects[activeIndex].id] ?? []}
                                 onBack={closeDashboard}
+                                onNavigateToSettings={onNavigateToSettings}
                             />
                         </div>
                     </>
