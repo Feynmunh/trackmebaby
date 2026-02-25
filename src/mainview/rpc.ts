@@ -132,6 +132,10 @@ export async function getGitHubData(projectId: string): Promise<GitHubData | nul
     return electroview.rpc.request.getGitHubData({ projectId });
 }
 
+export async function openExternalUrl(url: string): Promise<{ success: boolean; error?: string }> {
+    return electroview.rpc.request.openExternalUrl({ url });
+}
+
 // --- Push Message Subscriptions ---
 
 export function onProjectsUpdated(

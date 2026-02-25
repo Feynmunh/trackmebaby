@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { GitHubData, GitHubIssue, GitHubPR } from "../../../shared/types.ts";
 import Tooltip from "../ui/Tooltip.tsx";
+import { openExternalUrl } from "../../rpc";
 
 interface GitHubPageProps {
     githubData?: GitHubData | null;
@@ -63,16 +64,14 @@ function GitHubItemCard({
                                 {item.title}
                             </p>
                             <Tooltip content="Open in GitHub">
-                                <a
-                                    href={item.url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); openExternalUrl(item.url); }}
                                     className="text-mac-secondary hover:text-mac-accent transition-colors shrink-0 p-1 hover:bg-mac-accent/10 rounded-md block"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5">
                                         <path fillRule="evenodd" d="M5.22 14.78a.75.75 0 001.06 0l7.22-7.22v5.69a.75.75 0 001.5 0v-7.5a.75.75 0 00-.75-.75h-7.5a.75.75 0 000 1.5h5.69l-7.22 7.22a.75.75 0 000 1.06z" clipRule="evenodd" />
                                     </svg>
-                                </a>
+                                </button>
                             </Tooltip>
                         </div>
                         <span className={`text-[10px] text-mac-secondary font-mono ${isCompact ? 'opacity-60' : 'bg-mac-bg/50 px-2 py-1 rounded-lg border border-mac-border/20'} whitespace-nowrap ml-4`}>
@@ -231,9 +230,9 @@ export default function GitHubPage({
                             <h3 className="text-2xl font-black text-mac-text leading-tight uppercase truncate max-w-[400px]">
                                 {githubData?.repoUrl?.split('/').slice(-2).join('/') || 'Repository'}
                             </h3>
-                            <a href={githubData?.repoUrl || '#'} target="_blank" rel="noopener noreferrer" className="text-xs text-mac-secondary hover:text-mac-accent transition-colors font-mono tracking-wider opacity-80">
+                            <button onClick={(e) => { e.stopPropagation(); githubData?.repoUrl && openExternalUrl(githubData.repoUrl); }} className="text-xs text-mac-secondary hover:text-mac-accent transition-colors font-mono tracking-wider opacity-80 cursor-pointer">
                                 {githubData?.repoUrl}
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -266,22 +265,18 @@ export default function GitHubPage({
                         )}
 
                         <div className="grid grid-cols-2 gap-4 mt-4">
-                            <a
-                                href={`${githubData?.repoUrl}/issues`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="py-4 rounded-2xl border border-mac-border/30 bg-mac-surface/30 text-mac-secondary text-[10px] text-center font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors block"
+                            <button
+                                onClick={(e) => { e.stopPropagation(); openExternalUrl(`${githubData?.repoUrl}/issues`); }}
+                                className="py-4 rounded-2xl border border-mac-border/30 bg-mac-surface/30 text-mac-secondary text-[10px] text-center font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors block w-full"
                             >
                                 View All Issues
-                            </a>
-                            <a
-                                href={`${githubData?.repoUrl}/pulls`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="py-4 rounded-2xl border border-mac-border/30 bg-mac-surface/30 text-mac-secondary text-[10px] text-center font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors block"
+                            </button>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); openExternalUrl(`${githubData?.repoUrl}/pulls`); }}
+                                className="py-4 rounded-2xl border border-mac-border/30 bg-mac-surface/30 text-mac-secondary text-[10px] text-center font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors block w-full"
                             >
                                 View All Pull Requests
-                            </a>
+                            </button>
                         </div>
                     </div>
                 </div>

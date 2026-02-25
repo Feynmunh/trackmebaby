@@ -201,6 +201,25 @@ export function createRPC(
                     if (!project) return null;
                     return await githubService.getGitHubData(project.path);
                 },
+
+                openExternalUrl: ({ url }) => {
+                    try {
+                        const isLinux = process.platform === "linux";
+                        const isMac = process.platform === "darwin";
+                        const isWindows = process.platform === "win32";
+
+                        if (isMac) {
+                            Bun.spawn(["open", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+                        } else if (isWindows) {
+                            Bun.spawn(["cmd", "/c", "start", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+                        } else if (isLinux) {
+                            Bun.spawn(["xdg-open", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+                        }
+                        return { success: true };
+                    } catch (err: any) {
+                        return { success: false, error: err.message };
+                    }
+                },
             },
             messages: {
                 log: ({ msg }) => {

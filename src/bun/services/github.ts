@@ -206,11 +206,7 @@ export class GitHubService {
 
             // Open the browser
             const openCmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-            Bun.$`${openCmd} ${authUrl.toString()}`.quiet().catch(() => {
-                if (process.platform === "linux") {
-                    Bun.$`sensible-browser ${authUrl.toString()}`.quiet().catch(() => { });
-                }
-            });
+            Bun.spawn([openCmd, authUrl.toString()], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
 
             return { success: true };
 

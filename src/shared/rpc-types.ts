@@ -87,6 +87,10 @@ export type TrackmeBabyRPC = {
                 params: { projectId: string };
                 response: GitHubData | null;
             };
+            openExternalUrl: {
+                params: { url: string };
+                response: { success: boolean; error?: string };
+            };
         };
         messages: {
             log: { msg: string };
