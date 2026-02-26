@@ -3,38 +3,65 @@
  * Provides a simple API for React components to call backend functions
  */
 import { Electroview } from "electrobun/view";
-import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
+import { emitLog, type LogEntry, setLogSink } from "../shared/logger.ts";
+import type { TrackmeBabyRPC } from "../shared/rpc-types.ts";
 import type {
-    Project,
     ActivityEvent,
-    GitSnapshot,
-    Settings,
-    ProjectStats,
-    GitHubData,
     ActivitySummary,
-} from "../../shared/types.ts";
+    GitHubData,
+    GitSnapshot,
+    Project,
+    ProjectStats,
+    Settings,
+} from "../shared/types.ts";
 
 // Initialize RPC
 const rpc = Electroview.defineRPC<TrackmeBabyRPC>({
     handlers: {
         requests: {},
         messages: {
-            projectsUpdated: ({ projects }) => {
-                rpcEventHandlers.projectsUpdated.forEach((cb) => cb(projects));
+            projectsUpdated: ({ projects }: { projects: Project[] }) => {
+                for (const cb of rpcEventHandlers.projectsUpdated) {
+                    cb(projects);
+                }
             },
-            activityEvent: ({ event }) => {
-                rpcEventHandlers.activityEvent.forEach((cb) => cb(event));
+            activityEvent: ({ event }: { event: ActivityEvent }) => {
+                for (const cb of rpcEventHandlers.activityEvent) {
+                    cb(event);
+                }
             },
-            gitStatusChanged: ({ projectId, snapshot }) => {
-                rpcEventHandlers.gitStatusChanged.forEach((cb) =>
-                    cb(projectId, snapshot)
-                );
+            gitStatusChanged: ({
+                projectId,
+                snapshot,
+            }: {
+                projectId: string;
+                snapshot: GitSnapshot;
+            }) => {
+                for (const cb of rpcEventHandlers.gitStatusChanged) {
+                    cb(projectId, snapshot);
+                }
             },
         },
     },
 });
 
 const electroview = new Electroview({ rpc });
+
+setLogSink((entry: LogEntry) => {
+    if (rpc.send?.log) {
+        rpc.send.log({ entry });
+    } else {
+        emitLog(entry);
+    }
+});
+
+const requestApi = (() => {
+    const api = electroview.rpc?.request;
+    if (!api) {
+        throw new Error("Electroview RPC request API is unavailable");
+    }
+    return api;
+})();
 
 // Event handlers registry for push messages
 const rpcEventHandlers = {
@@ -48,107 +75,117 @@ const rpcEventHandlers = {
 // --- Public API ---
 
 export async function getProjects(): Promise<Project[]> {
-    return electroview.rpc.request.getProjects({});
+    return requestApi.getProjects({});
 }
 
 export async function getProjectActivity(
     projectId: string,
-    since: string
+    since: string,
 ): Promise<ActivityEvent[]> {
-    return electroview.rpc.request.getProjectActivity({ projectId, since });
+    return requestApi.getProjectActivity({ projectId, since });
 }
 
 export async function getProjectActivitySummary(
     projectId: string,
     since: string,
-    until: string
+    until: string,
 ): Promise<ActivitySummary[]> {
-    return electroview.rpc.request.getProjectActivitySummary({ projectId, since, until });
+    return requestApi.getProjectActivitySummary({ projectId, since, until });
 }
 
 export async function getGitStatus(
-    projectId: string
+    projectId: string,
 ): Promise<GitSnapshot | null> {
-    return electroview.rpc.request.getGitStatus({ projectId });
+    return requestApi.getGitStatus({ projectId });
 }
 
 export async function getProjectStats(
-    projectId: string
+    projectId: string,
 ): Promise<ProjectStats | null> {
-    return electroview.rpc.request.getProjectStats({ projectId });
+    return requestApi.getProjectStats({ projectId });
 }
 
 export async function queryAI(question: string): Promise<string> {
-    return electroview.rpc.request.queryAI({ question });
+    return requestApi.queryAI({ question });
 }
 
 export async function getSettings(): Promise<Settings> {
-    return electroview.rpc.request.getSettings({});
+    return requestApi.getSettings({});
 }
 
 export async function updateSettings(
-    settings: Partial<Settings>
+    settings: Partial<Settings>,
 ): Promise<{ success: boolean }> {
-    return electroview.rpc.request.updateSettings({ settings });
+    return requestApi.updateSettings({ settings });
 }
 
 export async function scanProjects(basePath: string): Promise<Project[]> {
-    return electroview.rpc.request.scanProjects({ basePath });
+    return requestApi.scanProjects({ basePath });
 }
 
 export async function getPlatform(): Promise<string> {
-    return electroview.rpc.request.getPlatform({});
+    return requestApi.getPlatform({});
 }
 
 export async function windowMinimize(): Promise<{ success: boolean }> {
-    return electroview.rpc.request.windowMinimize({});
+    return requestApi.windowMinimize({});
 }
 
 export async function windowMaximize(): Promise<{ success: boolean }> {
-    return electroview.rpc.request.windowMaximize({});
+    return requestApi.windowMaximize({});
 }
 
 export async function windowClose(): Promise<{ success: boolean }> {
-    return electroview.rpc.request.windowClose({});
+    return requestApi.windowClose({});
 }
 
 export async function windowGetPosition(): Promise<{ x: number; y: number }> {
-    return electroview.rpc.request.windowGetPosition({});
+    return requestApi.windowGetPosition({});
 }
 
 export async function windowSetPosition(
     x: number,
-    y: number
+    y: number,
 ): Promise<{ success: boolean }> {
-    return electroview.rpc.request.windowSetPosition({ x, y });
+    return requestApi.windowSetPosition({ x, y });
 }
 
 // --- GitHub Integration ---
 
-export async function githubStartAuth(): Promise<{ success: boolean; error?: string }> {
-    return electroview.rpc.request.githubStartAuth({});
+export async function githubStartAuth(): Promise<{
+    success: boolean;
+    error?: string;
+}> {
+    return requestApi.githubStartAuth({});
 }
 
 export async function githubSignOut(): Promise<{ success: boolean }> {
-    return electroview.rpc.request.githubSignOut({});
+    return requestApi.githubSignOut({});
 }
 
-export async function getGitHubAuthStatus(): Promise<{ authenticated: boolean; username?: string }> {
-    return electroview.rpc.request.getGitHubAuthStatus({});
+export async function getGitHubAuthStatus(): Promise<{
+    authenticated: boolean;
+    username?: string;
+}> {
+    return requestApi.getGitHubAuthStatus({});
 }
 
-export async function getGitHubData(projectId: string): Promise<GitHubData | null> {
-    return electroview.rpc.request.getGitHubData({ projectId });
+export async function getGitHubData(
+    projectId: string,
+): Promise<GitHubData | null> {
+    return requestApi.getGitHubData({ projectId });
 }
 
-export async function openExternalUrl(url: string): Promise<{ success: boolean; error?: string }> {
-    return electroview.rpc.request.openExternalUrl({ url });
+export async function openExternalUrl(
+    url: string,
+): Promise<{ success: boolean; error?: string }> {
+    return requestApi.openExternalUrl({ url });
 }
 
 // --- Push Message Subscriptions ---
 
 export function onProjectsUpdated(
-    cb: (projects: Project[]) => void
+    cb: (projects: Project[]) => void,
 ): () => void {
     rpcEventHandlers.projectsUpdated.push(cb);
     return () => {
@@ -158,7 +195,7 @@ export function onProjectsUpdated(
 }
 
 export function onActivityEvent(
-    cb: (event: ActivityEvent) => void
+    cb: (event: ActivityEvent) => void,
 ): () => void {
     rpcEventHandlers.activityEvent.push(cb);
     return () => {
@@ -168,7 +205,7 @@ export function onActivityEvent(
 }
 
 export function onGitStatusChanged(
-    cb: (projectId: string, snapshot: GitSnapshot) => void
+    cb: (projectId: string, snapshot: GitSnapshot) => void,
 ): () => void {
     rpcEventHandlers.gitStatusChanged.push(cb);
     return () => {

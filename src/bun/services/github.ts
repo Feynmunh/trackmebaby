@@ -2,9 +2,15 @@
  * GitHub Service — OAuth flow and GitHub API integration
  * Handles localhost-redirect OAuth, token storage, and issues/PRs fetching
  */
-import { getSetting, setSetting } from "../db/queries.ts";
+
 import type { Database } from "bun:sqlite";
-import type { GitHubData as SharedGitHubData } from "../../shared/types.ts";
+import { toErrorData, toErrorMessage } from "../../shared/error.ts";
+import { createLogger } from "../../shared/logger.ts";
+import type { GitHubData, GitHubIssue, GitHubPR } from "../../shared/types.ts";
+import { getSetting, setSetting } from "../db/queries.ts";
+import { runGit } from "./git-command.ts";
+
+const logger = createLogger("github");
 
 const GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize";
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
@@ -12,20 +18,58 @@ const GITHUB_API_BASE = "https://api.github.com";
 const CALLBACK_PORT = 7890;
 const CALLBACK_PATH = "/callback";
 
-export type GitHubData = SharedGitHubData;
+interface GitHubUserResponse {
+    login?: string;
+}
+
+interface GitHubTokenResponse {
+    access_token?: string;
+    error?: string;
+    error_description?: string;
+}
+
+interface GitHubSearchResponse {
+    items?: GitHubSearchItem[];
+}
+
+interface GitHubSearchItem {
+    number: number;
+    title: string;
+    state: "open" | "closed" | string;
+    html_url: string;
+    created_at: string;
+    closed_at?: string | null;
+    user?: { login?: string } | null;
+    draft?: boolean;
+    pull_request?: { merged_at?: string | null } | null;
+}
+
+function getGitHubHeaders(token: string): Record<string, string> {
+    return {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${token}`,
+        "X-GitHub-Api-Version": "2022-11-28",
+    };
+}
 
 /**
  * Parse a GitHub remote URL into owner/repo.
  * Supports SSH (git@github.com:owner/repo.git) and HTTPS (https://github.com/owner/repo.git)
  */
-export function parseGitHubRemoteUrl(remoteUrl: string): { owner: string; repo: string } | null {
+function parseGitHubRemoteUrl(
+    remoteUrl: string,
+): { owner: string; repo: string } | null {
     // SSH: git@github.com:owner/repo.git
-    const sshMatch = remoteUrl.match(/github\.com[:/]([^/]+)\/([^/\s]+?)(?:\.git)?$/i);
+    const sshMatch = remoteUrl.match(
+        /github\.com[:/]([^/]+)\/([^/\s]+?)(?:\.git)?$/i,
+    );
     if (sshMatch) {
         return { owner: sshMatch[1], repo: sshMatch[2] };
     }
     // HTTPS: https://github.com/owner/repo.git
-    const httpsMatch = remoteUrl.match(/github\.com\/([^/]+)\/([^/\s]+?)(?:\.git)?$/i);
+    const httpsMatch = remoteUrl.match(
+        /github\.com\/([^/]+)\/([^/\s]+?)(?:\.git)?$/i,
+    );
     if (httpsMatch) {
         return { owner: httpsMatch[1], repo: httpsMatch[2] };
     }
@@ -35,13 +79,21 @@ export function parseGitHubRemoteUrl(remoteUrl: string): { owner: string; repo: 
 /**
  * Get the GitHub remote URL from a project's git config.
  */
-export async function getGitHubRemote(projectPath: string): Promise<{ owner: string; repo: string } | null> {
+async function getGitHubRemote(
+    projectPath: string,
+): Promise<{ owner: string; repo: string } | null> {
     try {
-        const result = await Bun.$`git -C ${projectPath} remote get-url origin`.quiet();
-        const url = result.text().trim();
+        const url = await runGit(["remote", "get-url", "origin"], {
+            projectPath,
+            label: "GitHub",
+        });
         if (!url) return null;
         return parseGitHubRemoteUrl(url);
-    } catch {
+    } catch (err: unknown) {
+        logger.warn("failed to read remote", {
+            projectPath,
+            error: toErrorData(err),
+        });
         return null;
     }
 }
@@ -83,9 +135,15 @@ export class GitHubService {
     /** Remove the stored GitHub access token and username. */
     clearAuth(): void {
         try {
-            this.db.query("DELETE FROM settings WHERE key = ?").run("githubAccessToken");
-            this.db.query("DELETE FROM settings WHERE key = ?").run("githubUsername");
-        } catch { /* ignore */ }
+            this.db
+                .query("DELETE FROM settings WHERE key = ?")
+                .run("githubAccessToken");
+            this.db
+                .query("DELETE FROM settings WHERE key = ?")
+                .run("githubUsername");
+        } catch (err: unknown) {
+            logger.warn("failed to clear auth", { error: toErrorData(err) });
+        }
     }
 
     /**
@@ -94,20 +152,21 @@ export class GitHubService {
     private async fetchUsername(token: string): Promise<string | null> {
         try {
             const res = await fetch(`${GITHUB_API_BASE}/user`, {
-                headers: {
-                    "Accept": "application/vnd.github+json",
-                    "Authorization": `Bearer ${token}`,
-                    "X-GitHub-Api-Version": "2022-11-28",
-                },
+                headers: getGitHubHeaders(token),
             });
             if (!res.ok) {
-                console.error(`[GitHub] Failed to fetch user profile: ${res.status} ${res.statusText}`);
+                logger.error("failed to fetch user profile", {
+                    status: res.status,
+                    statusText: res.statusText,
+                });
                 return null;
             }
-            const data = await res.json() as any;
+            const data = (await res.json()) as GitHubUserResponse;
             return data.login || null;
-        } catch (err: any) {
-            console.error(`[GitHub] Error fetching username:`, err.message);
+        } catch (err: unknown) {
+            logger.error("error fetching username", {
+                error: toErrorData(err),
+            });
             return null;
         }
     }
@@ -119,7 +178,10 @@ export class GitHubService {
      * 3. Returns immediately — the server handles the callback in the background
      * 4. On callback: exchanges code for token, fetches username, stores both, shuts down server
      */
-    startOAuthFlow(clientId: string, clientSecret: string): { success: boolean; error?: string } {
+    startOAuthFlow(
+        clientId: string,
+        clientSecret: string,
+    ): { success: boolean; error?: string } {
         // Clean up any existing auth server
         this.cleanupAuthServer();
 
@@ -135,37 +197,59 @@ export class GitHubService {
 
                         if (error || !code) {
                             this.scheduleCleanup();
-                            return new Response(getCallbackHtml(false, error || "No authorization code received"), {
-                                headers: { "Content-Type": "text/html" },
-                            });
+                            return new Response(
+                                getCallbackHtml(
+                                    false,
+                                    error || "No authorization code received",
+                                ),
+                                {
+                                    headers: { "Content-Type": "text/html" },
+                                },
+                            );
                         }
 
                         // Exchange code for access token
                         try {
-                            const tokenResponse = await fetch(GITHUB_TOKEN_URL, {
-                                method: "POST",
-                                headers: {
-                                    "Content-Type": "application/json",
-                                    "Accept": "application/json",
+                            const tokenResponse = await fetch(
+                                GITHUB_TOKEN_URL,
+                                {
+                                    method: "POST",
+                                    headers: {
+                                        "Content-Type": "application/json",
+                                        Accept: "application/json",
+                                    },
+                                    body: JSON.stringify({
+                                        client_id: clientId,
+                                        client_secret: clientSecret,
+                                        code,
+                                    }),
                                 },
-                                body: JSON.stringify({
-                                    client_id: clientId,
-                                    client_secret: clientSecret,
-                                    code,
-                                }),
-                            });
+                            );
 
-                            const tokenData = await tokenResponse.json() as any;
+                            const tokenData =
+                                (await tokenResponse.json()) as GitHubTokenResponse;
 
                             if (tokenData.error || !tokenData.access_token) {
                                 this.scheduleCleanup();
-                                return new Response(getCallbackHtml(false, tokenData.error_description || tokenData.error || "Failed to exchange code"), {
-                                    headers: { "Content-Type": "text/html" },
-                                });
+                                return new Response(
+                                    getCallbackHtml(
+                                        false,
+                                        tokenData.error_description ||
+                                            tokenData.error ||
+                                            "Failed to exchange code",
+                                    ),
+                                    {
+                                        headers: {
+                                            "Content-Type": "text/html",
+                                        },
+                                    },
+                                );
                             }
 
                             // Fetch username FIRST (before storing token, so polling doesn't see auth without username)
-                            const username = await this.fetchUsername(tokenData.access_token);
+                            const username = await this.fetchUsername(
+                                tokenData.access_token,
+                            );
 
                             // Now store both atomically
                             this.setAccessToken(tokenData.access_token);
@@ -174,14 +258,24 @@ export class GitHubService {
                             }
 
                             this.scheduleCleanup();
-                            return new Response(getCallbackHtml(true, undefined, username || undefined), {
-                                headers: { "Content-Type": "text/html" },
-                            });
-                        } catch (err: any) {
+                            return new Response(
+                                getCallbackHtml(
+                                    true,
+                                    undefined,
+                                    username || undefined,
+                                ),
+                                {
+                                    headers: { "Content-Type": "text/html" },
+                                },
+                            );
+                        } catch (err: unknown) {
                             this.scheduleCleanup();
-                            return new Response(getCallbackHtml(false, err.message), {
-                                headers: { "Content-Type": "text/html" },
-                            });
+                            return new Response(
+                                getCallbackHtml(false, toErrorMessage(err)),
+                                {
+                                    headers: { "Content-Type": "text/html" },
+                                },
+                            );
                         }
                     }
 
@@ -197,19 +291,35 @@ export class GitHubService {
             // Build the authorization URL
             const authUrl = new URL(GITHUB_AUTH_URL);
             authUrl.searchParams.set("client_id", clientId);
-            authUrl.searchParams.set("redirect_uri", `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`);
+            authUrl.searchParams.set(
+                "redirect_uri",
+                `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`,
+            );
             authUrl.searchParams.set("scope", "repo");
             authUrl.searchParams.set("state", crypto.randomUUID());
 
             // Open the browser
-            const openCmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
-            Bun.spawn([openCmd, authUrl.toString()], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+            const openCmd =
+                process.platform === "darwin"
+                    ? "open"
+                    : process.platform === "win32"
+                      ? "start"
+                      : "xdg-open";
+            Bun.spawn([openCmd, authUrl.toString()], {
+                detached: true,
+                stdio: ["ignore", "ignore", "ignore"],
+            }).unref();
 
             return { success: true };
-
-        } catch (err: any) {
+        } catch (err: unknown) {
             this.cleanupAuthServer();
-            return { success: false, error: `Failed to start OAuth server: ${err.message}` };
+            logger.error("failed to start oauth server", {
+                error: toErrorData(err),
+            });
+            return {
+                success: false,
+                error: `Failed to start OAuth server: ${toErrorMessage(err)}`,
+            };
         }
     }
 
@@ -239,49 +349,59 @@ export class GitHubService {
         const remote = await getGitHubRemote(projectPath);
         if (!remote) return null;
 
-        const headers: Record<string, string> = {
-            "Accept": "application/vnd.github+json",
-            "Authorization": `Bearer ${token}`,
-            "X-GitHub-Api-Version": "2022-11-28",
-        };
+        const headers = getGitHubHeaders(token);
 
         try {
             // Fetch all issues and PRs - derive open counts from items to avoid extra API calls
             const [issuesRes, prsRes] = await Promise.all([
-                fetch(`${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:issue&sort=created&order=desc&per_page=50`, { headers }),
-                fetch(`${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:pr&sort=created&order=desc&per_page=50`, { headers }),
+                fetch(
+                    `${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:issue&sort=created&order=desc&per_page=50`,
+                    { headers },
+                ),
+                fetch(
+                    `${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:pr&sort=created&order=desc&per_page=50`,
+                    { headers },
+                ),
             ]);
 
             if (!issuesRes.ok || !prsRes.ok) {
-                if ([issuesRes, prsRes].some(r => r.status === 401)) {
+                if ([issuesRes, prsRes].some((r) => r.status === 401)) {
                     this.clearAuth();
                 }
                 return null;
             }
 
-            const issuesData = await issuesRes.json() as any;
-            const prsData = await prsRes.json() as any;
+            const issuesData = (await issuesRes.json()) as GitHubSearchResponse;
+            const prsData = (await prsRes.json()) as GitHubSearchResponse;
 
             // Derive open counts from items we already fetched
             const allIssues = issuesData.items || [];
             const allPRs = prsData.items || [];
-            const openIssues = allIssues.filter((i: any) => i.state === "open").length;
-            const openPRs = allPRs.filter((i: any) => i.state === "open").length;
+            const openIssues = allIssues.filter(
+                (i) => i.state === "open",
+            ).length;
+            const openPRs = allPRs.filter((i) => i.state === "open").length;
 
-            const mapIssue = (i: any) => ({
+            const mapIssue = (i: GitHubSearchItem): GitHubIssue => ({
                 number: i.number,
                 title: i.title,
-                state: i.state,
+                state:
+                    i.state === "open" || i.state === "closed"
+                        ? i.state
+                        : "open",
                 url: i.html_url,
                 createdAt: i.created_at,
                 user: i.user?.login || "unknown",
                 closedAt: i.closed_at ?? null,
             });
 
-            const mapPr = (i: any) => ({
+            const mapPr = (i: GitHubSearchItem): GitHubPR => ({
                 number: i.number,
                 title: i.title,
-                state: i.state,
+                state:
+                    i.state === "open" || i.state === "closed"
+                        ? i.state
+                        : "open",
                 url: i.html_url,
                 createdAt: i.created_at,
                 user: i.user?.login || "unknown",
@@ -297,14 +417,31 @@ export class GitHubService {
                 issues: allIssues.map(mapIssue),
                 pullRequests: allPRs.map(mapPr),
             };
-        } catch (err: any) {
-            console.error(`[GitHub] Error fetching data for ${remote.owner}/${remote.repo}:`, err.message);
+        } catch (err: unknown) {
+            logger.error("error fetching data", {
+                repo: `${remote.owner}/${remote.repo}`,
+                error: toErrorData(err),
+            });
             return null;
+        }
     }
 }
 
+/** Escape HTML special characters to prevent XSS in interpolated values */
+function escapeHtml(s: string): string {
+    return s
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
 /** Generate the HTML page shown after OAuth callback */
-function getCallbackHtml(success: boolean, error?: string, username?: string): string {
+function getCallbackHtml(
+    success: boolean,
+    error?: string,
+    username?: string,
+): string {
     if (success) {
         return `<!DOCTYPE html>
 <html>
@@ -349,12 +486,16 @@ function getCallbackHtml(success: boolean, error?: string, username?: string): s
             </svg>
         </div>
         <h1>You're connected!</h1>
-        ${username ? `<div class="username">
+        ${
+            username
+                ? `<div class="username">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor">
                 <path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/>
             </svg>
-            ${username}
-        </div>` : ''}
+            ${escapeHtml(username)}
+        </div>`
+                : ""
+        }
         <p class="hint">You can close this tab and return to <strong>trackmebaby</strong>.</p>
     </div>
 </body>
@@ -397,7 +538,7 @@ function getCallbackHtml(success: boolean, error?: string, username?: string): s
             </svg>
         </div>
         <h1>Something went wrong</h1>
-        <p class="error">${error || "Unknown error"}</p>
+        <p class="error">${escapeHtml(error || "Unknown error")}</p>
         <p class="hint">Please close this tab and try again in <strong>trackmebaby</strong>.</p>
     </div>
 </body>

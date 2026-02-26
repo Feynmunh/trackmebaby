@@ -1,15 +1,25 @@
-import { useRef, useState, useEffect, useCallback } from "react";
-import type { Project, GitSnapshot, ActivityEvent, ProjectStats, Worktree, GitHubData, ActivitySummary } from "../../shared/types.ts";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { toErrorData } from "../../shared/error.ts";
+import { createLogger } from "../../shared/logger.ts";
+import type {
+    ActivityEvent,
+    ActivitySummary,
+    GitHubData,
+    GitSnapshot,
+    Project,
+    ProjectStats,
+    Worktree,
+} from "../../shared/types.ts";
 import { getGitHubAuthStatus, getGitHubData, githubStartAuth } from "../rpc";
-import OverviewPage from "./pages/OverviewPage";
-import GitPage from "./pages/GitPage";
 import GitHubPage from "./pages/GitHubPage";
+import GitPage from "./pages/GitPage";
+import OverviewPage from "./pages/OverviewPage";
 
-
-function timeAgo(dateStr: string | null): string {
+function formatWorktreeActivity(dateStr: string | null): string {
     if (!dateStr) return "Never";
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
+    const date = new Date(dateStr);
+    const diffMs = Date.now() - date.getTime();
+    const mins = Math.floor(diffMs / 60000);
     if (mins < 1) return "Just now";
     if (mins < 60) return `${mins}m ago`;
     const hours = Math.floor(mins / 60);
@@ -65,10 +75,10 @@ export default function ProjectDashboard({
     const todayEventCount = activitySummary
         ? (summaryMap.get(todayKey) ?? 0)
         : events.filter((e) => {
-            const d = new Date(e.timestamp);
-            const now = new Date();
-            return d.toDateString() === now.toDateString();
-        }).length;
+              const d = new Date(e.timestamp);
+              const now = new Date();
+              return d.toDateString() === now.toDateString();
+          }).length;
 
     const hasWorktrees = project.worktrees && project.worktrees.length > 1;
 
@@ -93,7 +103,10 @@ export default function ProjectDashboard({
                     setGithubLoading(false);
                     return;
                 }
-            } catch {
+            } catch (err: unknown) {
+                logger.warn("github data fetch failed", {
+                    error: toErrorData(err),
+                });
             }
 
             if (cancelled) return;
@@ -118,7 +131,10 @@ export default function ProjectDashboard({
                 }
                 dataRetries = 0;
                 fetchGitHubData();
-            } catch {
+            } catch (err: unknown) {
+                logger.warn("github auth status failed", {
+                    error: toErrorData(err),
+                });
                 if (cancelled) return;
                 setIsGitHubAuthenticated(false);
             }
@@ -165,10 +181,14 @@ export default function ProjectDashboard({
                         pollRef.current = null;
                         setGithubLoading(false);
                     }
-                } catch { /* keep polling */ }
+                } catch (err: unknown) {
+                    logger.warn("github auth poll failed", {
+                        error: toErrorData(err),
+                    });
+                }
             }, 2000);
         } catch (err) {
-            console.error("GitHub sign-in failed:", err);
+            logger.error("github sign-in failed", { error: toErrorData(err) });
             setGithubLoading(false);
         }
     }, [project.id]);
@@ -182,14 +202,25 @@ export default function ProjectDashboard({
                         onClick={onBack}
                         className="w-10 h-10 rounded-xl bg-mac-surface shadow-mac flex items-center justify-center hover:bg-mac-surface/80 transition-all active:scale-95 group"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="w-5 h-5 text-mac-accent group-hover:-translate-x-0.5 transition-transform">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth={2.5}
+                            className="w-5 h-5 text-mac-accent group-hover:-translate-x-0.5 transition-transform"
+                        >
                             <path d="M19 12H5M12 19l-7-7 7-7" />
                         </svg>
                     </button>
 
                     <div>
-                        <h1 className="text-lg font-bold text-mac-text">{project.name}</h1>
-                        <p className="text-[10px] text-mac-secondary font-mono truncate max-w-md opacity-80">{project.path}</p>
+                        <h1 className="text-lg font-bold text-mac-text">
+                            {project.name}
+                        </h1>
+                        <p className="text-[10px] text-mac-secondary font-mono truncate max-w-md opacity-80">
+                            {project.path}
+                        </p>
                     </div>
                 </div>
 
@@ -216,7 +247,6 @@ export default function ProjectDashboard({
             {/* Main Unified Content */}
             <main className="flex-1 overflow-y-auto custom-scrollbar p-12">
                 <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
-
                     {/* Left Column: Core Stats & Repo History (Span 8) */}
                     <div className="lg:col-span-8 space-y-12">
                         {/* Stats Widgets */}
@@ -229,12 +259,27 @@ export default function ProjectDashboard({
                                 events={events}
                                 activitySummary={activitySummary}
                                 isWidget={true}
-                                onCommitsClick={() => timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-                                onGitHubClick={() => githubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                                onCommitsClick={() =>
+                                    timelineRef.current?.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "start",
+                                    })
+                                }
+                                onGitHubClick={() =>
+                                    githubRef.current?.scrollIntoView({
+                                        behavior: "smooth",
+                                        block: "start",
+                                    })
+                                }
                                 isGitHubAuthenticated={isGitHubAuthenticated}
                                 githubData={githubData}
                                 githubLoading={githubLoading}
-                                onGitHubSignIn={isGitHubAuthenticated ? handleGitHubSignIn : (onNavigateToSettings || handleGitHubSignIn)}
+                                onGitHubSignIn={
+                                    isGitHubAuthenticated
+                                        ? handleGitHubSignIn
+                                        : onNavigateToSettings ||
+                                          handleGitHubSignIn
+                                }
                                 statsLoading={statsLoading}
                                 statsLastUpdated={statsLastUpdated}
                                 onRefreshStats={onRefreshStats}
@@ -285,7 +330,6 @@ export default function ProjectDashboard({
                             />
                         </section>
                     </div>
-
                 </div>
             </main>
         </div>
@@ -297,29 +341,43 @@ function WorktreeCard({ worktree }: { worktree: Worktree }) {
     const isActive = worktree.uncommittedCount > 0;
 
     return (
-        <div className={`
+        <div
+            className={`
             flex-shrink-0 min-w-[200px] max-w-[280px] rounded-xl px-4 py-3
             border transition-all duration-200
-            ${isActive
-                ? "bg-mac-accent/5 border-mac-accent/30 shadow-mac-sm"
-                : "bg-mac-surface/50 border-mac-border/30"
+            ${
+                isActive
+                    ? "bg-mac-accent/5 border-mac-accent/30 shadow-mac-sm"
+                    : "bg-mac-surface/50 border-mac-border/30"
             }
-        `}>
+        `}
+        >
             <div className="flex items-center gap-2 mb-1.5">
                 {/* Branch icon */}
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3.5 h-3.5 text-mac-accent flex-shrink-0">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                    className="w-3.5 h-3.5 text-mac-accent flex-shrink-0"
+                >
                     <path d="M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
                     <path d="M18 9c0 6-12 6-12 12" />
                 </svg>
-                <span className="text-xs font-semibold text-mac-text truncate">{worktree.branch}</span>
+                <span className="text-xs font-semibold text-mac-text truncate">
+                    {worktree.branch}
+                </span>
                 {worktree.isMain && (
-                    <span className="text-[8px] font-bold uppercase tracking-wider text-mac-secondary bg-mac-bg px-1.5 py-0.5 rounded">main</span>
+                    <span className="text-[8px] font-bold uppercase tracking-wider text-mac-secondary bg-mac-bg px-1.5 py-0.5 rounded">
+                        main
+                    </span>
                 )}
             </div>
 
             <div className="flex items-center justify-between">
                 <span className="text-[10px] text-mac-secondary">
-                    {timeAgo(worktree.lastActivityAt)}
+                    {formatWorktreeActivity(worktree.lastActivityAt)}
                 </span>
                 {isActive && (
                     <span className="text-[10px] font-semibold text-mac-accent">
@@ -330,3 +388,4 @@ function WorktreeCard({ worktree }: { worktree: Worktree }) {
         </div>
     );
 }
+const logger = createLogger("dashboard");

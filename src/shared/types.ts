@@ -4,9 +4,9 @@
  */
 
 export interface Worktree {
-    path: string;              // Absolute path to worktree directory
-    branch: string;            // Currently checked-out branch
-    isMain: boolean;           // Is this the main working directory?
+    path: string; // Absolute path to worktree directory
+    branch: string; // Currently checked-out branch
+    isMain: boolean; // Is this the main working directory?
     lastActivityAt: string | null; // Derived: mtime of uncommitted files or last commit
     uncommittedCount: number;
     uncommittedFiles: string[];
@@ -18,7 +18,7 @@ export interface Project {
     name: string;
     lastActivityAt: string | null;
     createdAt: string;
-    worktrees: Worktree[];     // Empty array if no worktrees
+    worktrees: Worktree[]; // Empty array if no worktrees
 }
 
 export interface ActivityEvent {
@@ -47,8 +47,8 @@ export interface Settings {
     basePath: string | null;
     aiProvider: string;
     aiModel: string;
-    pollInterval: number;    // ms, default 60000
-    watchDebounce: number;   // ms, default 500
+    pollInterval: number; // ms, default 60000
+    watchDebounce: number; // ms, default 500
 }
 
 export interface ChatMessage {

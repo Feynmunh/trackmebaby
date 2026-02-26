@@ -1,10 +1,16 @@
 /**
  * Tests for AI context assembler
  */
-import { describe, test, expect, beforeEach } from "bun:test";
+
 import { Database } from "bun:sqlite";
+import { beforeEach, describe, expect, test } from "bun:test";
+import { nowIso } from "../../../shared/time.ts";
+import {
+    insertEvent,
+    insertGitSnapshot,
+    upsertProject,
+} from "../../db/queries.ts";
 import { runMigrations } from "../../db/schema.ts";
-import { upsertProject, insertEvent, insertGitSnapshot } from "../../db/queries.ts";
 import { assembleContext } from "./context-assembler.ts";
 
 let db: Database;
@@ -36,8 +42,14 @@ describe("Context Assembler", () => {
     test("includes git info in context", () => {
         const p = upsertProject(db, "/home/user/myapp", "myapp");
         insertGitSnapshot(
-            db, p.id, "feature/auth", "abc123", "add login page",
-            new Date().toISOString(), 2, ["auth.ts", "login.tsx"]
+            db,
+            p.id,
+            "feature/auth",
+            "abc123",
+            "add login page",
+            nowIso(),
+            2,
+            ["auth.ts", "login.tsx"],
         );
 
         const context = assembleContext(db, "Tell me about my work");
@@ -49,7 +61,11 @@ describe("Context Assembler", () => {
     test("stays under token budget", () => {
         // Create many projects with lots of events
         for (let i = 0; i < 20; i++) {
-            const p = upsertProject(db, `/home/user/project-${i}`, `project-${i}`);
+            const p = upsertProject(
+                db,
+                `/home/user/project-${i}`,
+                `project-${i}`,
+            );
             for (let j = 0; j < 50; j++) {
                 insertEvent(db, p.id, "file_modify", `src/file-${j}.ts`);
             }
@@ -80,7 +96,10 @@ describe("Context Assembler", () => {
         const p = upsertProject(db, "/home/user/app", "app");
         insertEvent(db, p.id, "file_modify", "x.ts");
 
-        const context = assembleContext(db, "What did I do in the last 7 days?");
+        const context = assembleContext(
+            db,
+            "What did I do in the last 7 days?",
+        );
         expect(context).toContain("Last 7 days");
     });
 

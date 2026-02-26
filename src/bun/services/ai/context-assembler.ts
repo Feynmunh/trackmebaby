@@ -5,9 +5,9 @@
  */
 import type { Database } from "bun:sqlite";
 import {
-    getProjects,
     getAllRecentEvents,
     getLatestGitSnapshot,
+    getProjects,
 } from "../../db/queries.ts";
 
 const MAX_CONTEXT_CHARS = 14000; // ~3500 tokens (4 chars per token avg)
@@ -29,10 +29,19 @@ export function assembleContext(db: Database, question: string): string {
     sections.push(`Activity Report (${timeRange.label})`);
     sections.push(`Total tracked projects: ${projects.length}\n`);
 
+    const allEvents = getAllRecentEvents(db, since);
+    const eventsByProject = new Map<string, typeof allEvents>();
+    for (const event of allEvents) {
+        const existing = eventsByProject.get(event.projectId);
+        if (existing) {
+            existing.push(event);
+        } else {
+            eventsByProject.set(event.projectId, [event]);
+        }
+    }
+
     for (const project of projects) {
-        const events = getAllRecentEvents(db, since).filter(
-            (e) => e.projectId === project.id
-        );
+        const events = eventsByProject.get(project.id) ?? [];
         const gitSnapshot = getLatestGitSnapshot(db, project.id);
 
         // Skip projects with no recent activity
@@ -45,30 +54,46 @@ export function assembleContext(db: Database, question: string): string {
         if (gitSnapshot) {
             projectSection.push(`  Branch: ${gitSnapshot.branch}`);
             if (gitSnapshot.lastCommitMessage) {
-                projectSection.push(`  Last commit: "${gitSnapshot.lastCommitMessage}"`);
+                projectSection.push(
+                    `  Last commit: "${gitSnapshot.lastCommitMessage}"`,
+                );
             }
             if (gitSnapshot.uncommittedCount > 0) {
-                projectSection.push(`  Uncommitted changes: ${gitSnapshot.uncommittedCount} files`);
+                projectSection.push(
+                    `  Uncommitted changes: ${gitSnapshot.uncommittedCount} files`,
+                );
                 const files = gitSnapshot.uncommittedFiles.slice(0, 5);
                 for (const f of files) {
                     projectSection.push(`    - ${f}`);
                 }
                 if (gitSnapshot.uncommittedFiles.length > 5) {
-                    projectSection.push(`    ... and ${gitSnapshot.uncommittedFiles.length - 5} more`);
+                    projectSection.push(
+                        `    ... and ${gitSnapshot.uncommittedFiles.length - 5} more`,
+                    );
                 }
             }
         }
 
         // File activity summary
         if (events.length > 0) {
-            const creates = events.filter((e) => e.type === "file_create").length;
-            const modifies = events.filter((e) => e.type === "file_modify").length;
-            const deletes = events.filter((e) => e.type === "file_delete").length;
+            const creates = events.filter(
+                (e) => e.type === "file_create",
+            ).length;
+            const modifies = events.filter(
+                (e) => e.type === "file_modify",
+            ).length;
+            const deletes = events.filter(
+                (e) => e.type === "file_delete",
+            ).length;
 
-            projectSection.push(`  File activity: ${creates} created, ${modifies} modified, ${deletes} deleted`);
+            projectSection.push(
+                `  File activity: ${creates} created, ${modifies} modified, ${deletes} deleted`,
+            );
 
             // Show most recent files (max 8)
-            const recentFiles = [...new Set(events.map((e) => e.filePath))].slice(0, 8);
+            const recentFiles = [
+                ...new Set(events.map((e) => e.filePath)),
+            ].slice(0, 8);
             projectSection.push(`  Recent files:`);
             for (const f of recentFiles) {
                 projectSection.push(`    - ${f}`);
@@ -88,7 +113,7 @@ export function assembleContext(db: Database, question: string): string {
 
     // Final truncation safety
     if (context.length > MAX_CONTEXT_CHARS) {
-        return context.substring(0, MAX_CONTEXT_CHARS) + "\n\n(truncated)";
+        return `${context.substring(0, MAX_CONTEXT_CHARS)}\n\n(truncated)`;
     }
 
     return context;
@@ -130,7 +155,7 @@ function parseTimeRange(question: string): TimeRange {
     // "last N days"
     const daysMatch = lower.match(/last\s+(\d+)\s+days?/);
     if (daysMatch) {
-        const days = parseInt(daysMatch[1]);
+        const days = parseInt(daysMatch[1], 10);
         const since = new Date(now);
         since.setDate(since.getDate() - days);
         return { since, label: `Last ${days} days` };
@@ -139,7 +164,7 @@ function parseTimeRange(question: string): TimeRange {
     // "last N hours"
     const hoursMatch = lower.match(/last\s+(\d+)\s+hours?/);
     if (hoursMatch) {
-        const hours = parseInt(hoursMatch[1]);
+        const hours = parseInt(hoursMatch[1], 10);
         const since = new Date(now);
         since.setHours(since.getHours() - hours);
         return { since, label: `Last ${hours} hours` };

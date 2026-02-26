@@ -4,12 +4,17 @@
  * Detects git worktrees and groups them under the main repo
  * Read-only: never modifies git repos
  */
-import { readdir } from "node:fs/promises";
-import { existsSync, statSync } from "node:fs";
-import { join, basename } from "node:path";
+
 import type { Database } from "bun:sqlite";
-import { upsertProject } from "../db/queries.ts";
+import { existsSync } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { basename, join } from "node:path";
+import { toErrorData } from "../../shared/error.ts";
+import { createLogger } from "../../shared/logger.ts";
 import type { Project, Worktree } from "../../shared/types.ts";
+import { upsertProject } from "../db/queries.ts";
+import { runGit } from "./git-command.ts";
+import { getUncommittedFileStatus } from "./git-utils.ts";
 
 const MAX_DEPTH = 3;
 
@@ -25,8 +30,8 @@ const SKIP_DIRS = new Set([
     ".venv",
     "venv",
     ".tox",
-    "target",      // Rust
-    "vendor",      // Go
+    "target", // Rust
+    "vendor", // Go
     ".gradle",
     ".idea",
     ".vscode",
@@ -34,6 +39,7 @@ const SKIP_DIRS = new Set([
 
 export class ProjectScanner {
     private db: Database;
+    private logger = createLogger("project-scanner");
 
     constructor(db: Database) {
         this.db = db;
@@ -45,7 +51,7 @@ export class ProjectScanner {
      */
     async scan(basePath: string): Promise<Project[]> {
         if (!existsSync(basePath)) {
-            console.error(`[Scanner] Base path does not exist: ${basePath}`);
+            this.logger.error("base path does not exist", { basePath });
             return [];
         }
 
@@ -85,18 +91,27 @@ export class ProjectScanner {
 
             // Fallback: last commit on main repo
             if (!lastActivityAt) {
-                try {
-                    const result = await Bun.$`git -C ${repoPath} log -1 --format="%aI"`.quiet();
-                    const dateStr = result.text().trim();
-                    if (dateStr) lastActivityAt = dateStr;
-                } catch { }
+                const dateStr = await runGit(["log", "-1", "--format=%aI"], {
+                    projectPath: repoPath,
+                    label: "ProjectScanner",
+                });
+                if (dateStr) lastActivityAt = dateStr;
             }
 
-            const project = upsertProject(this.db, repoPath, name, lastActivityAt, worktrees);
+            const project = upsertProject(
+                this.db,
+                repoPath,
+                name,
+                lastActivityAt,
+                worktrees,
+            );
             projects.push(project);
         }
 
-        console.log(`[Scanner] Found ${projects.length} git repos in ${basePath}`);
+        this.logger.info("scan complete", {
+            basePath,
+            repoCount: projects.length,
+        });
         return projects;
     }
 
@@ -106,8 +121,10 @@ export class ProjectScanner {
      */
     private async discoverWorktrees(repoPath: string): Promise<Worktree[]> {
         try {
-            const result = await Bun.$`git -C ${repoPath} worktree list --porcelain`.quiet();
-            const output = result.text().trim();
+            const output = await runGit(["worktree", "list", "--porcelain"], {
+                projectPath: repoPath,
+                label: "ProjectScanner",
+            });
             if (!output) return [];
 
             const worktrees: Worktree[] = [];
@@ -124,7 +141,9 @@ export class ProjectScanner {
                         path = line.substring("worktree ".length);
                     } else if (line.startsWith("branch ")) {
                         // refs/heads/main → main
-                        branch = line.substring("branch ".length).replace("refs/heads/", "");
+                        branch = line
+                            .substring("branch ".length)
+                            .replace("refs/heads/", "");
                     } else if (line === "bare") {
                         isBare = true;
                     } else if (line === "detached") {
@@ -152,7 +171,11 @@ export class ProjectScanner {
             }
 
             return worktrees;
-        } catch {
+        } catch (err: unknown) {
+            this.logger.warn("failed to list worktrees", {
+                repoPath,
+                error: toErrorData(err),
+            });
             return [];
         }
     }
@@ -167,31 +190,8 @@ export class ProjectScanner {
         uncommittedCount: number;
         uncommittedFiles: string[];
     }> {
-        let uncommittedFiles: string[] = [];
-        let latestMtime: Date | null = null;
-
-        try {
-            const result = await Bun.$`git -C ${worktreePath} status --porcelain`.quiet();
-            const output = result.text().trim();
-            if (output) {
-                uncommittedFiles = output
-                    .split("\n")
-                    .map(l => l.trim())
-                    .filter(Boolean)
-                    .map(l => l.substring(3));
-
-                // Find latest mtime among uncommitted files
-                for (const file of uncommittedFiles) {
-                    try {
-                        const fullPath = join(worktreePath, file);
-                        const stats = statSync(fullPath);
-                        if (!latestMtime || stats.mtime > latestMtime) {
-                            latestMtime = stats.mtime;
-                        }
-                    } catch { /* file might be deleted */ }
-                }
-            }
-        } catch { }
+        const { uncommittedFiles, latestMtime } =
+            await getUncommittedFileStatus(worktreePath, "Scanner");
 
         if (latestMtime) {
             return {
@@ -202,25 +202,29 @@ export class ProjectScanner {
         }
 
         // Fallback: last commit timestamp
-        try {
-            const result = await Bun.$`git -C ${worktreePath} log -1 --format="%aI"`.quiet();
-            const dateStr = result.text().trim();
-            if (dateStr) {
-                return {
-                    lastActivityAt: dateStr,
-                    uncommittedCount: 0,
-                    uncommittedFiles: [],
-                };
-            }
-        } catch { }
+        const dateStr = await runGit(["log", "-1", "--format=%aI"], {
+            projectPath: worktreePath,
+            label: "ProjectScanner",
+        });
+        if (dateStr) {
+            return {
+                lastActivityAt: dateStr,
+                uncommittedCount: 0,
+                uncommittedFiles: [],
+            };
+        }
 
-        return { lastActivityAt: null, uncommittedCount: 0, uncommittedFiles: [] };
+        return {
+            lastActivityAt: null,
+            uncommittedCount: 0,
+            uncommittedFiles: [],
+        };
     }
 
     private async scanDir(
         dirPath: string,
         depth: number,
-        results: string[]
+        results: string[],
     ): Promise<void> {
         if (depth > MAX_DEPTH) return;
 
@@ -229,7 +233,7 @@ export class ProjectScanner {
 
             // Check if this directory is a git repo (has .git directory)
             // or a worktree (has .git file pointing to parent repo)
-            const gitEntry = entries.find(e => e.name === ".git");
+            const gitEntry = entries.find((e) => e.name === ".git");
             const hasGitDir = gitEntry?.isDirectory();
             const hasGitFile = gitEntry?.isFile(); // Worktree indicator
 
@@ -241,15 +245,26 @@ export class ProjectScanner {
             // Recurse into subdirectories
             for (const entry of entries) {
                 if (!entry.isDirectory()) continue;
-                if (entry.name.startsWith(".") && entry.name !== ".git") continue;
+                if (entry.name.startsWith(".") && entry.name !== ".git")
+                    continue;
                 if (SKIP_DIRS.has(entry.name)) continue;
 
-                await this.scanDir(join(dirPath, entry.name), depth + 1, results);
+                await this.scanDir(
+                    join(dirPath, entry.name),
+                    depth + 1,
+                    results,
+                );
             }
-        } catch (err: any) {
-            // Permission errors or other IO failures — skip silently
-            if (err.code !== "EACCES" && err.code !== "EPERM") {
-                console.error(`[Scanner] Error scanning ${dirPath}:`, err.message);
+        } catch (err: unknown) {
+            const errorCode =
+                err instanceof Error && "code" in err
+                    ? (err as Error & { code?: string }).code
+                    : undefined;
+            if (errorCode !== "EACCES" && errorCode !== "EPERM") {
+                this.logger.error("error scanning directory", {
+                    dirPath,
+                    error: toErrorData(err),
+                });
             }
         }
     }

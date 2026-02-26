@@ -3,8 +3,8 @@
  * Stores DB at platform-appropriate location
  */
 import { Database } from "bun:sqlite";
-import { mkdirSync, existsSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { runMigrations } from "./schema.ts";
 
 let dbInstance: Database | null = null;
@@ -17,7 +17,9 @@ let dbInstance: Database | null = null;
 function getDbPath(): string {
     // Use XDG data home or local fallback
     // When running inside Electrobun, the caller passes a custom path via getDatabase(path)
-    const xdgData = process.env.XDG_DATA_HOME || join(process.env.HOME || "/tmp", ".local", "share");
+    const xdgData =
+        process.env.XDG_DATA_HOME ||
+        join(process.env.HOME || "/tmp", ".local", "share");
     const appDir = join(xdgData, "trackmebaby");
     mkdirSync(appDir, { recursive: true });
     return join(appDir, "trackmebaby.db");
@@ -49,13 +51,4 @@ export function closeDatabase(): void {
         dbInstance.close();
         dbInstance = null;
     }
-}
-
-/**
- * Get an in-memory database (for testing).
- */
-export function getTestDatabase(): Database {
-    const db = new Database(":memory:");
-    runMigrations(db);
-    return db;
 }

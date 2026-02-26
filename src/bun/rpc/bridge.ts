@@ -2,29 +2,35 @@
  * RPC Bridge — wires backend services to frontend via Electrobun typed RPC
  * This module connects all services and exposes them as RPC request handlers
  */
-import { BrowserView, BrowserWindow } from "electrobun/bun";
-import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
+
 import type { Database } from "bun:sqlite";
+import { BrowserView, type BrowserWindow } from "electrobun/bun";
+import { toErrorData, toErrorMessage } from "../../shared/error.ts";
+import { createLogger, emitLog } from "../../shared/logger.ts";
+import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
+import type { Settings } from "../../shared/types.ts";
 import {
-    getProjects,
-    getRecentEvents,
+    getActivitySummary,
     getLatestGitSnapshot,
     getProjectById,
-    getActivitySummary,
+    getProjects,
+    getRecentEvents,
 } from "../db/queries.ts";
-import { SettingsService } from "../services/settings.ts";
-import { ProjectScanner } from "../services/project-scanner.ts";
-import { GitTrackerService } from "../services/git-tracker.ts";
-import { createAIProvider, type AIProvider } from "../services/ai/index.ts";
 import { assembleContext } from "../services/ai/context-assembler.ts";
+import { type AIProvider, createAIProvider } from "../services/ai/index.ts";
+import type { GitTrackerService } from "../services/git-tracker.ts";
 import { GitHubService } from "../services/github.ts";
+import type { ProjectScanner } from "../services/project-scanner.ts";
+import type { SettingsService } from "../services/settings.ts";
+
+type BrowserWindowInstance = InstanceType<typeof BrowserWindow>;
 
 export function createRPC(
     db: Database,
     settingsService: SettingsService,
     scanner: ProjectScanner,
     gitTracker: GitTrackerService,
-    getMainWindow: () => BrowserWindow | null
+    getMainWindow: () => BrowserWindowInstance | null,
 ) {
     // Create AI provider from current settings
     let aiProvider: AIProvider | null = null;
@@ -48,6 +54,7 @@ export function createRPC(
 
     // GitHub service
     const githubService = new GitHubService(db);
+    const logger = createLogger("rpc");
 
     const rpc = BrowserView.defineRPC<TrackmeBabyRPC>({
         handlers: {
@@ -56,14 +63,38 @@ export function createRPC(
                     return getProjects(db);
                 },
 
-                getProjectActivity: ({ projectId, since }: { projectId: string; since: string }) => {
-                    return getRecentEvents(db, projectId, new Date(since), 20000);
+                getProjectActivity: ({
+                    projectId,
+                    since,
+                }: {
+                    projectId: string;
+                    since: string;
+                }) => {
+                    return getRecentEvents(
+                        db,
+                        projectId,
+                        new Date(since),
+                        20000,
+                    );
                 },
-                getProjectActivitySummary: ({ projectId, since, until }: { projectId: string; since: string; until: string }) => {
-                    return getActivitySummary(db, projectId, new Date(since), new Date(until));
+                getProjectActivitySummary: ({
+                    projectId,
+                    since,
+                    until,
+                }: {
+                    projectId: string;
+                    since: string;
+                    until: string;
+                }) => {
+                    return getActivitySummary(
+                        db,
+                        projectId,
+                        new Date(since),
+                        new Date(until),
+                    );
                 },
 
-                getGitStatus: async ({ projectId }) => {
+                getGitStatus: async ({ projectId }: { projectId: string }) => {
                     // Try DB first (fast)
                     const cached = getLatestGitSnapshot(db, projectId);
                     if (cached) return cached;
@@ -72,10 +103,14 @@ export function createRPC(
                     const project = getProjectById(db, projectId);
                     if (!project) return null;
                     try {
-                        const snapshot = await gitTracker.getSnapshot(project.path);
+                        const snapshot = await gitTracker.getSnapshot(
+                            project.path,
+                        );
                         if (!snapshot) return null;
                         // Store it so subsequent calls are instant
-                        const { insertGitSnapshot } = await import("../db/queries.ts");
+                        const { insertGitSnapshot } = await import(
+                            "../db/queries.ts"
+                        );
                         return insertGitSnapshot(
                             db,
                             project.id,
@@ -85,26 +120,36 @@ export function createRPC(
                             snapshot.lastCommitTimestamp,
                             snapshot.uncommittedCount,
                             snapshot.uncommittedFiles,
-                            snapshot.diffStats ?? undefined
+                            snapshot.diffStats ?? undefined,
                         );
-                    } catch {
+                    } catch (err: unknown) {
+                        logger.error("git snapshot error", {
+                            error: toErrorData(err),
+                        });
                         return null;
                     }
                 },
-                getProjectStats: async ({ projectId }) => {
+                getProjectStats: async ({
+                    projectId,
+                }: {
+                    projectId: string;
+                }) => {
                     const project = getProjectById(db, projectId);
                     if (!project) return null;
                     return await gitTracker.getProjectStats(project.path);
                 },
 
-                queryAI: async ({ question }) => {
+                queryAI: async ({ question }: { question: string }) => {
                     try {
                         const context = assembleContext(db, question);
                         const provider = getAIProvider();
                         return await provider.query(context, question);
-                    } catch (err: any) {
-                        console.error("[RPC] AI query error:", err.message);
-                        return `Error: ${err.message}`;
+                    } catch (err: unknown) {
+                        const message = toErrorMessage(err);
+                        logger.error("ai query error", {
+                            error: toErrorData(err),
+                        });
+                        return `Error: ${message}`;
                     }
                 },
 
@@ -112,14 +157,18 @@ export function createRPC(
                     return settingsService.getAll();
                 },
 
-                updateSettings: ({ settings }) => {
+                updateSettings: ({
+                    settings,
+                }: {
+                    settings: Partial<Settings>;
+                }) => {
                     settingsService.updateMany(settings);
                     // Reset AI provider so next query uses new settings
                     aiProvider = null;
                     return { success: true };
                 },
 
-                scanProjects: async ({ basePath }) => {
+                scanProjects: async ({ basePath }: { basePath: string }) => {
                     const projects = await scanner.scan(basePath);
                     settingsService.setBasePath(basePath);
                     return projects;
@@ -168,7 +217,7 @@ export function createRPC(
                     return { x: 0, y: 0 };
                 },
 
-                windowSetPosition: ({ x, y }) => {
+                windowSetPosition: ({ x, y }: { x: number; y: number }) => {
                     const win = getMainWindow();
                     if (win) {
                         win.setPosition(x, y);
@@ -183,7 +232,10 @@ export function createRPC(
                     const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
                     const clientSecret = process.env.GITHUB_OAUTH_CLIENT_SECRET;
                     if (!clientId || !clientSecret) {
-                        return { success: false, error: "GitHub OAuth credentials not configured" };
+                        return {
+                            success: false,
+                            error: "GitHub OAuth credentials not configured",
+                        };
                     }
                     return githubService.startOAuthFlow(clientId, clientSecret);
                 },
@@ -200,34 +252,47 @@ export function createRPC(
                     };
                 },
 
-                getGitHubData: async ({ projectId }) => {
+                getGitHubData: async ({ projectId }: { projectId: string }) => {
                     const project = getProjectById(db, projectId);
                     if (!project) return null;
                     return await githubService.getGitHubData(project.path);
                 },
 
-                openExternalUrl: ({ url }) => {
+                openExternalUrl: ({ url }: { url: string }) => {
                     try {
                         const isLinux = process.platform === "linux";
                         const isMac = process.platform === "darwin";
                         const isWindows = process.platform === "win32";
 
                         if (isMac) {
-                            Bun.spawn(["open", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+                            Bun.spawn(["open", url], {
+                                detached: true,
+                                stdio: ["ignore", "ignore", "ignore"],
+                            }).unref();
                         } else if (isWindows) {
-                            Bun.spawn(["cmd", "/c", "start", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+                            Bun.spawn(["cmd", "/c", "start", url], {
+                                detached: true,
+                                stdio: ["ignore", "ignore", "ignore"],
+                            }).unref();
                         } else if (isLinux) {
-                            Bun.spawn(["xdg-open", url], { detached: true, stdio: ["ignore", "ignore", "ignore"] }).unref();
+                            Bun.spawn(["xdg-open", url], {
+                                detached: true,
+                                stdio: ["ignore", "ignore", "ignore"],
+                            }).unref();
                         }
                         return { success: true };
-                    } catch (err: any) {
-                        return { success: false, error: err.message };
+                    } catch (err: unknown) {
+                        return { success: false, error: toErrorMessage(err) };
                     }
                 },
             },
             messages: {
-                log: ({ msg }) => {
-                    console.log("[Frontend]", msg);
+                log: ({
+                    entry,
+                }: {
+                    entry: import("../../shared/logger.ts").LogEntry;
+                }) => {
+                    emitLog(entry);
                 },
             },
         },

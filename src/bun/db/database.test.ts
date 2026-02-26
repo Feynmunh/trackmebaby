@@ -1,22 +1,23 @@
 /**
  * Tests for database module: schema, CRUD, UUIDv7 ordering
  */
-import { describe, test, expect, beforeEach } from "bun:test";
+
 import { Database } from "bun:sqlite";
-import { runMigrations } from "./schema.ts";
+import { beforeEach, describe, expect, test } from "bun:test";
 import {
-    upsertProject,
-    getProjects,
+    getActivitySummary,
+    getLatestGitSnapshot,
     getProjectById,
     getProjectByPath,
-    insertEvent,
+    getProjects,
     getRecentEvents,
-    insertGitSnapshot,
-    getLatestGitSnapshot,
     getSetting,
+    insertEvent,
+    insertGitSnapshot,
     setSetting,
-    getActivitySummary,
+    upsertProject,
 } from "./queries.ts";
+import { runMigrations } from "./schema.ts";
 
 let db: Database;
 
@@ -28,7 +29,9 @@ beforeEach(() => {
 describe("Schema", () => {
     test("creates all required tables", () => {
         const tables = db
-            .query("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name")
+            .query(
+                "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name",
+            )
             .all() as { name: string }[];
         const names = tables.map((t) => t.name);
 
@@ -40,7 +43,9 @@ describe("Schema", () => {
     });
 
     test("sets schema version", () => {
-        const row = db.query("SELECT MAX(version) as v FROM schema_version").get() as { v: number };
+        const row = db
+            .query("SELECT MAX(version) as v FROM schema_version")
+            .get() as { v: number };
         expect(row.v).toBe(2);
     });
 });
@@ -119,7 +124,14 @@ describe("Git Snapshots", () => {
     test("insertGitSnapshot creates with UUIDv7", () => {
         const p = upsertProject(db, "/tmp/test", "test");
         const s = insertGitSnapshot(
-            db, p.id, "main", "abc123", "initial", "2024-01-01", 2, ["a.ts", "b.ts"]
+            db,
+            p.id,
+            "main",
+            "abc123",
+            "initial",
+            "2024-01-01",
+            2,
+            ["a.ts", "b.ts"],
         );
         expect(s.id).toBeTruthy();
         expect(s.branch).toBe("main");

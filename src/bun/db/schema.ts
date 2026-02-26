@@ -2,39 +2,46 @@
  * SQLite schema definitions and migrations for trackmebaby
  * Defines all tables and runs migrations on initialization
  */
-import { Database } from "bun:sqlite";
+import type { Database } from "bun:sqlite";
+import { toErrorData } from "../../shared/error.ts";
+import { createLogger } from "../../shared/logger.ts";
 
 const SCHEMA_VERSION = 2;
+const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
-  // Enable WAL mode for concurrent read/write performance
-  db.exec("PRAGMA journal_mode = WAL");
-  db.exec("PRAGMA foreign_keys = ON");
+    // Enable WAL mode for concurrent read/write performance
+    db.exec("PRAGMA journal_mode = WAL");
+    db.exec("PRAGMA foreign_keys = ON");
 
-  // Create schema version tracking
-  db.exec(`
+    // Create schema version tracking
+    db.exec(`
     CREATE TABLE IF NOT EXISTS schema_version (
       version INTEGER PRIMARY KEY
     )
   `);
 
-  const currentVersion = db.query("SELECT MAX(version) as v FROM schema_version").get() as { v: number | null } | null;
-  const version = currentVersion?.v ?? 0;
+    const currentVersion = db
+        .query("SELECT MAX(version) as v FROM schema_version")
+        .get() as { v: number | null } | null;
+    const version = currentVersion?.v ?? 0;
 
-  if (version < 1) {
-    applyMigration1(db);
-  }
-  if (version < 2) {
-    applyMigration2(db);
-  }
-  if (version < SCHEMA_VERSION) {
-    db.exec(`INSERT OR REPLACE INTO schema_version (version) VALUES (${SCHEMA_VERSION})`);
-  }
+    if (version < 1) {
+        applyMigration1(db);
+    }
+    if (version < 2) {
+        applyMigration2(db);
+    }
+    if (version < SCHEMA_VERSION) {
+        db.exec(
+            `INSERT OR REPLACE INTO schema_version (version) VALUES (${SCHEMA_VERSION})`,
+        );
+    }
 }
 
 function applyMigration1(db: Database): void {
-  // Projects table
-  db.exec(`
+    // Projects table
+    db.exec(`
     CREATE TABLE IF NOT EXISTS projects (
       id TEXT PRIMARY KEY,
       path TEXT UNIQUE NOT NULL,
@@ -44,8 +51,8 @@ function applyMigration1(db: Database): void {
     )
   `);
 
-  // File events table
-  db.exec(`
+    // File events table
+    db.exec(`
     CREATE TABLE IF NOT EXISTS events (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,
@@ -57,8 +64,8 @@ function applyMigration1(db: Database): void {
     )
   `);
 
-  // Git snapshots table
-  db.exec(`
+    // Git snapshots table
+    db.exec(`
     CREATE TABLE IF NOT EXISTS git_snapshots (
       id TEXT PRIMARY KEY,
       project_id TEXT NOT NULL,
@@ -74,8 +81,8 @@ function applyMigration1(db: Database): void {
     )
   `);
 
-  // Settings table (key-value store)
-  db.exec(`
+    // Settings table (key-value store)
+    db.exec(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -84,10 +91,10 @@ function applyMigration1(db: Database): void {
 }
 
 function applyMigration2(db: Database): void {
-  // Add worktrees column to projects table
-  try {
-    db.exec(`ALTER TABLE projects ADD COLUMN worktrees TEXT DEFAULT '[]'`);
-  } catch {
-    // Column may already exist if database was partially migrated
-  }
+    // Add worktrees column to projects table
+    try {
+        db.exec(`ALTER TABLE projects ADD COLUMN worktrees TEXT DEFAULT '[]'`);
+    } catch (err: unknown) {
+        logger.warn("migration 2 skipped", { error: toErrorData(err) });
+    }
 }

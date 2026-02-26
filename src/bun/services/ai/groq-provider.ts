@@ -3,6 +3,9 @@
  * Uses native fetch(), no SDK dependencies
  * Default model: llama-3.3-70b-versatile
  */
+
+import { toErrorData, toErrorMessage } from "../../../shared/error.ts";
+import { createLogger } from "../../../shared/logger.ts";
 import type { AIProvider } from "./provider.ts";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
@@ -18,6 +21,8 @@ When answering questions:
 - If there's no relevant data, say so clearly
 
 You receive context about the developer's recent activity, including file changes and git snapshots.`;
+
+const logger = createLogger("groq");
 
 export class GroqProvider implements AIProvider {
     readonly name = "Groq";
@@ -39,7 +44,7 @@ export class GroqProvider implements AIProvider {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${this.apiKey}`,
+                    Authorization: `Bearer ${this.apiKey}`,
                 },
                 body: JSON.stringify({
                     model: this.model,
@@ -57,7 +62,10 @@ export class GroqProvider implements AIProvider {
 
             if (!response.ok) {
                 const errorBody = await response.text();
-                console.error(`[Groq] API error ${response.status}:`, errorBody);
+                logger.error("api error", {
+                    status: response.status,
+                    errorBody,
+                });
                 return `AI query failed (${response.status}). Please check your API key and try again.`;
             }
 
@@ -65,10 +73,13 @@ export class GroqProvider implements AIProvider {
                 choices: Array<{ message: { content: string } }>;
             };
 
-            return data.choices?.[0]?.message?.content || "No response from AI.";
-        } catch (err: any) {
-            console.error("[Groq] Request error:", err.message);
-            return `AI query failed: ${err.message}`;
+            return (
+                data.choices?.[0]?.message?.content || "No response from AI."
+            );
+        } catch (err: unknown) {
+            const message = toErrorMessage(err);
+            logger.error("request error", { error: toErrorData(err) });
+            return `AI query failed: ${message}`;
         }
     }
 
@@ -80,7 +91,7 @@ export class GroqProvider implements AIProvider {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${this.apiKey}`,
+                    Authorization: `Bearer ${this.apiKey}`,
                 },
                 body: JSON.stringify({
                     model: this.model,
@@ -90,7 +101,8 @@ export class GroqProvider implements AIProvider {
             });
 
             return response.ok;
-        } catch {
+        } catch (err: unknown) {
+            logger.warn("health check failed", { error: toErrorData(err) });
             return false;
         }
     }

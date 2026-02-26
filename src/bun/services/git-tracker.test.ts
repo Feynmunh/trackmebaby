@@ -2,13 +2,18 @@
  * Tests for git tracker service
  * Uses explicit git config to avoid SSH/GPG signing issues
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+
 import { Database } from "bun:sqlite";
-import { mkdirSync, rmSync, existsSync, writeFileSync } from "node:fs";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { toErrorData } from "../../shared/error.ts";
+import { createLogger } from "../../shared/logger.ts";
 import { runMigrations } from "../db/schema.ts";
 
 import { GitTrackerService } from "./git-tracker.ts";
+
+const logger = createLogger("git-tracker-test");
 
 const TEST_DIR = "/tmp/trackmebaby-git-test";
 let db: Database;
@@ -33,25 +38,30 @@ async function initGitRepo(dir: string, branch?: string): Promise<boolean> {
             Bun.spawnSync(["git", "-C", dir, "config", key, val]);
         }
         return true;
-    } catch {
+    } catch (err: unknown) {
+        logger.warn("git init failed", { error: toErrorData(err) });
         return false;
     }
 }
 
 async function gitCommit(dir: string, message: string): Promise<boolean> {
     try {
-        const result = Bun.spawnSync(["git", "-C", dir, "commit", "--no-gpg-sign", "-m", message], {
-            env: {
-                ...process.env,
-                GIT_CONFIG_NOSYSTEM: "1",
-                GIT_COMMITTER_NAME: "Test",
-                GIT_COMMITTER_EMAIL: "test@test.com",
-                GIT_AUTHOR_NAME: "Test",
-                GIT_AUTHOR_EMAIL: "test@test.com",
+        const result = Bun.spawnSync(
+            ["git", "-C", dir, "commit", "--no-gpg-sign", "-m", message],
+            {
+                env: {
+                    ...process.env,
+                    GIT_CONFIG_NOSYSTEM: "1",
+                    GIT_COMMITTER_NAME: "Test",
+                    GIT_COMMITTER_EMAIL: "test@test.com",
+                    GIT_AUTHOR_NAME: "Test",
+                    GIT_AUTHOR_EMAIL: "test@test.com",
+                },
             },
-        });
+        );
         return result.exitCode === 0;
-    } catch {
+    } catch (err: unknown) {
+        logger.warn("git commit failed", { error: toErrorData(err) });
         return false;
     }
 }
@@ -77,12 +87,18 @@ describe("GitTrackerService", () => {
 
     test("getSnapshot works for a git repo", async () => {
         const ok = await initGitRepo(TEST_DIR);
-        if (!ok) { console.warn("Skipping: git init failed"); return; }
+        if (!ok) {
+            logger.warn("skipping test: git init failed");
+            return;
+        }
 
         writeFileSync(join(TEST_DIR, "README.md"), "# Test");
         Bun.spawnSync(["git", "-C", TEST_DIR, "add", "."]);
         const committed = await gitCommit(TEST_DIR, "initial commit");
-        if (!committed) { console.warn("Skipping: git commit failed"); return; }
+        if (!committed) {
+            logger.warn("skipping test: git commit failed");
+            return;
+        }
 
         const status = await tracker.getSnapshot(TEST_DIR);
         expect(status).toBeTruthy();
@@ -96,12 +112,18 @@ describe("GitTrackerService", () => {
 
     test("detects uncommitted changes", async () => {
         const ok = await initGitRepo(TEST_DIR);
-        if (!ok) { console.warn("Skipping: git init failed"); return; }
+        if (!ok) {
+            logger.warn("skipping test: git init failed");
+            return;
+        }
 
         writeFileSync(join(TEST_DIR, "a.ts"), "const a = 1;");
         Bun.spawnSync(["git", "-C", TEST_DIR, "add", "."]);
         const committed = await gitCommit(TEST_DIR, "initial");
-        if (!committed) { console.warn("Skipping: git commit failed"); return; }
+        if (!committed) {
+            logger.warn("skipping test: git commit failed");
+            return;
+        }
 
         // Make uncommitted changes
         writeFileSync(join(TEST_DIR, "b.ts"), "const b = 2;");
@@ -114,12 +136,18 @@ describe("GitTrackerService", () => {
 
     test("detects branch name", async () => {
         const ok = await initGitRepo(TEST_DIR, "feature-test");
-        if (!ok) { console.warn("Skipping: git init failed"); return; }
+        if (!ok) {
+            logger.warn("skipping test: git init failed");
+            return;
+        }
 
         writeFileSync(join(TEST_DIR, "x.ts"), "x");
         Bun.spawnSync(["git", "-C", TEST_DIR, "add", "."]);
         const committed = await gitCommit(TEST_DIR, "init");
-        if (!committed) { console.warn("Skipping: git commit failed"); return; }
+        if (!committed) {
+            logger.warn("skipping test: git commit failed");
+            return;
+        }
 
         const status = await tracker.getSnapshot(TEST_DIR);
         expect(status!.branch).toBe("feature-test");

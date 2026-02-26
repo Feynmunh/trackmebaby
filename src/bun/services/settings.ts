@@ -3,8 +3,8 @@
  * Provides default values and round-trip persistence
  */
 import type { Database } from "bun:sqlite";
-import { getSetting, setSetting } from "../db/queries.ts";
 import type { Settings } from "../../shared/types.ts";
+import { getSetting, setSetting } from "../db/queries.ts";
 
 // Default settings values
 const DEFAULTS: Settings = {
@@ -81,10 +81,14 @@ export class SettingsService {
     }
 
     updateMany(settings: Partial<Settings>): void {
-        if (settings.basePath !== undefined) this.setBasePath(settings.basePath!);
-        if (settings.aiProvider !== undefined) this.setAIProvider(settings.aiProvider);
+        if (settings.basePath !== undefined)
+            this.setBasePath(settings.basePath!);
+        if (settings.aiProvider !== undefined)
+            this.setAIProvider(settings.aiProvider);
         if (settings.aiModel !== undefined) this.setAIModel(settings.aiModel);
-        if (settings.pollInterval !== undefined) this.setPollInterval(settings.pollInterval);
-        if (settings.watchDebounce !== undefined) this.setWatchDebounce(settings.watchDebounce);
+        if (settings.pollInterval !== undefined)
+            this.setPollInterval(settings.pollInterval);
+        if (settings.watchDebounce !== undefined)
+            this.setWatchDebounce(settings.watchDebounce);
     }
 }
