@@ -11,10 +11,8 @@ import {
     getProjectByPath,
     insertEvent,
     getRecentEvents,
-    getAllRecentEvents,
     insertGitSnapshot,
     getLatestGitSnapshot,
-    getGitSnapshots,
     getSetting,
     setSetting,
     getActivitySummary,
@@ -43,7 +41,7 @@ describe("Schema", () => {
 
     test("sets schema version", () => {
         const row = db.query("SELECT MAX(version) as v FROM schema_version").get() as { v: number };
-        expect(row.v).toBe(1);
+        expect(row.v).toBe(2);
     });
 });
 
@@ -91,9 +89,9 @@ describe("Events", () => {
 
     test("events are ordered by id DESC (newest first)", () => {
         const p = upsertProject(db, "/tmp/test", "test");
-        const e1 = insertEvent(db, p.id, "file_create", "a.ts");
-        const e2 = insertEvent(db, p.id, "file_modify", "b.ts");
-        const e3 = insertEvent(db, p.id, "file_delete", "c.ts");
+        insertEvent(db, p.id, "file_create", "a.ts");
+        insertEvent(db, p.id, "file_modify", "b.ts");
+        insertEvent(db, p.id, "file_delete", "c.ts");
 
         const events = getRecentEvents(db, p.id, new Date(0));
         expect(events.length).toBe(3);

@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import ProjectDashboard from "../components/ProjectDashboard";
-import type { Project, GitSnapshot, ActivityEvent, ProjectStats } from "../../shared/types.ts";
+import type { Project, GitSnapshot, ActivityEvent, ProjectStats, ActivitySummary } from "../../shared/types.ts";
 
 // Try to import RPC, fallback to mock for dev/build
 let rpcApi: {
@@ -8,6 +8,7 @@ let rpcApi: {
     getGitStatus: (id: string) => Promise<GitSnapshot | null>;
     getProjectStats: (id: string) => Promise<ProjectStats | null>;
     getProjectActivity: (id: string, since: string) => Promise<ActivityEvent[]>;
+    getProjectActivitySummary: (id: string, since: string, until: string) => Promise<ActivitySummary[]>;
     scanProjects: (basePath: string) => Promise<Project[]>;
 } | null = null;
 
@@ -22,12 +23,45 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
     const [gitSnapshots, setGitSnapshots] = useState<Record<string, GitSnapshot | null>>({});
     const [projectEvents, setProjectEvents] = useState<Record<string, ActivityEvent[]>>({});
     const [projectStats, setProjectStats] = useState<Record<string, ProjectStats | null>>({});
+    const [projectActivitySummary, setProjectActivitySummary] = useState<Record<string, ActivitySummary[]>>({});
+    const [statsLoading, setStatsLoading] = useState<Record<string, boolean>>({});
+    const projectStatsRef = useRef<Record<string, ProjectStats | null>>({});
+    const statsLoadingRef = useRef<Record<string, boolean>>({});
+    const statsRetryRef = useRef<Record<string, number>>({});
+    const lastUpdatedRef = useRef<Record<string, string>>({});
+    const [lastUpdated, setLastUpdated] = useState<Record<string, string>>({});
     const [loading, setLoading] = useState(true);
     const [viewMode, setViewMode] = useState<'grid' | 'dashboard'>('grid');
     const [activeIndex, setActiveIndex] = useState(0);
 
     useEffect(() => {
         loadProjects();
+    }, []);
+
+    useEffect(() => {
+        projectStatsRef.current = projectStats;
+    }, [projectStats]);
+
+    useEffect(() => {
+        statsLoadingRef.current = statsLoading;
+    }, [statsLoading]);
+
+    const refreshActiveProject = useCallback(async (projectId: string) => {
+        if (!rpcApi) return;
+        try {
+            const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+            const until = new Date();
+            const [snapshot, events, summary] = await Promise.all([
+                rpcApi.getGitStatus(projectId),
+                rpcApi.getProjectActivity(projectId, since.toISOString()),
+                rpcApi.getProjectActivitySummary(projectId, since.toISOString(), until.toISOString()),
+            ]);
+            setGitSnapshots(prev => ({ ...prev, [projectId]: snapshot }));
+            setProjectEvents(prev => ({ ...prev, [projectId]: events }));
+            setProjectActivitySummary(prev => ({ ...prev, [projectId]: summary }));
+        } catch (err) {
+            console.error(`Failed to refresh data for ${projectId}:`, err);
+        }
     }, []);
 
     async function loadProjects() {
@@ -46,6 +80,7 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
 
             const snapshots: Record<string, GitSnapshot | null> = {};
             const events: Record<string, ActivityEvent[]> = {};
+            const summaries: Record<string, ActivitySummary[]> = {};
 
             // Initial load: lightweight data for all
             for (const proj of sortedProjs) {
@@ -58,14 +93,22 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
                 try {
                     const since = new Date();
                     since.setDate(since.getDate() - 7); // 7 days of activity
-                    events[proj.id] = await rpcApi.getProjectActivity(proj.id, since.toISOString());
+                    const until = new Date();
+                    const [eventList, summary] = await Promise.all([
+                        rpcApi.getProjectActivity(proj.id, since.toISOString()),
+                        rpcApi.getProjectActivitySummary(proj.id, since.toISOString(), until.toISOString()),
+                    ]);
+                    events[proj.id] = eventList;
+                    summaries[proj.id] = summary;
                 } catch {
                     events[proj.id] = [];
+                    summaries[proj.id] = [];
                 }
             }
 
             setGitSnapshots(snapshots);
             setProjectEvents(events);
+            setProjectActivitySummary(summaries);
         } catch (err) {
             console.error("Failed to load projects:", err);
         } finally {
@@ -73,17 +116,39 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
         }
     }
 
-    const fetchStatsForProject = async (projectId: string) => {
-        if (!rpcApi || projectStats[projectId]) return;
+    const fetchStatsForProject = useCallback(async (projectId: string, force: boolean = false) => {
+        if (!rpcApi) return;
+        if (statsLoadingRef.current[projectId]) return;
+        if (!force && projectStatsRef.current[projectId]) return;
+
+        setStatsLoading(prev => ({ ...prev, [projectId]: true }));
 
         try {
             const stats = await rpcApi.getProjectStats(projectId);
-            setProjectStats(prev => ({ ...prev, [projectId]: stats }));
+            if (stats) {
+                statsRetryRef.current[projectId] = 0;
+                setProjectStats(prev => ({ ...prev, [projectId]: stats }));
+                const now = new Date().toISOString();
+                lastUpdatedRef.current[projectId] = now;
+                setLastUpdated(prev => ({ ...prev, [projectId]: now }));
+            } else {
+                const retries = (statsRetryRef.current[projectId] ?? 0) + 1;
+                statsRetryRef.current[projectId] = retries;
+                if (retries <= 3) {
+                    setTimeout(() => fetchStatsForProject(projectId, true), 400 * retries);
+                }
+            }
         } catch (err) {
             console.error(`Failed to fetch stats for ${projectId}:`, err);
-            setProjectStats(prev => ({ ...prev, [projectId]: null }));
+            const retries = (statsRetryRef.current[projectId] ?? 0) + 1;
+            statsRetryRef.current[projectId] = retries;
+            if (retries <= 3) {
+                setTimeout(() => fetchStatsForProject(projectId, true), 400 * retries);
+            }
+        } finally {
+            setStatsLoading(prev => ({ ...prev, [projectId]: false }));
         }
-    };
+    }, []);
 
     const openDashboard = (projectId: string) => {
         const index = projects.findIndex(p => p.id === projectId);
@@ -91,8 +156,20 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
 
         setActiveIndex(index);
         setViewMode('dashboard');
-        fetchStatsForProject(projectId);
+        fetchStatsForProject(projectId, true);
+        refreshActiveProject(projectId);
     };
+
+    useEffect(() => {
+        if (viewMode !== 'dashboard') return;
+        const projectId = projects[activeIndex]?.id;
+        if (!projectId) return;
+        fetchStatsForProject(projectId, true);
+        const interval = setInterval(() => {
+            fetchStatsForProject(projectId, false);
+        }, 60000);
+        return () => clearInterval(interval);
+    }, [viewMode, activeIndex, projects, fetchStatsForProject]);
 
     const closeDashboard = () => {
         setViewMode('grid');
@@ -222,6 +299,10 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
                                 gitSnapshot={gitSnapshots[projects[activeIndex].id]}
                                 projectStats={projectStats[projects[activeIndex].id]}
                                 events={projectEvents[projects[activeIndex].id] ?? []}
+                                activitySummary={projectActivitySummary[projects[activeIndex].id]}
+                                statsLoading={statsLoading[projects[activeIndex].id] ?? false}
+                                statsLastUpdated={lastUpdated[projects[activeIndex].id]}
+                                onRefreshStats={() => fetchStatsForProject(projects[activeIndex].id, true)}
                                 onBack={closeDashboard}
                                 onNavigateToSettings={onNavigateToSettings}
                             />

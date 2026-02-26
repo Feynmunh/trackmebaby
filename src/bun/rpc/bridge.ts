@@ -10,6 +10,7 @@ import {
     getRecentEvents,
     getLatestGitSnapshot,
     getProjectById,
+    getActivitySummary,
 } from "../db/queries.ts";
 import { SettingsService } from "../services/settings.ts";
 import { ProjectScanner } from "../services/project-scanner.ts";
@@ -55,8 +56,11 @@ export function createRPC(
                     return getProjects(db);
                 },
 
-                getProjectActivity: ({ projectId, since }) => {
-                    return getRecentEvents(db, projectId, new Date(since));
+                getProjectActivity: ({ projectId, since }: { projectId: string; since: string }) => {
+                    return getRecentEvents(db, projectId, new Date(since), 20000);
+                },
+                getProjectActivitySummary: ({ projectId, since, until }: { projectId: string; since: string; until: string }) => {
+                    return getActivitySummary(db, projectId, new Date(since), new Date(until));
                 },
 
                 getGitStatus: async ({ projectId }) => {
@@ -231,4 +235,3 @@ export function createRPC(
 
     return rpc;
 }
-

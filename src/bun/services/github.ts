@@ -4,6 +4,7 @@
  */
 import { getSetting, setSetting } from "../db/queries.ts";
 import type { Database } from "bun:sqlite";
+import type { GitHubData as SharedGitHubData } from "../../shared/types.ts";
 
 const GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize";
 const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
@@ -11,11 +12,7 @@ const GITHUB_API_BASE = "https://api.github.com";
 const CALLBACK_PORT = 7890;
 const CALLBACK_PATH = "/callback";
 
-export interface GitHubData {
-    openIssues: number;
-    openPRs: number;
-    repoUrl: string | null;
-}
+export type GitHubData = SharedGitHubData;
 
 /**
  * Parse a GitHub remote URL into owner/repo.
@@ -249,13 +246,14 @@ export class GitHubService {
         };
 
         try {
+            // Fetch all issues and PRs - derive open counts from items to avoid extra API calls
             const [issuesRes, prsRes] = await Promise.all([
-                fetch(`${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:issue+is:open&sort=created&order=desc&per_page=5`, { headers }),
-                fetch(`${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:pr+is:open&sort=created&order=desc&per_page=5`, { headers }),
+                fetch(`${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:issue&sort=created&order=desc&per_page=50`, { headers }),
+                fetch(`${GITHUB_API_BASE}/search/issues?q=repo:${remote.owner}/${remote.repo}+is:pr&sort=created&order=desc&per_page=50`, { headers }),
             ]);
 
             if (!issuesRes.ok || !prsRes.ok) {
-                if (issuesRes.status === 401 || prsRes.status === 401) {
+                if ([issuesRes, prsRes].some(r => r.status === 401)) {
                     this.clearAuth();
                 }
                 return null;
@@ -264,32 +262,44 @@ export class GitHubService {
             const issuesData = await issuesRes.json() as any;
             const prsData = await prsRes.json() as any;
 
+            // Derive open counts from items we already fetched
+            const allIssues = issuesData.items || [];
+            const allPRs = prsData.items || [];
+            const openIssues = allIssues.filter((i: any) => i.state === "open").length;
+            const openPRs = allPRs.filter((i: any) => i.state === "open").length;
+
+            const mapIssue = (i: any) => ({
+                number: i.number,
+                title: i.title,
+                state: i.state,
+                url: i.html_url,
+                createdAt: i.created_at,
+                user: i.user?.login || "unknown",
+                closedAt: i.closed_at ?? null,
+            });
+
+            const mapPr = (i: any) => ({
+                number: i.number,
+                title: i.title,
+                state: i.state,
+                url: i.html_url,
+                createdAt: i.created_at,
+                user: i.user?.login || "unknown",
+                draft: i.draft || false,
+                closedAt: i.closed_at ?? null,
+                mergedAt: i.pull_request?.merged_at ?? null,
+            });
+
             return {
-                openIssues: issuesData.total_count ?? 0,
-                openPRs: prsData.total_count ?? 0,
+                openIssues,
+                openPRs,
                 repoUrl: `https://github.com/${remote.owner}/${remote.repo}`,
-                issues: (issuesData.items || []).map((i: any) => ({
-                    number: i.number,
-                    title: i.title,
-                    state: i.state,
-                    url: i.html_url,
-                    createdAt: i.created_at,
-                    user: i.user?.login || "unknown",
-                })),
-                pullRequests: (prsData.items || []).map((i: any) => ({
-                    number: i.number,
-                    title: i.title,
-                    state: i.state,
-                    url: i.html_url,
-                    createdAt: i.created_at,
-                    user: i.user?.login || "unknown",
-                    draft: i.draft || false,
-                })),
+                issues: allIssues.map(mapIssue),
+                pullRequests: allPRs.map(mapPr),
             };
         } catch (err: any) {
             console.error(`[GitHub] Error fetching data for ${remote.owner}/${remote.repo}:`, err.message);
             return null;
-        }
     }
 }
 

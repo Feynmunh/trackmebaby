@@ -1,5 +1,5 @@
-import { useState } from "react";
-import type { Project, GitSnapshot, ProjectStats, ActivityEvent, GitHubData } from "../../../shared/types.ts";
+import { useState, useEffect } from "react";
+import type { Project, GitSnapshot, ProjectStats, ActivityEvent, GitHubData, ActivitySummary } from "../../../shared/types.ts";
 
 interface OverviewPageProps {
     project: Project;
@@ -7,6 +7,7 @@ interface OverviewPageProps {
     projectStats?: ProjectStats | null;
     eventCount: number;
     events: ActivityEvent[];
+    activitySummary?: ActivitySummary[];
     isWidget?: boolean;
     onGitHubClick?: () => void;
     onCommitsClick?: () => void;
@@ -15,6 +16,8 @@ interface OverviewPageProps {
     githubLoading?: boolean;
     onGitHubSignIn?: () => void;
     statsLoading?: boolean;
+    statsLastUpdated?: string;
+    onRefreshStats?: () => void;
 }
 
 function timeAgo(dateStr: string | null): string {
@@ -48,6 +51,23 @@ function PullRequestIcon({ className }: { className?: string }) {
     );
 }
 
+function getVitalityStatus(
+    project: Project,
+    eventCount: number,
+    gitSnapshot?: GitSnapshot | null
+): { label: string; colorClass: string; bgClass: string } {
+    const lastActivity = project.lastActivityAt ? new Date(project.lastActivityAt) : null;
+    const hoursSinceActivity = lastActivity ? (Date.now() - lastActivity.getTime()) / (1000 * 60 * 60) : Infinity;
+
+    if (eventCount > 0 || (gitSnapshot?.uncommittedCount ?? 0) > 0 || hoursSinceActivity < 24) {
+        return { label: "Active", colorClass: "text-blue-400", bgClass: "bg-blue-500/10" };
+    }
+    if (hoursSinceActivity < 24 * 7) {
+        return { label: "Idle", colorClass: "text-amber-400", bgClass: "bg-amber-500/10" };
+    }
+    return { label: "Dormant", colorClass: "text-mac-secondary", bgClass: "bg-mac-border/40" };
+}
+
 /** GitHub sign-in prompt shown inside a card when not authenticated */
 function GitHubSignInPrompt({ onClick, loading }: { onClick?: () => void; loading?: boolean }) {
     return (
@@ -74,6 +94,7 @@ export default function OverviewPage({
     projectStats,
     eventCount,
     events,
+    activitySummary,
     isWidget = false,
     onGitHubClick,
     onCommitsClick,
@@ -82,26 +103,69 @@ export default function OverviewPage({
     githubLoading = false,
     onGitHubSignIn,
     statsLoading = false,
+    statsLastUpdated,
+    onRefreshStats,
 }: OverviewPageProps) {
     const [showingBranches, setShowingBranches] = useState(false);
+    const [, forceRender] = useState(0);
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            forceRender((n) => n + 1);
+        }, 60000);
+        return () => clearInterval(timer);
+    }, []);
+
+    const getLocalDateKey = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    };
+
+    const summaryMap = new Map<string, number>();
+    if (activitySummary) {
+        for (const entry of activitySummary) {
+            summaryMap.set(entry.date, entry.total);
+        }
+    }
 
     if (isWidget) {
-        // Calculate last 7 days activity chart
         const dailyCounts = Array.from({ length: 7 }, (_, i) => {
             const date = new Date();
             date.setDate(date.getDate() - i);
-            const dateStr = date.toDateString();
-            const count = events.filter(e => new Date(e.timestamp).toDateString() === dateStr).length;
-            return { day: dateStr.slice(0, 3), count };
+            const dayKey = getLocalDateKey(date);
+            const count = activitySummary
+                ? (summaryMap.get(dayKey) ?? 0)
+                : events.filter(e => new Date(e.timestamp).toDateString() === date.toDateString()).length;
+            return { day: date.toDateString().slice(0, 3), count };
         }).reverse();
 
         const maxCount = Math.max(...dailyCounts.map(d => d.count), 1);
+        const vitality = getVitalityStatus(project, eventCount, gitSnapshot);
 
         return (
             <div className="space-y-8">
                 <div className="flex items-center justify-between mb-4">
                     <h2 className="text-sm font-bold text-mac-secondary uppercase tracking-[0.2em]">Project Vitality</h2>
-                    <span className="text-[10px] font-bold text-mac-accent bg-mac-accent/10 px-2 py-0.5 rounded uppercase tracking-widest">Active</span>
+                    <div className="flex items-center gap-3">
+                        {statsLastUpdated && (
+                            <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">
+                                Updated {timeAgo(statsLastUpdated)}
+                            </span>
+                        )}
+                        {onRefreshStats && (
+                            <button
+                                onClick={onRefreshStats}
+                                className="px-2.5 py-1 rounded-full border border-mac-border/40 bg-mac-surface/50 text-[9px] font-black uppercase tracking-widest text-mac-secondary hover:text-mac-accent hover:border-mac-accent/40 transition-colors"
+                            >
+                                Refresh
+                            </button>
+                        )}
+                        <span className={`text-[10px] font-bold ${vitality.colorClass} ${vitality.bgClass} px-2 py-0.5 rounded uppercase tracking-widest`}>
+                            {vitality.label}
+                        </span>
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

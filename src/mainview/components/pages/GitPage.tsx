@@ -24,11 +24,38 @@ function timeAgo(dateStr: string | null) {
     return date.toLocaleDateString();
 }
 
+type TrendCommit = {
+    timestamp: string;
+    insertions: number;
+    deletions: number;
+    message?: string | null;
+    hash?: string | null;
+};
+
+type CommitTrendLegend = {
+    primaryLabel: string;
+    secondaryLabel: string;
+    primaryColor: string;
+    secondaryColor: string;
+    primaryValuePrefix?: string;
+    secondaryValuePrefix?: string;
+};
+
 /** Mini trend graph for additions/deletions */
-function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onExpandAndScroll?: (hash: string) => void }) {
+export function CommitTrendGraph({
+    commits,
+    onExpandAndScroll,
+    legend,
+    getPointLabel,
+}: {
+    commits: TrendCommit[];
+    onExpandAndScroll?: (hash: string) => void;
+    legend?: CommitTrendLegend;
+    getPointLabel?: (commit: TrendCommit) => string;
+}) {
     const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
 
-    if (commits.length < 2) return null;
+                    if (commits.length < 2) return null;
 
     const data = [...commits].reverse().slice(-20);
     const width = 600;
@@ -39,6 +66,12 @@ function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onEx
     const chartHeight = height - paddingTop - paddingBottom;
 
     const maxDelta = Math.max(...data.map(c => Math.max(c.insertions || 0, c.deletions || 0)), 10);
+    const primaryColor = legend?.primaryColor ?? "#22c55e";
+    const secondaryColor = legend?.secondaryColor ?? "#ef4444";
+    const primaryLabel = legend?.primaryLabel ?? "Additions";
+    const secondaryLabel = legend?.secondaryLabel ?? "Deletions";
+    const primaryPrefix = legend?.primaryValuePrefix ?? "+";
+    const secondaryPrefix = legend?.secondaryValuePrefix ?? "-";
 
     const getX = (i: number) => data.length === 1 ? width / 2 : (i * (width - 2 * paddingX)) / (data.length - 1) + paddingX;
     const getY = (v: number) => paddingTop + chartHeight - (v * chartHeight) / maxDelta;
@@ -76,23 +109,17 @@ function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onEx
 
     return (
         <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac mb-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center mb-4">
                 <div className="flex gap-4">
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-green-500" />
-                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Additions</span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: primaryColor }} />
+                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">{primaryLabel}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-red-500" />
-                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">Deletions</span>
+                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: secondaryColor }} />
+                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">{secondaryLabel}</span>
                     </div>
                 </div>
-                {hovered && (
-                    <div className="flex items-center gap-3 animate-in fade-in duration-150">
-                        <span className="text-[10px] font-bold text-green-500">+{hovered.insertions || 0}</span>
-                        <span className="text-[10px] font-bold text-red-500">-{hovered.deletions || 0}</span>
-                    </div>
-                )}
             </div>
 
             <div
@@ -103,12 +130,12 @@ function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onEx
                 <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full overflow-visible" preserveAspectRatio="none">
                     <defs>
                         <linearGradient id="insGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#22c55e" stopOpacity="0.25" />
-                            <stop offset="100%" stopColor="#22c55e" stopOpacity="0" />
+                            <stop offset="0%" stopColor={primaryColor} stopOpacity="0.25" />
+                            <stop offset="100%" stopColor={primaryColor} stopOpacity="0" />
                         </linearGradient>
                         <linearGradient id="delGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.15" />
-                            <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+                            <stop offset="0%" stopColor={secondaryColor} stopOpacity="0.15" />
+                            <stop offset="100%" stopColor={secondaryColor} stopOpacity="0" />
                         </linearGradient>
                     </defs>
 
@@ -134,8 +161,8 @@ function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onEx
                     <polygon points={delArea} fill="url(#delGrad)" />
 
                     {/* Lines */}
-                    <polyline points={insPoints} fill="none" stroke="#22c55e" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    <polyline points={delPoints} fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={insPoints} fill="none" stroke={primaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                    <polyline points={delPoints} fill="none" stroke={secondaryColor} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
 
                     {/* Hover vertical guide line */}
                     {hoveredIdx !== null && (
@@ -174,13 +201,13 @@ function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onEx
                                             setTimeout(() => el.classList.remove('ring-2', 'ring-mac-accent/60'), 2000);
                                         } else {
                                             // Commit not visible — expand first, then scroll
-                                            onExpandAndScroll?.(c.hash);
+                                            onExpandAndScroll?.(c.hash ?? "");
                                         }
                                     }}
                                 />
                                 {/* Points */}
-                                <circle cx={getX(i)} cy={getY(c.insertions || 0)} r={isHovered ? 5 : 3} fill={isHovered ? "#22c55e" : "transparent"} stroke="#22c55e" strokeWidth={isHovered ? 2 : 0} className="transition-all duration-150" />
-                                <circle cx={getX(i)} cy={getY(c.deletions || 0)} r={isHovered ? 5 : 3} fill={isHovered ? "#ef4444" : "transparent"} stroke="#ef4444" strokeWidth={isHovered ? 2 : 0} className="transition-all duration-150" />
+                                <circle cx={getX(i)} cy={getY(c.insertions || 0)} r={isHovered ? 5 : 3} fill={isHovered ? primaryColor : "transparent"} stroke={primaryColor} strokeWidth={isHovered ? 2 : 0} className="transition-all duration-150" />
+                                <circle cx={getX(i)} cy={getY(c.deletions || 0)} r={isHovered ? 5 : 3} fill={isHovered ? secondaryColor : "transparent"} stroke={secondaryColor} strokeWidth={isHovered ? 2 : 0} className="transition-all duration-150" />
                             </g>
                         );
                     })}
@@ -215,10 +242,10 @@ function CommitTrendGraph({ commits, onExpandAndScroll }: { commits: any[], onEx
                         }}
                     >
                         <div className="bg-mac-surface border border-mac-border rounded-xl shadow-mac-lg px-3 py-2 min-w-[140px] max-w-[220px]">
-                            <p className="text-[10px] text-mac-text font-bold leading-snug mb-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{hovered.message}</p>
+                            <p className="text-[10px] text-mac-text font-bold leading-snug mb-1" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{getPointLabel ? getPointLabel(hovered) : (hovered.message ?? "")}</p>
                             <div className="flex items-center gap-3">
-                                <span className="text-[9px] font-black text-green-500">+{hovered.insertions || 0}</span>
-                                <span className="text-[9px] font-black text-red-500">-{hovered.deletions || 0}</span>
+                                <span className="text-[9px] font-black" style={{ color: primaryColor }}>{primaryPrefix}{hovered.insertions || 0}</span>
+                                <span className="text-[9px] font-black" style={{ color: secondaryColor }}>{secondaryPrefix}{hovered.deletions || 0}</span>
                             </div>
                         </div>
                     </div>
@@ -382,51 +409,102 @@ export default function GitPage({
 
     if (isWidget && section === 'workstate') {
         const [showAllFiles, setShowAllFiles] = useState(false);
+
+        const fileData: Record<string, { insertions: number; deletions: number; mtime?: string }> = (() => {
+            if (!gitSnapshot?.data) return {};
+            if (!gitSnapshot.data) return {};
+            try {
+                const parsed = JSON.parse(gitSnapshot.data);
+                if (typeof parsed === "object" && !Array.isArray(parsed)) return parsed;
+            } catch { }
+            return {};
+        })();
+
+        const fileTimeAgo = (file: string): string => {
+            const info = fileData[file];
+            if (!info?.mtime) return "";
+            const diff = Date.now() - new Date(info.mtime).getTime();
+            const minutes = Math.floor(diff / 60000);
+            const hours = Math.floor(diff / 3600000);
+            const days = Math.floor(diff / 86400000);
+            if (minutes < 1) return "just now";
+            if (minutes < 60) return `${minutes}m ago`;
+            if (hours < 24) return `${hours}h ago`;
+            return `${days}d ago`;
+        };
+
         return (
             <section className="flex flex-col min-h-0">
-                <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
-                    Local Environment
-                </h3>
-                <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-6 border border-mac-border shadow-mac">
+                <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest">
+                        Local Environment
+                    </h3>
+                    {gitSnapshot.uncommittedCount > 0 && (
+                        <div className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[9px] font-black uppercase tracking-widest">
+                            {gitSnapshot.uncommittedCount} Unsaved
+                        </div>
+                    )}
+                </div>
+                <div className="space-y-4 pr-4">
                     {gitSnapshot.uncommittedCount > 0 ? (
                         <>
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                                    <span className="text-sm font-bold text-mac-text">
-                                        {gitSnapshot.uncommittedCount} Modded Files
-                                    </span>
-                                </div>
-                                <div className="px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-500 text-[9px] font-black uppercase tracking-widest">Unsaved</div>
-                            </div>
-                            <div className="space-y-2 pr-2 custom-scrollbar flex flex-col">
-                                {(showAllFiles ? gitSnapshot.uncommittedFiles : gitSnapshot.uncommittedFiles.slice(0, 5)).map((file, i) => (
-                                    <div key={i} className="flex items-center gap-3 px-3 py-1.5 rounded-xl bg-mac-bg/50 text-[11px] text-mac-secondary border border-mac-border/20">
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-3 h-3 text-amber-500/70">
-                                            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                                        </svg>
-                                        <span className="truncate">{file.split('/').pop()}</span>
+                            {(showAllFiles ? gitSnapshot.uncommittedFiles : gitSnapshot.uncommittedFiles.slice(0, 5)).map((file, i) => {
+                                const info = fileData[file];
+                                return (
+                                    <div key={i} className="group bg-mac-surface/40 hover:bg-mac-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-mac-border hover:border-mac-accent/40 shadow-mac transition-all cursor-default">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20 group-hover:border-mac-accent/20 transition-colors">
+                                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="w-5 h-5 text-amber-500 group-hover:text-mac-accent transition-colors">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                </svg>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center justify-between gap-3 mb-2">
+                                                    <p className="text-sm font-bold text-mac-text leading-snug truncate">
+                                                        {file.split("/").pop()}
+                                                    </p>
+                                                    <span className="text-[10px] text-mac-secondary font-mono opacity-60 whitespace-nowrap">
+                                                        {fileTimeAgo(file)}
+                                                    </span>
+                                                </div>
+                                                <div className="flex items-center justify-between">
+                                                    <span className="text-[10px] text-mac-secondary font-medium tracking-tight truncate">
+                                                        {file}
+                                                    </span>
+                                                    {info && (
+                                                        <div className="flex items-center gap-1.5 opacity-80 whitespace-nowrap">
+                                                            {info.insertions > 0 && (
+                                                                <span className="text-[9px] font-black text-green-500">+{info.insertions}</span>
+                                                            )}
+                                                            {info.deletions > 0 && (
+                                                                <span className="text-[9px] font-black text-red-500">-{info.deletions}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
+                                );
+                            })}
                             {gitSnapshot.uncommittedFiles.length > 5 && (
                                 <button
                                     onClick={() => setShowAllFiles(!showAllFiles)}
-                                    className="w-full mt-4 py-2 text-[9px] font-bold text-mac-secondary uppercase tracking-widest hover:text-mac-accent transition-colors border-t border-mac-border/20 pt-4"
+                                    className="w-full py-3 rounded-2xl border border-mac-border bg-mac-surface/30 text-mac-secondary text-[10px] font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors mt-2"
                                 >
-                                    {showAllFiles ? "Show Less" : `+ ${gitSnapshot.uncommittedFiles.length - 5} More Files`}
+                                    {showAllFiles ? "Show Less" : `Show ${gitSnapshot.uncommittedFiles.length - 5} More`}
                                 </button>
                             )}
                         </>
                     ) : (
-                        <div className="flex flex-col items-center py-6 text-center">
-                            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mb-3 border border-green-500/20">
+                        <div className="bg-mac-surface/20 rounded-2xl p-8 border border-mac-border/20 text-center">
+                            <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center text-green-500 mb-3 mx-auto border border-green-500/20">
                                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={3} className="w-6 h-6">
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                                 </svg>
                             </div>
                             <h4 className="text-xs font-bold text-mac-text mb-1">Workspace Clean</h4>
-                            <p className="text-[10px] text-mac-secondary leading-tight max-w-[140px]">Synchronized with {gitSnapshot.branch}.</p>
+                            <p className="text-[10px] text-mac-secondary leading-tight max-w-[140px] mx-auto">Synchronized with {gitSnapshot.branch}.</p>
                         </div>
                     )}
                 </div>

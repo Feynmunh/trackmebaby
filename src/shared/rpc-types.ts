@@ -10,6 +10,7 @@ import type {
     Settings,
     ProjectStats,
     GitHubData,
+    ActivitySummary,
 } from "./types.ts";
 
 export type TrackmeBabyRPC = {
@@ -22,6 +23,10 @@ export type TrackmeBabyRPC = {
             getProjectActivity: {
                 params: { projectId: string; since: string };
                 response: ActivityEvent[];
+            };
+            getProjectActivitySummary: {
+                params: { projectId: string; since: string; until: string };
+                response: ActivitySummary[];
             };
             getGitStatus: {
                 params: { projectId: string };

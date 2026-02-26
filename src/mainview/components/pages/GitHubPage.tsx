@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { CommitTrendGraph } from "./GitPage.tsx";
 import type { GitHubData, GitHubIssue, GitHubPR } from "../../../shared/types.ts";
 import Tooltip from "../ui/Tooltip.tsx";
 import { openExternalUrl } from "../../rpc";
@@ -116,8 +117,48 @@ export default function GitHubPage({
     if (isWidget && section === 'environment') {
         if (!isGitHubAuthenticated || !githubData) return null;
 
-        const openIssues = githubData.issues.filter(i => i.state === 'open').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        const openPRs = githubData.pullRequests.filter(p => p.state === 'open').sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const allIssues = [...githubData.issues].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const allPRs = [...githubData.pullRequests].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        const openIssues = allIssues.filter(i => i.state === 'open');
+        const openPRs = allPRs.filter(p => p.state === 'open');
+
+        const buildTrend = (
+            items: Array<GitHubIssue | GitHubPR>,
+            closedAtSelector: (item: GitHubIssue | GitHubPR) => string | null | undefined
+        ) => {
+            if (items.length === 0) {
+                return [{ timestamp: new Date().toISOString(), insertions: 0, deletions: 0 }];
+            }
+
+            const createdSorted = [...items].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+            const closedSorted = [...items]
+                .map((item) => ({ item, closedAt: closedAtSelector(item) }))
+                .filter((entry) => entry.closedAt)
+                .sort((a, b) => new Date(a.closedAt as string).getTime() - new Date(b.closedAt as string).getTime());
+
+            let total = 0;
+            let closed = 0;
+            let closedIndex = 0;
+            const points = createdSorted.map((item) => {
+                total += 1;
+                const currentTime = new Date(item.createdAt).getTime();
+                while (closedIndex < closedSorted.length) {
+                    const closedTime = new Date(closedSorted[closedIndex].closedAt as string).getTime();
+                    if (closedTime <= currentTime) {
+                        closed += 1;
+                        closedIndex += 1;
+                        continue;
+                    }
+                    break;
+                }
+                return { timestamp: item.createdAt, insertions: total, deletions: closed };
+            });
+
+            return points.slice(-20);
+        };
+
+        const issueTrendData = buildTrend(allIssues, (item) => ("closedAt" in item ? item.closedAt : null));
+        const prTrendData = buildTrend(allPRs, (item) => ("mergedAt" in item ? item.mergedAt : item.closedAt));
 
         const visibleIssues = showAllIssues ? openIssues : openIssues.slice(0, 3);
         const visiblePRs = showAllPRs ? openPRs : openPRs.slice(0, 3);
@@ -137,6 +178,18 @@ export default function GitHubPage({
                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                             <h4 className="text-xs font-black text-mac-secondary uppercase tracking-widest opacity-80">Active Issues</h4>
                         </div>
+                        <CommitTrendGraph
+                            commits={issueTrendData}
+                            legend={{
+                                primaryLabel: "Total",
+                                secondaryLabel: "Closed",
+                                primaryColor: "#f59e0b",
+                                secondaryColor: "#10b981",
+                                primaryValuePrefix: "",
+                                secondaryValuePrefix: "",
+                            }}
+                            getPointLabel={(point) => `Issues: ${point.insertions} total, ${point.deletions} closed`}
+                        />
                         <div className="space-y-3">
                             {openIssues.length === 0 ? (
                                 <p className="text-xs text-mac-secondary italic opacity-50 px-1">No open issues</p>
@@ -162,6 +215,18 @@ export default function GitHubPage({
                             <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
                             <h4 className="text-xs font-black text-mac-secondary uppercase tracking-widest opacity-80">Open Pull Requests</h4>
                         </div>
+                        <CommitTrendGraph
+                            commits={prTrendData}
+                            legend={{
+                                primaryLabel: "Total",
+                                secondaryLabel: "Merged",
+                                primaryColor: "#a855f7",
+                                secondaryColor: "#10b981",
+                                primaryValuePrefix: "",
+                                secondaryValuePrefix: "",
+                            }}
+                            getPointLabel={(point) => `PRs: ${point.insertions} total, ${point.deletions} merged`}
+                        />
                         <div className="space-y-3">
                             {openPRs.length === 0 ? (
                                 <p className="text-xs text-mac-secondary italic opacity-50 px-1">No active PRs</p>

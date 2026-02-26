@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, useCallback } from "react";
-import type { Project, GitSnapshot, ActivityEvent, ProjectStats, Worktree, GitHubData } from "../../shared/types.ts";
+import type { Project, GitSnapshot, ActivityEvent, ProjectStats, Worktree, GitHubData, ActivitySummary } from "../../shared/types.ts";
 import { getGitHubAuthStatus, getGitHubData, githubStartAuth } from "../rpc";
 import OverviewPage from "./pages/OverviewPage";
 import GitPage from "./pages/GitPage";
@@ -24,6 +24,10 @@ interface ProjectDashboardProps {
     gitSnapshot?: GitSnapshot | null;
     projectStats?: ProjectStats | null;
     events: ActivityEvent[];
+    activitySummary?: ActivitySummary[];
+    statsLoading?: boolean;
+    statsLastUpdated?: string;
+    onRefreshStats?: () => void;
     onBack: () => void;
     onNavigateToSettings?: () => void;
 }
@@ -33,17 +37,38 @@ export default function ProjectDashboard({
     gitSnapshot,
     projectStats,
     events,
+    activitySummary,
+    statsLoading = false,
+    statsLastUpdated,
+    onRefreshStats,
     onBack,
     onNavigateToSettings,
 }: ProjectDashboardProps) {
     const timelineRef = useRef<HTMLDivElement>(null);
     const githubRef = useRef<HTMLDivElement>(null);
     const pollRef = useRef<Timer | null>(null);
-    const todayEventCount = events.filter((e) => {
-        const d = new Date(e.timestamp);
-        const now = new Date();
-        return d.toDateString() === now.toDateString();
-    }).length;
+    const getLocalDateKey = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        return `${year}-${month}-${day}`;
+    };
+
+    const summaryMap = new Map<string, number>();
+    if (activitySummary) {
+        for (const entry of activitySummary) {
+            summaryMap.set(entry.date, entry.total);
+        }
+    }
+
+    const todayKey = getLocalDateKey(new Date());
+    const todayEventCount = activitySummary
+        ? (summaryMap.get(todayKey) ?? 0)
+        : events.filter((e) => {
+            const d = new Date(e.timestamp);
+            const now = new Date();
+            return d.toDateString() === now.toDateString();
+        }).length;
 
     const hasWorktrees = project.worktrees && project.worktrees.length > 1;
 
@@ -52,22 +77,63 @@ export default function ProjectDashboard({
     const [githubData, setGithubData] = useState<GitHubData | null>(null);
     const [githubLoading, setGithubLoading] = useState(false);
 
-    // Check GitHub auth status on mount
     useEffect(() => {
-        getGitHubAuthStatus()
-            .then(({ authenticated }) => {
-                setIsGitHubAuthenticated(authenticated);
-                if (authenticated) {
-                    setGithubLoading(true);
-                    getGitHubData(project.id)
-                        .then(setGithubData)
-                        .catch(() => setGithubData(null))
-                        .finally(() => setGithubLoading(false));
+        let cancelled = false;
+        let authRetries = 0;
+        let dataRetries = 0;
+
+        const fetchGitHubData = async () => {
+            if (cancelled) return;
+            setGithubLoading(true);
+            try {
+                const data = await getGitHubData(project.id);
+                if (cancelled) return;
+                if (data) {
+                    setGithubData(data);
+                    setGithubLoading(false);
+                    return;
                 }
-            })
-            .catch(() => setIsGitHubAuthenticated(false));
+            } catch {
+            }
+
+            if (cancelled) return;
+            dataRetries += 1;
+            if (dataRetries <= 3) {
+                setTimeout(fetchGitHubData, 400 * dataRetries);
+            } else {
+                setGithubLoading(false);
+            }
+        };
+
+        const checkAuthAndLoad = async () => {
+            let authenticated = false;
+            try {
+                const authStatus = await getGitHubAuthStatus();
+                if (cancelled) return;
+                authenticated = authStatus.authenticated;
+                setIsGitHubAuthenticated(authenticated);
+                if (!authenticated) {
+                    setGithubLoading(false);
+                    return;
+                }
+                dataRetries = 0;
+                fetchGitHubData();
+            } catch {
+                if (cancelled) return;
+                setIsGitHubAuthenticated(false);
+            }
+
+            if (cancelled) return;
+            if (authRetries < 5 && !authenticated) {
+                authRetries += 1;
+                setTimeout(checkAuthAndLoad, 200 * authRetries);
+            }
+        };
+
+        checkAuthAndLoad();
 
         return () => {
+            cancelled = true;
             if (pollRef.current) clearInterval(pollRef.current);
         };
     }, [project.id]);
@@ -161,6 +227,7 @@ export default function ProjectDashboard({
                                 projectStats={projectStats}
                                 eventCount={todayEventCount}
                                 events={events}
+                                activitySummary={activitySummary}
                                 isWidget={true}
                                 onCommitsClick={() => timelineRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
                                 onGitHubClick={() => githubRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
@@ -168,7 +235,9 @@ export default function ProjectDashboard({
                                 githubData={githubData}
                                 githubLoading={githubLoading}
                                 onGitHubSignIn={isGitHubAuthenticated ? handleGitHubSignIn : (onNavigateToSettings || handleGitHubSignIn)}
-                                statsLoading={projectStats === undefined}
+                                statsLoading={statsLoading}
+                                statsLastUpdated={statsLastUpdated}
+                                onRefreshStats={onRefreshStats}
                             />
                         </section>
 

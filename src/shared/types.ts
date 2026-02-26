@@ -95,6 +95,7 @@ export interface GitHubIssue {
     state: "open" | "closed";
     url: string;
     createdAt: string;
+    closedAt?: string | null;
     user: string;
 }
 
@@ -106,6 +107,8 @@ export interface GitHubPR {
     createdAt: string;
     user: string;
     draft: boolean;
+    closedAt?: string | null;
+    mergedAt?: string | null;
 }
 
 export interface GitHubData {

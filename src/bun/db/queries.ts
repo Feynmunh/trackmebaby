@@ -237,14 +237,14 @@ export function getActivitySummary(
 ): ActivitySummary[] {
     const rows = db.query(`
     SELECT
-      DATE(timestamp) as date,
+      DATE(timestamp, 'localtime') as date,
       SUM(CASE WHEN type = 'file_create' THEN 1 ELSE 0 END) as file_creates,
       SUM(CASE WHEN type = 'file_modify' THEN 1 ELSE 0 END) as file_modifies,
       SUM(CASE WHEN type = 'file_delete' THEN 1 ELSE 0 END) as file_deletes,
       COUNT(*) as total
     FROM events
     WHERE project_id = ? AND timestamp >= ? AND timestamp <= ?
-    GROUP BY DATE(timestamp)
+    GROUP BY DATE(timestamp, 'localtime')
     ORDER BY date DESC
   `).all(projectId, since.toISOString(), until.toISOString()) as any[];
 

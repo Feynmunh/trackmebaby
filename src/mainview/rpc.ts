@@ -11,6 +11,7 @@ import type {
     Settings,
     ProjectStats,
     GitHubData,
+    ActivitySummary,
 } from "../../shared/types.ts";
 
 // Initialize RPC
@@ -55,6 +56,14 @@ export async function getProjectActivity(
     since: string
 ): Promise<ActivityEvent[]> {
     return electroview.rpc.request.getProjectActivity({ projectId, since });
+}
+
+export async function getProjectActivitySummary(
+    projectId: string,
+    since: string,
+    until: string
+): Promise<ActivitySummary[]> {
+    return electroview.rpc.request.getProjectActivitySummary({ projectId, since, until });
 }
 
 export async function getGitStatus(

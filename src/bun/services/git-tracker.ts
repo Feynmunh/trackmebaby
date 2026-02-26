@@ -303,42 +303,73 @@ export class GitTrackerService {
             // No commits yet
         }
 
-        // Get uncommitted files and their latest mtime
         let uncommittedFiles: string[] = [];
         let latestMtime: Date | null = null;
+        let diffStats: string | null = null;
         try {
             const result = await Bun.$`git -C ${projectPath} status --porcelain`.quiet();
             const output = result.text().trim();
             if (output) {
                 uncommittedFiles = output
                     .split("\n")
-                    .map((line) => line.trim())
                     .filter(Boolean)
-                    .map((line) => line.substring(3));
+                    .map((line) => {
+                        if (line.length <= 3) return "";
+                        const pathPart = line.slice(3).trim();
+                        if (!pathPart) return "";
+                        if (pathPart.includes(" -> ")) {
+                            return pathPart.split(" -> ").pop() ?? "";
+                        }
+                        return pathPart;
+                    })
+                    .filter(Boolean);
 
-                // Strategy: Find the most recent mtime among uncommitted files
+                const fileMtimes = new Map<string, string>();
                 const { statSync } = require("node:fs");
                 for (const file of uncommittedFiles) {
                     try {
                         const fullPath = join(projectPath, file);
                         const stats = statSync(fullPath);
+                        fileMtimes.set(file, stats.mtime.toISOString());
                         if (!latestMtime || stats.mtime > latestMtime) {
                             latestMtime = stats.mtime;
                         }
-                    } catch { /* skip missing/permission-denied files */ }
+                    } catch (err) {
+                        // File may be deleted or permission denied - skip
+                    }
                 }
-            }
-        } catch { }
 
-        // Get diff stats
-        let diffStats: string | null = null;
-        try {
-            const result = await Bun.$`git -C ${projectPath} diff --stat`.quiet();
-            const output = result.text().trim();
-            if (output) {
-                diffStats = output;
+                const fileDiffs = new Map<string, { insertions: number; deletions: number }>();
+                try {
+                    const diffResult = await Bun.$`git -C ${projectPath} diff HEAD --numstat`.quiet();
+                    const diffLines = diffResult.text().trim().split("\n").filter(Boolean);
+                    for (const line of diffLines) {
+                        const [insRaw, delRaw, pathRaw] = line.split("\t");
+                        if (!pathRaw) continue;
+                        const insertions = parseInt(insRaw) || 0;
+                        const deletions = parseInt(delRaw) || 0;
+                        fileDiffs.set(pathRaw, { insertions, deletions });
+                    }
+                } catch (err) {
+                    // Git diff may fail if no changes or git error - continue with empty stats
+                }
+
+                const fileStats: Record<string, { insertions: number; deletions: number; mtime?: string }> = {};
+                for (const file of uncommittedFiles) {
+                    const diff = fileDiffs.get(file) ?? { insertions: 0, deletions: 0 };
+                    fileStats[file] = {
+                        insertions: diff.insertions,
+                        deletions: diff.deletions,
+                        mtime: fileMtimes.get(file),
+                    };
+                }
+                diffStats = JSON.stringify(fileStats);
             }
-        } catch { }
+        } catch (err) {
+            // Git status may fail - continue with empty data
+        }
+
+        
 
         // Derive true activity: mtime of unsaved files OR last commit time
         const activityTimestamp = latestMtime ? latestMtime.toISOString() : (lastCommitTimestamp || new Date().toISOString());
