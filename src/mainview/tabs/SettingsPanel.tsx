@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
-import type { Project, Settings } from "../../shared/types.ts";
+import type { Settings } from "../../shared/types.ts";
 import AIConfigSection from "./settings/AIConfigSection.tsx";
 import AppearanceSection from "./settings/AppearanceSection.tsx";
 import GitHubAuthSection from "./settings/GitHubAuthSection.tsx";
@@ -16,7 +16,6 @@ let rpcApi: {
     updateSettings: (
         settings: Partial<Settings>,
     ) => Promise<{ success: boolean }>;
-    scanProjects: (basePath: string) => Promise<Project[]>;
 } | null = null;
 
 try {
@@ -40,13 +39,34 @@ export default function SettingsPanel() {
     );
     const [apiKey, setApiKey] = useState("");
     const [saving, setSaving] = useState(false);
-    const [scanning, setScanning] = useState(false);
-    const [scanResult, setScanResult] = useState<string | null>(null);
-    const [saveResult, setSaveResult] = useState<string | null>(null);
+    const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
+    const isFirstAutosave = useRef(true);
 
     useEffect(() => {
         loadSettings();
-    }, [loadSettings]);
+    }, []);
+
+    // Auto-save settings when they change (debounced)
+    useEffect(() => {
+        if (!rpcApi || !hasLoadedSettings) return;
+        if (isFirstAutosave.current) {
+            isFirstAutosave.current = false;
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            setSaving(true);
+            try {
+                await rpcApi.updateSettings(settings);
+            } catch (err: unknown) {
+                logger.warn("auto-save failed", { error: toErrorData(err) });
+            } finally {
+                setSaving(false);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timer);
+    }, [hasLoadedSettings, settings]);
 
     async function loadSettings() {
         if (!rpcApi) return;
@@ -57,6 +77,8 @@ export default function SettingsPanel() {
             logger.error("failed to load settings", {
                 error: toErrorData(err),
             });
+        } finally {
+            setHasLoadedSettings(true);
         }
     }
 
@@ -70,50 +92,23 @@ export default function SettingsPanel() {
         }
     }
 
-    async function saveSettings() {
-        if (!rpcApi) return;
-        setSaving(true);
-        setSaveResult(null);
-        try {
-            await rpcApi.updateSettings(settings);
-            setSaveResult("Settings saved");
-            setTimeout(() => setSaveResult(null), 2000);
-        } catch (err: unknown) {
-            logger.warn("failed to save settings", { error: toErrorData(err) });
-            setSaveResult("Failed to save");
-        } finally {
-            setSaving(false);
-        }
-    }
-
-    async function handleScan() {
-        if (!rpcApi || !settings.basePath) return;
-        setScanning(true);
-        setScanResult(null);
-        try {
-            const projects = await rpcApi.scanProjects(settings.basePath);
-            setScanResult(
-                `Found ${projects.length} project${projects.length !== 1 ? "s" : ""}`,
-            );
-            setTimeout(() => setScanResult(null), 3000);
-        } catch (err: unknown) {
-            logger.warn("scan failed", { error: toErrorData(err) });
-            setScanResult("Scan failed");
-        } finally {
-            setScanning(false);
-        }
-    }
-
     return (
         <div className="p-8 max-w-2xl mx-auto">
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-semibold text-mac-text tracking-tight">
-                    Settings
-                </h1>
-                <p className="text-mac-secondary text-sm mt-0.5">
-                    Configure your trackmebaby workspace
-                </p>
+            <div className="mb-6 flex items-center justify-between">
+                <div>
+                    <h1 className="text-2xl font-semibold text-mac-text tracking-tight">
+                        Settings
+                    </h1>
+                    <p className="text-mac-secondary text-sm mt-0.5">
+                        Changes are saved automatically
+                    </p>
+                </div>
+                {saving && (
+                    <span className="text-xs text-mac-secondary">
+                        Saving...
+                    </span>
+                )}
             </div>
 
             <div className="space-y-5 pb-8">
@@ -130,34 +125,6 @@ export default function SettingsPanel() {
                     settings={settings}
                     onChange={setSettings}
                 />
-
-                {/* Actions */}
-                <div className="flex gap-3 pt-2">
-                    <button
-                        id="settings-scan"
-                        onClick={handleScan}
-                        disabled={scanning || !settings.basePath}
-                        className="px-4 py-2 bg-mac-bg hover:bg-mac-hover disabled:opacity-40 text-mac-text text-[14px] font-medium rounded-lg transition-all flex items-center gap-2"
-                    >
-                        {scanning ? (
-                            <>
-                                <div className="w-3.5 h-3.5 rounded-full border-2 border-mac-text border-t-transparent animate-spin" />
-                                Scanning...
-                            </>
-                        ) : (
-                            scanResult || "Scan Projects"
-                        )}
-                    </button>
-                    <div className="flex-1" />
-                    <button
-                        id="settings-save"
-                        onClick={saveSettings}
-                        disabled={saving}
-                        className="px-5 py-2 bg-mac-accent hover:opacity-90 disabled:opacity-40 text-white text-[14px] font-medium rounded-lg transition-all active:scale-[0.98] min-w-[120px]"
-                    >
-                        {saving ? "Saving..." : saveResult || "Save Settings"}
-                    </button>
-                </div>
             </div>
         </div>
     );
