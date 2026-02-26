@@ -19,6 +19,12 @@ import {
     insertGitSnapshot,
 } from "../db/queries.ts";
 import { runGit, runGitLines } from "./git-command.ts";
+import {
+    getBranches,
+    getContributors,
+    getDiffStats,
+    getRecentCommits,
+} from "./git-tracker/commands.ts";
 import { getUncommittedFileStatus } from "./git-utils.ts";
 
 export interface GitStatus {
@@ -151,14 +157,8 @@ export class GitTrackerService {
             let branchCount = 0;
             let branches: string[] = [];
             try {
-                const branchLines = await runGitLines(["branch", "--list"], {
-                    projectPath,
-                    label: "GitTracker",
-                });
-                branchCount = branchLines.length;
-                branches = branchLines.map((line) =>
-                    line.replace(/^\*?\s+/, "").trim(),
-                );
+                branches = await getBranches(projectPath);
+                branchCount = branches.length;
             } catch (err: unknown) {
                 this.logger.warn("failed to read branches", {
                     projectPath,
@@ -200,51 +200,9 @@ export class GitTrackerService {
             }
 
             // Last 25 commits with stats
-            const recentCommits: RecentCommit[] = [];
+            let recentCommits: RecentCommit[] = [];
             try {
-                const lines = await runGitLines(
-                    [
-                        "log",
-                        "-25",
-                        "-m",
-                        "--format===%H|%s|%aI|%an",
-                        "--numstat",
-                    ],
-                    { projectPath, label: "GitTracker" },
-                );
-
-                let currentCommit: RecentCommit | null = null;
-                for (const line of lines) {
-                    const trimmed = line.trim();
-                    if (!trimmed) continue;
-
-                    if (trimmed.startsWith("===")) {
-                        if (currentCommit) recentCommits.push(currentCommit);
-
-                        const [hashAndPrefix, message, timestamp, author] =
-                            trimmed.split("|");
-                        const hash = hashAndPrefix.replace("===", "");
-                        currentCommit = {
-                            hash,
-                            message,
-                            timestamp,
-                            author,
-                            insertions: 0,
-                            deletions: 0,
-                        };
-                    } else if (currentCommit) {
-                        const parts = trimmed.split(/\s+/);
-                        if (parts.length >= 2) {
-                            const ins = parseInt(parts[0], 10);
-                            const del = parseInt(parts[1], 10);
-                            if (!Number.isNaN(ins))
-                                currentCommit.insertions += ins;
-                            if (!Number.isNaN(del))
-                                currentCommit.deletions += del;
-                        }
-                    }
-                }
-                if (currentCommit) recentCommits.push(currentCommit);
+                recentCommits = await getRecentCommits(projectPath);
             } catch (err: unknown) {
                 this.logger.error("error fetching recent commits", {
                     projectPath,
@@ -255,23 +213,7 @@ export class GitTrackerService {
             // Diff summary
             let diffSummary: ProjectStats["diffSummary"] = null;
             try {
-                const output = await runGit(["diff", "--shortstat"], {
-                    projectPath,
-                    label: "GitTracker",
-                });
-                // Example: 2 files changed, 10 insertions(+), 5 deletions(-)
-                if (output) {
-                    const filesMatch = output.match(/(\d+) files? changed/);
-                    const insMatch = output.match(/(\d+) insertions?\(\+\)/);
-                    const delMatch = output.match(/(\d+) deletions?\(-\)/);
-                    diffSummary = {
-                        filesChanged: filesMatch
-                            ? parseInt(filesMatch[1], 10)
-                            : 0,
-                        insertions: insMatch ? parseInt(insMatch[1], 10) : 0,
-                        deletions: delMatch ? parseInt(delMatch[1], 10) : 0,
-                    };
-                }
+                diffSummary = await getDiffStats(projectPath);
             } catch (err: unknown) {
                 this.logger.warn("failed to read diff summary", {
                     projectPath,
@@ -282,20 +224,7 @@ export class GitTrackerService {
             // Top contributors
             let contributors: { name: string; commits: number }[] = [];
             try {
-                contributors = (
-                    await runGitLines(["shortlog", "-sn", "--no-merges"], {
-                        projectPath,
-                        label: "GitTracker",
-                    })
-                )
-                    .slice(0, 3)
-                    .map((line) => {
-                        const match = line.trim().match(/^(\d+)\s+(.+)$/);
-                        return {
-                            name: match ? match[2] : "Unknown",
-                            commits: match ? parseInt(match[1], 10) : 0,
-                        };
-                    });
+                contributors = await getContributors(projectPath);
             } catch (err: unknown) {
                 this.logger.warn("failed to read contributors", {
                     projectPath,

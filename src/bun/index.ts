@@ -6,16 +6,22 @@
  * Closing the window returns to tray-only mode.
  */
 
-import { appendFileSync, mkdirSync } from "node:fs";
+import { mkdirSync } from "node:fs";
+// --- Initialize core services ---
 import { join } from "node:path";
+/**
+ * trackmebaby — Main entry point
+ *
+ * Starts as a background daemon with system tray.
+ * Tray click opens the dashboard window.
+ * Closing the window returns to tray-only mode.
+ */
 import Electrobun, {
     BrowserWindow,
     Tray,
     Updater,
     Utils,
 } from "electrobun/bun";
-import { toErrorData } from "../shared/error.ts";
-import { createLogger, setLogSink } from "../shared/logger.ts";
 import { closeDatabase, getDatabase } from "./db/database.ts";
 import { createRPC } from "./rpc/bridge.ts";
 import { GitTrackerService } from "./services/git-tracker.ts";
@@ -23,35 +29,15 @@ import { ProjectScanner } from "./services/project-scanner.ts";
 import { SettingsService } from "./services/settings.ts";
 import { WatcherService } from "./services/watcher.ts";
 
-const logger = createLogger("app");
-
 // Use Electrobun's userData path for the database
 let dbPath: string | undefined;
-let logPath: string | undefined;
 try {
     const userData = Utils.paths.userData;
     if (userData) {
         mkdirSync(userData, { recursive: true });
         dbPath = join(userData, "trackmebaby.db");
-        const logDir = join(userData, "logs");
-        mkdirSync(logDir, { recursive: true });
-        logPath = join(logDir, "trackmebaby.log");
     }
-} catch (err: unknown) {
-    logger.warn("failed to resolve userData path", { error: toErrorData(err) });
-}
-
-if (logPath) {
-    setLogSink((entry) => {
-        try {
-            appendFileSync(logPath, `${JSON.stringify(entry)}\n`);
-        } catch (err: unknown) {
-            console.error(
-                `[logger] failed to write log:`,
-                err instanceof Error ? err.message : err,
-            );
-        }
-    });
+} catch {}
 
 const db = getDatabase(dbPath);
 const settingsService = new SettingsService(db);
@@ -85,12 +71,10 @@ async function getMainViewUrl(): Promise<string> {
                 signal: controller.signal,
             });
             clearTimeout(timeoutId);
-            logger.info("hmr enabled", { url: DEV_SERVER_URL });
+            console.log(`[trackmebaby] HMR enabled: ${DEV_SERVER_URL}`);
             return DEV_SERVER_URL;
-        } catch (err: unknown) {
-            logger.warn("dev server not available", {
-                error: toErrorData(err),
-            });
+        } catch {
+            // Dev server not running
         }
     }
     return "views://mainview/index.html";
@@ -139,8 +123,8 @@ async function createWindow(): Promise<void> {
         mainWindow.on("close", () => {
             mainWindow = null;
         });
-    } catch (err: unknown) {
-        logger.error("failed to create window", { error: toErrorData(err) });
+    } catch (err) {
+        console.error("[trackmebaby] Failed to create window:", err);
     } finally {
         isCreatingWindow = false;
     }
@@ -159,8 +143,6 @@ tray.setMenu([
     { type: "normal", label: "Quit", action: "quit" },
 ]);
 
-// Handle tray menu clicks - both menu items and icon clicks fire "tray-clicked"
-// with action field distinguishing them
 function getTrayAction(event: unknown): string | undefined {
     if (typeof event !== "object" || event === null) return undefined;
     const maybeEvent = event as { data?: { action?: unknown } };
@@ -184,7 +166,7 @@ tray.on("tray-clicked", (event: unknown) => {
 async function startServices(): Promise<void> {
     const basePath = settingsService.getBasePath();
     if (basePath) {
-        logger.info("scanning projects", { basePath });
+        console.log(`[trackmebaby] Scanning projects in: ${basePath}`);
         const projects = await scanner.scan(basePath);
 
         // Start file watcher for each project
@@ -195,16 +177,18 @@ async function startServices(): Promise<void> {
         // Start git tracker
         await gitTracker.startTracking(projects.map((p) => p.path));
 
-        logger.info("tracking projects", { count: projects.length });
+        console.log(`[trackmebaby] Tracking ${projects.length} projects`);
     } else {
-        logger.info("no base path configured");
+        console.log(
+            "[trackmebaby] No base path configured. Open Settings to get started.",
+        );
         createWindow();
     }
 }
 
 // --- Graceful Shutdown ---
 function shutdown(): void {
-    logger.info("shutting down");
+    console.log("[trackmebaby] Shutting down...");
     watcher.stopAll();
     gitTracker.stopTracking();
     closeDatabase();
@@ -218,7 +202,7 @@ Electrobun.events.on("before-quit", async () => {
 });
 
 // --- Boot ---
-logger.info("starting background daemon");
+console.log("[trackmebaby] Starting background daemon...");
 startServices().catch((err) => {
-    logger.error("service startup error", { error: toErrorData(err) });
+    console.error("[trackmebaby] Service startup error:", err);
 });

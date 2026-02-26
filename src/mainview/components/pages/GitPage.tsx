@@ -2,7 +2,8 @@ import { useState } from "react";
 import { safeJsonParse } from "../../../shared/error.ts";
 import { timeAgo } from "../../../shared/time.ts";
 import type { GitSnapshot, ProjectStats } from "../../../shared/types.ts";
-import Tooltip from "../ui/Tooltip.tsx";
+import { CommitTrendGraph } from "../charts/CommitTrendGraph.tsx";
+import CopyableHash from "../ui/CopyableHash.tsx";
 
 interface GitPageProps {
     gitSnapshot?: GitSnapshot | null;
@@ -14,408 +15,6 @@ interface GitPageProps {
 const formatCommitTime = (dateStr: string | null): string =>
     timeAgo(dateStr, { emptyLabel: "", justNowLabel: "just now", maxDays: 7 });
 
-type TrendCommit = {
-    timestamp: string;
-    insertions: number;
-    deletions: number;
-    message?: string | null;
-    hash?: string | null;
-};
-
-type CommitTrendLegend = {
-    primaryLabel: string;
-    secondaryLabel: string;
-    primaryColor: string;
-    secondaryColor: string;
-    primaryValuePrefix?: string;
-    secondaryValuePrefix?: string;
-};
-
-/** Mini trend graph for additions/deletions */
-export function CommitTrendGraph({
-    commits,
-    onExpandAndScroll,
-    legend,
-    getPointLabel,
-}: {
-    commits: TrendCommit[];
-    onExpandAndScroll?: (hash: string) => void;
-    legend?: CommitTrendLegend;
-    getPointLabel?: (commit: TrendCommit) => string;
-}) {
-    const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-
-    if (commits.length < 2) return null;
-
-    const data = [...commits].reverse().slice(-20);
-    const width = 600;
-    const height = 140;
-    const paddingTop = 16;
-    const paddingBottom = 36; // extra room for x-axis labels
-    const paddingX = 30;
-    const chartHeight = height - paddingTop - paddingBottom;
-
-    const maxDelta = Math.max(
-        ...data.map((c) => Math.max(c.insertions || 0, c.deletions || 0)),
-        10,
-    );
-    const primaryColor = legend?.primaryColor ?? "#22c55e";
-    const secondaryColor = legend?.secondaryColor ?? "#ef4444";
-    const primaryLabel = legend?.primaryLabel ?? "Additions";
-    const secondaryLabel = legend?.secondaryLabel ?? "Deletions";
-    const primaryPrefix = legend?.primaryValuePrefix ?? "+";
-    const secondaryPrefix = legend?.secondaryValuePrefix ?? "-";
-
-    const getX = (i: number) =>
-        data.length === 1
-            ? width / 2
-            : (i * (width - 2 * paddingX)) / (data.length - 1) + paddingX;
-    const getY = (v: number) =>
-        paddingTop + chartHeight - (v * chartHeight) / maxDelta;
-
-    const insPoints = data
-        .map((c, i) => `${getX(i)},${getY(c.insertions || 0)}`)
-        .join(" ");
-    const delPoints = data
-        .map((c, i) => `${getX(i)},${getY(c.deletions || 0)}`)
-        .join(" ");
-
-    // Gradient fill polygons (area under lines)
-    const insArea = `${paddingX},${height - paddingBottom} ${insPoints} ${getX(data.length - 1)},${height - paddingBottom}`;
-    const delArea = `${paddingX},${height - paddingBottom} ${delPoints} ${getX(data.length - 1)},${height - paddingBottom}`;
-
-    // Format time for x-axis labels
-    const formatTime = (ts: string) => {
-        const d = new Date(ts);
-        const now = new Date();
-        const diffMs = now.getTime() - d.getTime();
-        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        if (diffDays === 0) {
-            return d.toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit",
-            });
-        }
-        if (diffDays < 7) {
-            return d.toLocaleDateString([], { weekday: "short" });
-        }
-        return d.toLocaleDateString([], { month: "short", day: "numeric" });
-    };
-
-    // Pick ~5 evenly-spaced x-axis labels to avoid crowding
-    const labelCount = Math.min(5, data.length);
-    const labelIndices: number[] = [];
-    for (let i = 0; i < labelCount; i++) {
-        labelIndices.push(
-            Math.round((i * (data.length - 1)) / (labelCount - 1)),
-        );
-    }
-
-    const hovered = hoveredIdx !== null ? data[hoveredIdx] : null;
-
-    return (
-        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac mb-6">
-            <div className="flex items-center mb-4">
-                <div className="flex gap-4">
-                    <div className="flex items-center gap-2">
-                        <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: primaryColor }}
-                        />
-                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">
-                            {primaryLabel}
-                        </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <div
-                            className="w-2 h-2 rounded-full"
-                            style={{ backgroundColor: secondaryColor }}
-                        />
-                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">
-                            {secondaryLabel}
-                        </span>
-                    </div>
-                </div>
-            </div>
-
-            <div
-                className="relative w-full"
-                style={{ height: `${height}px` }}
-                onMouseLeave={() => setHoveredIdx(null)}
-            >
-                <svg
-                    viewBox={`0 0 ${width} ${height}`}
-                    className="w-full h-full overflow-visible"
-                    preserveAspectRatio="none"
-                >
-                    <defs>
-                        <linearGradient
-                            id="insGrad"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                        >
-                            <stop
-                                offset="0%"
-                                stopColor={primaryColor}
-                                stopOpacity="0.25"
-                            />
-                            <stop
-                                offset="100%"
-                                stopColor={primaryColor}
-                                stopOpacity="0"
-                            />
-                        </linearGradient>
-                        <linearGradient
-                            id="delGrad"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                        >
-                            <stop
-                                offset="0%"
-                                stopColor={secondaryColor}
-                                stopOpacity="0.15"
-                            />
-                            <stop
-                                offset="100%"
-                                stopColor={secondaryColor}
-                                stopOpacity="0"
-                            />
-                        </linearGradient>
-                    </defs>
-
-                    {/* Horizontal grid lines */}
-                    {[0.25, 0.5, 0.75].map((frac) => (
-                        <line
-                            key={frac}
-                            x1={paddingX}
-                            y1={paddingTop + chartHeight * (1 - frac)}
-                            x2={width - paddingX}
-                            y2={paddingTop + chartHeight * (1 - frac)}
-                            stroke="currentColor"
-                            className="text-mac-border/20"
-                            strokeWidth="0.5"
-                            strokeDasharray="4 4"
-                        />
-                    ))}
-                    {/* Baseline */}
-                    <line
-                        x1={paddingX}
-                        y1={height - paddingBottom}
-                        x2={width - paddingX}
-                        y2={height - paddingBottom}
-                        stroke="currentColor"
-                        className="text-mac-border/30"
-                        strokeWidth="1"
-                    />
-
-                    {/* Gradient fills under lines */}
-                    <polygon points={insArea} fill="url(#insGrad)" />
-                    <polygon points={delArea} fill="url(#delGrad)" />
-
-                    {/* Lines */}
-                    <polyline
-                        points={insPoints}
-                        fill="none"
-                        stroke={primaryColor}
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-                    <polyline
-                        points={delPoints}
-                        fill="none"
-                        stroke={secondaryColor}
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                    />
-
-                    {/* Hover vertical guide line */}
-                    {hoveredIdx !== null && (
-                        <line
-                            x1={getX(hoveredIdx)}
-                            y1={paddingTop}
-                            x2={getX(hoveredIdx)}
-                            y2={height - paddingBottom}
-                            stroke="currentColor"
-                            className="text-mac-accent/40"
-                            strokeWidth="1"
-                            strokeDasharray="3 3"
-                        />
-                    )}
-
-                    {/* Data points + hit areas */}
-                    {data.map((c, i) => {
-                        const isHovered = hoveredIdx === i;
-                        const colWidth =
-                            data.length > 1
-                                ? (width - 2 * paddingX) / (data.length - 1)
-                                : width;
-                        return (
-                            <g key={i}>
-                                {/* Invisible hit area */}
-                                <rect
-                                    x={getX(i) - colWidth / 2}
-                                    y={0}
-                                    width={colWidth}
-                                    height={height}
-                                    fill="transparent"
-                                    className="cursor-pointer"
-                                    onMouseEnter={() => setHoveredIdx(i)}
-                                    onClick={() => {
-                                        const el = document.getElementById(
-                                            `commit-${c.hash}`,
-                                        );
-                                        if (el) {
-                                            el.scrollIntoView({
-                                                behavior: "smooth",
-                                                block: "center",
-                                            });
-                                            el.classList.add(
-                                                "ring-2",
-                                                "ring-mac-accent/60",
-                                            );
-                                            setTimeout(
-                                                () =>
-                                                    el.classList.remove(
-                                                        "ring-2",
-                                                        "ring-mac-accent/60",
-                                                    ),
-                                                2000,
-                                            );
-                                        } else {
-                                            // Commit not visible — expand first, then scroll
-                                            onExpandAndScroll?.(c.hash ?? "");
-                                        }
-                                    }}
-                                />
-                                {/* Points */}
-                                <circle
-                                    cx={getX(i)}
-                                    cy={getY(c.insertions || 0)}
-                                    r={isHovered ? 5 : 3}
-                                    fill={
-                                        isHovered ? primaryColor : "transparent"
-                                    }
-                                    stroke={primaryColor}
-                                    strokeWidth={isHovered ? 2 : 0}
-                                    className="transition-all duration-150"
-                                />
-                                <circle
-                                    cx={getX(i)}
-                                    cy={getY(c.deletions || 0)}
-                                    r={isHovered ? 5 : 3}
-                                    fill={
-                                        isHovered
-                                            ? secondaryColor
-                                            : "transparent"
-                                    }
-                                    stroke={secondaryColor}
-                                    strokeWidth={isHovered ? 2 : 0}
-                                    className="transition-all duration-150"
-                                />
-                            </g>
-                        );
-                    })}
-
-                    {/* X-axis time labels */}
-                    {labelIndices.map((i) => (
-                        <text
-                            key={i}
-                            x={getX(i)}
-                            y={height - 6}
-                            textAnchor="middle"
-                            className="text-mac-secondary"
-                            fill="currentColor"
-                            fontSize="9"
-                            fontWeight="700"
-                            opacity="0.4"
-                            style={{
-                                fontFamily: "ui-monospace, monospace",
-                                textTransform: "uppercase",
-                                letterSpacing: "0.05em",
-                            }}
-                        >
-                            {formatTime(data[i].timestamp)}
-                        </text>
-                    ))}
-                </svg>
-
-                {/* Hover tooltip */}
-                {hoveredIdx !== null && hovered && (
-                    <div
-                        className="absolute z-50 pointer-events-none animate-in fade-in duration-100"
-                        style={{
-                            left: `${(getX(hoveredIdx) / width) * 100}%`,
-                            top: `${((getY(Math.max(hovered.insertions || 0, hovered.deletions || 0)) - 12) / height) * 100}%`,
-                            transform: "translate(-50%, -100%)",
-                        }}
-                    >
-                        <div className="bg-mac-surface border border-mac-border rounded-xl shadow-mac-lg px-3 py-2 min-w-[140px] max-w-[220px]">
-                            <p
-                                className="text-[10px] text-mac-text font-bold leading-snug mb-1"
-                                style={{
-                                    display: "-webkit-box",
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: "vertical",
-                                    overflow: "hidden",
-                                }}
-                            >
-                                {getPointLabel
-                                    ? getPointLabel(hovered)
-                                    : (hovered.message ?? "")}
-                            </p>
-                            <div className="flex items-center gap-3">
-                                <span
-                                    className="text-[9px] font-black"
-                                    style={{ color: primaryColor }}
-                                >
-                                    {primaryPrefix}
-                                    {hovered.insertions || 0}
-                                </span>
-                                <span
-                                    className="text-[9px] font-black"
-                                    style={{ color: secondaryColor }}
-                                >
-                                    {secondaryPrefix}
-                                    {hovered.deletions || 0}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
-
-/** Copyable hash button with tooltip */
-function CopyableHash({ hash }: { hash: string }) {
-    const [copied, setCopied] = useState(false);
-
-    const copy = (e: React.MouseEvent) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(hash);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-        <Tooltip content={copied ? "Copied!" : "Click to copy"}>
-            <button
-                onClick={copy}
-                className="text-xs text-mac-secondary font-mono bg-mac-bg px-2.5 py-1 rounded-lg border border-mac-border/50 hover:border-mac-accent/40 hover:text-mac-accent transition-all block"
-            >
-                {hash.slice(0, 7)}
-            </button>
-        </Tooltip>
-    );
-}
-
 export default function GitPage({
     gitSnapshot,
     projectStats,
@@ -425,7 +24,6 @@ export default function GitPage({
     const [showAllCommits, setShowAllCommits] = useState(false);
     const [showAllFiles, setShowAllFiles] = useState(false);
 
-    // Timeline widget only needs projectStats.recentCommits — don't gate on gitSnapshot
     if (isWidget && section === "timeline") {
         const isLoading = projectStats === undefined;
         const allCommits = projectStats?.recentCommits ?? [];
@@ -472,7 +70,6 @@ export default function GitPage({
 
                 <div className="space-y-4 pr-4">
                     {isLoading ? (
-                        /* Loading Skeleton */
                         [1, 2, 3].map((i) => (
                             <div
                                 key={i}
@@ -483,7 +80,6 @@ export default function GitPage({
                             </div>
                         ))
                     ) : commits.length === 0 ? (
-                        /* Empty State */
                         <div className="bg-mac-surface/20 rounded-2xl p-8 border border-mac-border/20 text-center">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -501,7 +97,6 @@ export default function GitPage({
                             </p>
                         </div>
                     ) : (
-                        /* Actual Commits */
                         commits.map((commit) => (
                             <div
                                 key={commit.hash}
@@ -587,7 +182,7 @@ export default function GitPage({
     }
 
     if (!gitSnapshot) {
-        if (isWidget) return null; // Widgets hide themselves if no data
+        if (isWidget) return null;
         return (
             <div className="flex flex-col items-center justify-center h-full px-8 select-none">
                 <div className="w-16 h-16 rounded-2xl bg-mac-surface flex items-center justify-center mb-6 shadow-mac border border-mac-border">
@@ -791,7 +386,6 @@ export default function GitPage({
 
     return (
         <div className="flex flex-col h-full px-24 py-12 select-none">
-            {/* Header: Branch & Diff Summary */}
             <header className="flex items-end justify-between mb-12 border-b border-mac-border pb-8">
                 <div>
                     <h2 className="text-sm font-bold text-mac-secondary uppercase tracking-[0.2em] mb-4">
@@ -845,7 +439,6 @@ export default function GitPage({
             </header>
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 overflow-hidden h-full">
-                {/* Left: Commit History (Span 7) */}
                 <div className="lg:col-span-7 flex flex-col min-h-0">
                     <div className="flex items-center justify-between mb-6">
                         <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest">
@@ -978,7 +571,6 @@ export default function GitPage({
                     </div>
                 </div>
 
-                {/* Right: Working State & Contributors (Span 5) */}
                 <div className="lg:col-span-5 flex flex-col gap-10 min-h-0">
                     <section className="flex flex-col min-h-0">
                         <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
