@@ -123,6 +123,12 @@ export async function scanProjects(basePath: string): Promise<Project[]> {
     return requestApi.scanProjects({ basePath });
 }
 
+export async function selectFolder(
+    defaultPath?: string,
+): Promise<string | null> {
+    return requestApi.selectFolder({ defaultPath });
+}
+
 export async function getPlatform(): Promise<string> {
     return requestApi.getPlatform({});
 }

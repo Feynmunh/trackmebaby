@@ -53,6 +53,10 @@ export type TrackmeBabyRPC = {
                 params: { basePath: string };
                 response: Project[];
             };
+            selectFolder: {
+                params: { defaultPath?: string };
+                response: string | null;
+            };
             getPlatform: {
                 params: Record<string, never>;
                 response: string;

@@ -168,6 +168,7 @@ export default function ProjectDashboard({
                             <GitPage
                                 gitSnapshot={gitSnapshot}
                                 projectStats={projectStats}
+                                statsLoading={statsLoading}
                                 isWidget={true}
                                 section="timeline"
                             />
@@ -192,6 +193,7 @@ export default function ProjectDashboard({
                             <GitPage
                                 gitSnapshot={gitSnapshot}
                                 projectStats={projectStats}
+                                statsLoading={statsLoading}
                                 isWidget={true}
                                 section="workstate"
                             />
@@ -202,6 +204,7 @@ export default function ProjectDashboard({
                             <GitPage
                                 gitSnapshot={gitSnapshot}
                                 projectStats={projectStats}
+                                statsLoading={statsLoading}
                                 isWidget={true}
                                 section="contributors"
                             />

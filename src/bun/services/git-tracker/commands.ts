@@ -1,6 +1,7 @@
 import { runGit, runGitLines } from "../git-command.ts";
 import type { Contributor, DiffSummary, ParsedCommit } from "./parsers.ts";
 import {
+    COMMIT_MARKER,
     parseBranches,
     parseContributors,
     parseDiffStat,
@@ -10,8 +11,9 @@ import {
 export async function getRecentCommits(
     projectPath: string,
 ): Promise<ParsedCommit[]> {
+    const format = `${COMMIT_MARKER}%H|%s|%aI|%an`;
     const lines = await runGitLines(
-        ["log", "-25", "-m", "--format===%H|%s|%aI|%an", "--numstat"],
+        ["log", "-25", "-m", `--format=${format}`, "--numstat"],
         { projectPath, label: "GitTracker" },
     );
 

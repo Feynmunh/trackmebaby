@@ -7,6 +7,8 @@ export interface ParsedCommit {
     deletions: number;
 }
 
+export const COMMIT_MARKER = "--commit--";
+
 export interface DiffSummary {
     filesChanged: number;
     insertions: number;
@@ -28,12 +30,14 @@ export function parseGitLog(output: string): ParsedCommit[] {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
-        if (trimmed.startsWith("===")) {
+        if (trimmed.startsWith(COMMIT_MARKER)) {
             if (currentCommit) commits.push(currentCommit);
-
-            const [hashAndPrefix, message, timestamp, author] =
-                trimmed.split("|");
-            const hash = hashAndPrefix.replace("===", "");
+            const payload = trimmed.slice(COMMIT_MARKER.length);
+            const parts = payload.split("|");
+            const hash = parts.shift() ?? "";
+            const author = parts.pop() ?? "";
+            const timestamp = parts.pop() ?? "";
+            const message = parts.join("|");
             currentCommit = {
                 hash,
                 message,

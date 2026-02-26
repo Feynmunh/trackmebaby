@@ -8,6 +8,7 @@ import CopyableHash from "../ui/CopyableHash.tsx";
 interface GitPageProps {
     gitSnapshot?: GitSnapshot | null;
     projectStats?: ProjectStats | null;
+    statsLoading?: boolean;
     isWidget?: boolean;
     section?: "timeline" | "workstate" | "contributors" | "all";
 }
@@ -18,6 +19,7 @@ const formatCommitTime = (dateStr: string | null): string =>
 export default function GitPage({
     gitSnapshot,
     projectStats,
+    statsLoading = false,
     isWidget = false,
     section = "all",
 }: GitPageProps) {
@@ -25,7 +27,7 @@ export default function GitPage({
     const [showAllFiles, setShowAllFiles] = useState(false);
 
     if (isWidget && section === "timeline") {
-        const isLoading = projectStats === undefined;
+        const isLoading = statsLoading || projectStats === undefined;
         const allCommits = projectStats?.recentCommits ?? [];
         const commits = showAllCommits ? allCommits : allCommits.slice(0, 5);
         const hasMore = allCommits.length > 5;

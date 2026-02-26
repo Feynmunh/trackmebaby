@@ -1,6 +1,15 @@
+import { FolderOpen } from "lucide-react";
+import { useEffect, useState } from "react";
 import { timeAgo } from "../../shared/time.ts";
 import ProjectDashboard from "../components/ProjectDashboard";
 import { useProjectData } from "../hooks/useProjectData.ts";
+import {
+    getPlatform,
+    getSettings,
+    scanProjects,
+    selectFolder,
+    updateSettings,
+} from "../rpc";
 
 export default function CardsTab({
     onNavigateToSettings,
@@ -23,8 +32,50 @@ export default function CardsTab({
         closeDashboard,
     } = useProjectData();
 
+    const [platform, setPlatform] = useState<string>("");
+    const [selectingFolder, setSelectingFolder] = useState(false);
+    const [basePathInput, setBasePathInput] = useState("");
+    const [savingPath, setSavingPath] = useState(false);
+
+    useEffect(() => {
+        getPlatform().then(setPlatform);
+    }, []);
+
+    const isLinux = platform === "linux";
+
+    const handleSelectFolder = async () => {
+        setSelectingFolder(true);
+        try {
+            const settings = await getSettings();
+            const selected = await selectFolder(settings.basePath || undefined);
+            if (selected) {
+                await scanProjects(selected);
+                // Small delay to ensure DB is flushed
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                window.location.reload();
+            }
+        } finally {
+            setSelectingFolder(false);
+        }
+    };
+
+    const handleSavePath = async () => {
+        if (!basePathInput.trim()) return;
+        setSavingPath(true);
+        try {
+            await updateSettings({ basePath: basePathInput.trim() });
+            await scanProjects(basePathInput.trim());
+            // Small delay to ensure DB is flushed
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            window.location.reload();
+        } catch (err) {
+            console.error("Failed to save path:", err);
+        } finally {
+            setSavingPath(false);
+        }
+    };
+
     if (loading) {
-        // ... loading state ...
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-3">
@@ -42,32 +93,71 @@ export default function CardsTab({
             <div className="flex flex-col items-center justify-center h-full text-center px-8">
                 <div className="bg-mac-surface rounded-2xl p-12 shadow-mac-md flex flex-col items-center max-w-md">
                     <div className="w-16 h-16 rounded-2xl bg-mac-bg flex items-center justify-center mb-5">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={1.5}
-                            className="w-8 h-8 text-mac-secondary"
-                        >
-                            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
+                        <FolderOpen className="w-8 h-8 text-mac-secondary" />
                     </div>
                     <h2 className="text-xl font-semibold text-mac-text mb-2">
-                        No projects yet
+                        {isLinux
+                            ? "Enter your project folder path"
+                            : "Select your project folder"}
                     </h2>
                     <p className="text-mac-secondary text-sm mb-6 leading-relaxed">
-                        Set your base folder in Settings to start tracking your
-                        projects automatically.
+                        {isLinux
+                            ? "Enter the full path to your projects folder (e.g., /home/username/projects or ~/projects)"
+                            : "Choose a folder containing your projects to start tracking your work automatically."}
                     </p>
-                    <button
-                        className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac"
-                        onClick={() =>
-                            document.getElementById("tab-settings")?.click()
-                        }
-                    >
-                        Open Settings
-                    </button>
+                    {isLinux ? (
+                        <div className="flex flex-col gap-2 w-full max-w-xs">
+                            <input
+                                type="text"
+                                value={basePathInput}
+                                onChange={(e) =>
+                                    setBasePathInput(e.target.value)
+                                }
+                                placeholder="/home/username/projects or ~/projects"
+                                className="w-full bg-mac-bg border border-black/20 dark:border-white/10 rounded-lg px-3 py-2 text-[14px] text-mac-text placeholder-mac-secondary focus:ring-2 focus:ring-mac-accent/30 outline-none transition-all"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        handleSavePath();
+                                    }
+                                }}
+                            />
+                            <button
+                                className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac flex items-center justify-center gap-2 disabled:opacity-50"
+                                onClick={handleSavePath}
+                                disabled={savingPath || !basePathInput.trim()}
+                            >
+                                {savingPath ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FolderOpen size={18} />
+                                        Save & Scan
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac flex items-center gap-2"
+                            onClick={handleSelectFolder}
+                            disabled={selectingFolder}
+                        >
+                            {selectingFolder ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Selecting...
+                                </>
+                            ) : (
+                                <>
+                                    <FolderOpen size={18} />
+                                    Select Folder
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         );
