@@ -111,6 +111,11 @@ export interface GitHubPR {
     mergedAt?: string | null;
 }
 
+export interface GitHubEtag {
+    issues: string | null;
+    prs: string | null;
+}
+
 export interface GitHubData {
     openIssues: number;
     openPRs: number;

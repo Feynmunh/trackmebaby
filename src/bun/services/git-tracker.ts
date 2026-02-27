@@ -147,6 +147,7 @@ export class GitTrackerService {
                 projectPath,
                 label: "GitTracker",
                 logOnError: false,
+                timeoutMs: 3000,
             });
             if (!isRepo) {
                 this.logger.warn("not a git repo for stats", { projectPath });
@@ -172,6 +173,7 @@ export class GitTrackerService {
                 const output = await runGit(["rev-list", "--count", "HEAD"], {
                     projectPath,
                     label: "GitTracker",
+                    timeoutMs: 5000,
                 });
                 totalCommits = output ? parseInt(output, 10) || 0 : 0;
             } catch (err: unknown) {
@@ -189,6 +191,7 @@ export class GitTrackerService {
                     {
                         projectPath,
                         label: "GitTracker",
+                        timeoutMs: 5000,
                     },
                 );
                 repoAgeFirstCommit = lines[0] || null;
@@ -308,6 +311,7 @@ export class GitTrackerService {
             projectPath,
             label: "GitTracker",
             logOnError: false,
+            timeoutMs: 3000,
         });
         if (!isRepo) {
             this.logger.warn("not a git repo", { projectPath });
@@ -320,6 +324,7 @@ export class GitTrackerService {
             const output = await runGit(["rev-parse", "--abbrev-ref", "HEAD"], {
                 projectPath,
                 label: "GitTracker",
+                timeoutMs: 3000,
             });
             if (output) branch = output;
         } catch (err: unknown) {
@@ -337,6 +342,7 @@ export class GitTrackerService {
             const output = await runGit(["log", "-1", "--format=%H|%s|%aI"], {
                 projectPath,
                 label: "GitTracker",
+                timeoutMs: 5000,
             });
             const parts = output ? output.split("|") : [];
             if (parts.length >= 3) {
@@ -363,7 +369,7 @@ export class GitTrackerService {
             try {
                 const diffLines = await runGitLines(
                     ["diff", "HEAD", "--numstat"],
-                    { projectPath, label: "GitTracker" },
+                    { projectPath, label: "GitTracker", timeoutMs: 5000 },
                 );
                 for (const line of diffLines) {
                     const [insRaw, delRaw, pathRaw] = line.split("\t");

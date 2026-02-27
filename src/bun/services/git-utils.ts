@@ -24,6 +24,7 @@ export async function getUncommittedFileStatus(
     const output = await runGit(["status", "--porcelain"], {
         projectPath,
         label,
+        timeoutMs: 5000,
     });
     if (!output) {
         return { uncommittedFiles, latestMtime, fileMtimes };

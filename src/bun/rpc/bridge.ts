@@ -52,6 +52,7 @@ export function createRPC(
     const githubService = new GitHubService(db);
 
     const rpc = BrowserView.defineRPC<TrackmeBabyRPC>({
+        maxRequestTime: 15000,
         handlers: {
             requests: {
                 ...createProjectHandlers({ db }),

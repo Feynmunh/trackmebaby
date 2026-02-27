@@ -8,6 +8,7 @@ declare module "electrobun/view" {
         : Record<string, never>;
 
     export interface ElectroviewRPC<TSchema> {
+        maxRequestTime?: number;
         handlers: {
             requests: Record<string, never>;
             messages: MessageHandlers<TSchema>;

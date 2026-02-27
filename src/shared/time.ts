@@ -29,3 +29,14 @@ export function timeAgo(
 export function nowIso(): string {
     return new Date().toISOString();
 }
+
+export function isIsoWithinMs(
+    iso: string | null,
+    maxAgeMs: number,
+    now: number = Date.now(),
+): boolean {
+    if (!iso) return false;
+    const timestamp = new Date(iso).getTime();
+    if (!Number.isFinite(timestamp)) return false;
+    return now - timestamp <= maxAgeMs;
+}

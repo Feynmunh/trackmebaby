@@ -6,7 +6,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
@@ -31,6 +31,9 @@ export function runMigrations(db: Database): void {
     }
     if (version < 2) {
         applyMigration2(db);
+    }
+    if (version < 3) {
+        applyMigration3(db);
     }
     if (version < SCHEMA_VERSION) {
         db.exec(
@@ -97,4 +100,18 @@ function applyMigration2(db: Database): void {
     } catch (err: unknown) {
         logger.warn("migration 2 skipped", { error: toErrorData(err) });
     }
+}
+
+function applyMigration3(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS project_caches (
+      project_id TEXT PRIMARY KEY,
+      stats_json TEXT,
+      stats_updated_at TEXT,
+      github_json TEXT,
+      github_etag TEXT,
+      github_updated_at TEXT,
+      FOREIGN KEY (project_id) REFERENCES projects(id)
+    )
+  `);
 }

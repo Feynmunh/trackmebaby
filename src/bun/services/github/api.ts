@@ -61,41 +61,65 @@ export async function fetchGitHubUser(token: string): Promise<string | null> {
     }
 }
 
-export async function fetchGitHubIssuesAndPRs(
-    token: string,
-    owner: string,
-    repo: string,
-): Promise<{
+export interface GitHubFetchResult {
     issuesData: GitHubSearchResponse | null;
     prsData: GitHubSearchResponse | null;
     issuesStatus: number;
     prsStatus: number;
-}> {
-    const headers = getGitHubHeaders(token);
-    const [issuesRes, prsRes] = await Promise.all([
-        fetch(
-            `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:issue&sort=created&order=desc&per_page=50`,
-            { headers },
-        ),
-        fetch(
-            `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:pr&sort=created&order=desc&per_page=50`,
-            { headers },
-        ),
-    ]);
+    issuesEtag: string | null;
+    prsEtag: string | null;
+}
 
-    const issuesData = issuesRes.ok
-        ? ((await issuesRes.json()) as GitHubSearchResponse)
-        : null;
-    const prsData = prsRes.ok
-        ? ((await prsRes.json()) as GitHubSearchResponse)
-        : null;
+export async function fetchGitHubIssuesAndPRs(
+    token: string,
+    owner: string,
+    repo: string,
+    options: {
+        etag?: { issues?: string | null; prs?: string | null };
+        timeoutMs?: number;
+    } = {},
+): Promise<GitHubFetchResult> {
+    const timeoutMs = options.timeoutMs ?? 8000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+        const issuesHeaders = getGitHubHeaders(token);
+        const prsHeaders = getGitHubHeaders(token);
+        if (options.etag?.issues) {
+            issuesHeaders["If-None-Match"] = options.etag.issues;
+        }
+        if (options.etag?.prs) {
+            prsHeaders["If-None-Match"] = options.etag.prs;
+        }
+        const [issuesRes, prsRes] = await Promise.all([
+            fetch(
+                `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:issue&sort=created&order=desc&per_page=50`,
+                { headers: issuesHeaders, signal: controller.signal },
+            ),
+            fetch(
+                `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:pr&sort=created&order=desc&per_page=50`,
+                { headers: prsHeaders, signal: controller.signal },
+            ),
+        ]);
 
-    return {
-        issuesData,
-        prsData,
-        issuesStatus: issuesRes.status,
-        prsStatus: prsRes.status,
-    };
+        const issuesData = issuesRes.ok
+            ? ((await issuesRes.json()) as GitHubSearchResponse)
+            : null;
+        const prsData = prsRes.ok
+            ? ((await prsRes.json()) as GitHubSearchResponse)
+            : null;
+
+        return {
+            issuesData,
+            prsData,
+            issuesStatus: issuesRes.status,
+            prsStatus: prsRes.status,
+            issuesEtag: issuesRes.headers.get("etag"),
+            prsEtag: prsRes.headers.get("etag"),
+        };
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**

@@ -125,8 +125,44 @@ export default function ProjectDashboard({
             <main className="flex-1 overflow-y-auto custom-scrollbar p-12">
                 <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
                     {/* Left Column: Core Stats & Repo History (Span 8) */}
-                    <div className="lg:col-span-8 space-y-12">
-                        {/* Stats Widgets */}
+                    <div className="lg:col-span-8 order-2 lg:order-1 space-y-12">
+                        {/* Git History Timeline */}
+                        <section ref={timelineRef} className="scroll-mt-12">
+                            <GitPage
+                                gitSnapshot={gitSnapshot}
+                                projectStats={projectStats}
+                                statsLoading={statsLoading}
+                                isWidget={true}
+                                section="timeline"
+                            />
+                        </section>
+
+                        {/* Working State (Local Environment) */}
+                        <section>
+                            <GitPage
+                                gitSnapshot={gitSnapshot}
+                                projectStats={projectStats}
+                                statsLoading={statsLoading}
+                                isWidget={true}
+                                section="workstate"
+                            />
+                        </section>
+
+                        {/* Remote Environment */}
+                        <section ref={githubRef} className="scroll-mt-12">
+                            <GitHubPage
+                                githubData={githubData}
+                                githubLoading={githubLoading}
+                                isGitHubAuthenticated={isGitHubAuthenticated}
+                                isWidget={true}
+                                section="environment"
+                            />
+                        </section>
+                    </div>
+
+                    {/* Right Column: Insights & Surroundings (Span 4) */}
+                    <div className="lg:col-span-4 order-1 lg:order-2 space-y-12">
+                        {/* Project Vitality (Overview) */}
                         <section>
                             <OverviewPage
                                 project={project}
@@ -162,43 +198,6 @@ export default function ProjectDashboard({
                                 onRefreshStats={onRefreshStats}
                             />
                         </section>
-
-                        {/* Git History Timeline */}
-                        <section ref={timelineRef} className="scroll-mt-12">
-                            <GitPage
-                                gitSnapshot={gitSnapshot}
-                                projectStats={projectStats}
-                                statsLoading={statsLoading}
-                                isWidget={true}
-                                section="timeline"
-                            />
-                        </section>
-
-                        {/* Remote Environment */}
-                        <section ref={githubRef} className="scroll-mt-12">
-                            <GitHubPage
-                                githubData={githubData}
-                                githubLoading={githubLoading}
-                                isGitHubAuthenticated={isGitHubAuthenticated}
-                                isWidget={true}
-                                section="environment"
-                            />
-                        </section>
-                    </div>
-
-                    {/* Right Column: Insights & Surroundings (Span 4) */}
-                    <div className="lg:col-span-4 space-y-12">
-                        {/* Working State */}
-                        <section>
-                            <GitPage
-                                gitSnapshot={gitSnapshot}
-                                projectStats={projectStats}
-                                statsLoading={statsLoading}
-                                isWidget={true}
-                                section="workstate"
-                            />
-                        </section>
-
                         {/* Contributors */}
                         <section>
                             <GitPage

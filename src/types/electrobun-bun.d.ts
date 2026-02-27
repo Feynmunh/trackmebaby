@@ -14,6 +14,7 @@ declare module "electrobun/bun" {
         : Record<string, never>;
 
     export interface BrowserViewRPC<TSchema> {
+        maxRequestTime?: number;
         handlers: {
             requests: RPCHandlers<TSchema>;
             messages: TSchema extends { bun: { messages: infer M } }

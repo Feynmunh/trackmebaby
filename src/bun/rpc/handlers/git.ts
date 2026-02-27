@@ -1,10 +1,13 @@
 import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../../shared/error.ts";
 import { createLogger } from "../../../shared/logger.ts";
+import { isIsoWithinMs, nowIso } from "../../../shared/time.ts";
 import {
     getLatestGitSnapshot,
     getProjectById,
+    getProjectStatsCache,
     insertGitSnapshot,
+    setProjectStatsCache,
 } from "../../db/queries.ts";
 import type { GitTrackerService } from "../../services/git-tracker.ts";
 
@@ -14,6 +17,8 @@ export interface GitHandlersDeps {
 }
 
 const logger = createLogger("rpc");
+const STATS_CACHE_TTL_MS = 2 * 60 * 1000;
+const statsInflight = new Map<string, Promise<void>>();
 
 export function createGitHandlers({ db, gitTracker }: GitHandlersDeps) {
     return {
@@ -47,7 +52,56 @@ export function createGitHandlers({ db, gitTracker }: GitHandlersDeps) {
         getProjectStats: async ({ projectId }: { projectId: string }) => {
             const project = getProjectById(db, projectId);
             if (!project) return null;
-            return await gitTracker.getProjectStats(project.path);
+            const cache = getProjectStatsCache(db, projectId);
+            if (
+                cache.stats &&
+                isIsoWithinMs(cache.updatedAt, STATS_CACHE_TTL_MS)
+            ) {
+                return cache.stats;
+            }
+
+            if (cache.stats) {
+                if (!statsInflight.has(projectId)) {
+                    const pending = gitTracker
+                        .getProjectStats(project.path)
+                        .then((stats) => {
+                            if (stats) {
+                                setProjectStatsCache(
+                                    db,
+                                    projectId,
+                                    stats,
+                                    nowIso(),
+                                );
+                            }
+                        })
+                        .catch((err: unknown) => {
+                            logger.warn("project stats refresh failed", {
+                                projectId,
+                                error: toErrorData(err),
+                            });
+                        })
+                        .finally(() => {
+                            statsInflight.delete(projectId);
+                        });
+                    statsInflight.set(projectId, pending);
+                }
+                return cache.stats;
+            }
+
+            try {
+                const stats = await gitTracker.getProjectStats(project.path);
+                if (stats) {
+                    setProjectStatsCache(db, projectId, stats, nowIso());
+                    return stats;
+                }
+            } catch (err: unknown) {
+                logger.warn("project stats fetch failed", {
+                    projectId,
+                    error: toErrorData(err),
+                });
+            }
+
+            return cache.stats;
         },
     };
 }

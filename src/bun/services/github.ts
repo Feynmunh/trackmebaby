@@ -6,8 +6,14 @@
 import type { Database } from "bun:sqlite";
 import { toErrorData, toErrorMessage } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
+import { nowIso } from "../../shared/time.ts";
 import type { GitHubData, GitHubIssue, GitHubPR } from "../../shared/types.ts";
-import { getSetting, setSetting } from "../db/queries.ts";
+import {
+    getGitHubCache,
+    getSetting,
+    setGitHubCache,
+    setSetting,
+} from "../db/queries.ts";
 import { runGit } from "./git-command.ts";
 import type { GitHubSearchItem } from "./github/api.ts";
 import {
@@ -34,6 +40,7 @@ async function getGitHubRemote(
         const url = await runGit(["remote", "get-url", "origin"], {
             projectPath,
             label: "GitHub",
+            timeoutMs: 4000,
         });
         if (!url) return null;
         return parseGitHubRemoteUrl(url);
@@ -49,6 +56,7 @@ async function getGitHubRemote(
 export class GitHubService {
     private db: Database;
     private authCleanup: (() => void) | null = null;
+    private inflight: Map<string, Promise<GitHubData | null>> = new Map();
 
     constructor(db: Database) {
         this.db = db;
@@ -172,30 +180,101 @@ export class GitHubService {
      * Uses the git remote URL to determine the repository.
      */
     async getGitHubData(projectPath: string): Promise<GitHubData | null> {
+        if (this.inflight.has(projectPath)) {
+            return this.inflight.get(projectPath) ?? null;
+        }
+        const pending = this.fetchGitHubData(projectPath).finally(() => {
+            this.inflight.delete(projectPath);
+        });
+        this.inflight.set(projectPath, pending);
+        return pending;
+    }
+
+    private async fetchGitHubData(
+        projectPath: string,
+    ): Promise<GitHubData | null> {
         const token = this.getAccessToken();
         if (!token) return null;
 
         const remote = await getGitHubRemote(projectPath);
         if (!remote) return null;
 
-        try {
-            const { issuesData, prsData, issuesStatus, prsStatus } =
-                await fetchGitHubIssuesAndPRs(token, remote.owner, remote.repo);
+        const project = this.getProjectByPath(projectPath);
+        const cache = project ? getGitHubCache(this.db, project.id) : null;
+        const etag = cache?.etag ?? null;
 
-            if (!issuesData || !prsData) {
+        try {
+            const {
+                issuesData,
+                prsData,
+                issuesStatus,
+                prsStatus,
+                issuesEtag,
+                prsEtag,
+            } = await fetchGitHubIssuesAndPRs(
+                token,
+                remote.owner,
+                remote.repo,
+                {
+                    timeoutMs: 8000,
+                    etag: {
+                        issues: etag?.issues ?? null,
+                        prs: etag?.prs ?? null,
+                    },
+                },
+            );
+
+            const cachedIssues = cache?.data?.issues ?? null;
+            const cachedPRs = cache?.data?.pullRequests ?? null;
+
+            if (issuesStatus === 304 && prsStatus === 304) {
+                return cache?.data ?? null;
+            }
+
+            if (
+                (!issuesData && issuesStatus !== 304) ||
+                (!prsData && prsStatus !== 304)
+            ) {
                 if (issuesStatus === 401 || prsStatus === 401) {
                     this.clearAuth();
                 }
                 return null;
             }
 
-            // Derive open counts from items we already fetched
-            const allIssues = issuesData.items || [];
-            const allPRs = prsData.items || [];
-            const openIssues = allIssues.filter(
-                (i) => i.state === "open",
+            const issueItems: GitHubSearchItem[] =
+                issuesStatus === 304 && cachedIssues
+                    ? cachedIssues.map((issue: GitHubIssue) => ({
+                          number: issue.number,
+                          title: issue.title,
+                          state: issue.state,
+                          html_url: issue.url,
+                          created_at: issue.createdAt,
+                          closed_at: issue.closedAt ?? null,
+                          user: { login: issue.user },
+                          draft: false,
+                          pull_request: null,
+                      }))
+                    : issuesData?.items || [];
+            const prItems: GitHubSearchItem[] =
+                prsStatus === 304 && cachedPRs
+                    ? cachedPRs.map((pr: GitHubPR) => ({
+                          number: pr.number,
+                          title: pr.title,
+                          state: pr.state,
+                          html_url: pr.url,
+                          created_at: pr.createdAt,
+                          closed_at: pr.closedAt ?? null,
+                          user: { login: pr.user },
+                          draft: pr.draft,
+                          pull_request: { merged_at: pr.mergedAt ?? null },
+                      }))
+                    : prsData?.items || [];
+            const openIssues = issueItems.filter(
+                (i: GitHubSearchItem) => i.state === "open",
             ).length;
-            const openPRs = allPRs.filter((i) => i.state === "open").length;
+            const openPRs = prItems.filter(
+                (i: GitHubSearchItem) => i.state === "open",
+            ).length;
 
             const mapIssue = (i: GitHubSearchItem): GitHubIssue => ({
                 number: i.number,
@@ -225,13 +304,23 @@ export class GitHubService {
                 mergedAt: i.pull_request?.merged_at ?? null,
             });
 
-            return {
+            const data = {
                 openIssues,
                 openPRs,
                 repoUrl: `https://github.com/${remote.owner}/${remote.repo}`,
-                issues: allIssues.map(mapIssue),
-                pullRequests: allPRs.map(mapPr),
+                issues: issueItems.map(mapIssue),
+                pullRequests: prItems.map(mapPr),
             };
+
+            if (project) {
+                const nextEtag = {
+                    issues: issuesEtag ?? etag?.issues ?? null,
+                    prs: prsEtag ?? etag?.prs ?? null,
+                };
+                setGitHubCache(this.db, project.id, data, nextEtag, nowIso());
+            }
+
+            return data;
         } catch (err: unknown) {
             logger.error("error fetching data", {
                 repo: `${remote.owner}/${remote.repo}`,
@@ -239,5 +328,12 @@ export class GitHubService {
             });
             return null;
         }
+    }
+
+    private getProjectByPath(projectPath: string): { id: string } | null {
+        const row = this.db
+            .query("SELECT id FROM projects WHERE path = ?")
+            .get(projectPath) as { id: string } | null;
+        return row ?? null;
     }
 }

@@ -8,6 +8,7 @@ interface GitCommandOptions {
     label?: string;
     logLevel?: LogLevel;
     logOnError?: boolean;
+    timeoutMs?: number;
 }
 
 async function readStreamText(
@@ -25,9 +26,14 @@ export async function runGit(
         ? ["git", "-C", options.projectPath, ...command]
         : ["git", ...command];
 
+    const controller = new AbortController();
+    const timeoutMs = options.timeoutMs ?? 8000;
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     const proc = Bun.spawn(commandParts, {
         stdout: "pipe",
         stderr: "pipe",
+        signal: controller.signal,
     });
 
     const [stdout, stderr, exitCode] = await Promise.all([
@@ -36,6 +42,7 @@ export async function runGit(
         proc.exited,
     ]);
 
+    clearTimeout(timeoutId);
     if (exitCode !== 0) {
         if (options.logOnError !== false) {
             const level = options.logLevel ?? "warn";
@@ -44,6 +51,7 @@ export async function runGit(
                 exitCode,
                 label: options.label,
                 stderr: stderr.trim() || undefined,
+                timedOut: controller.signal.aborted,
             };
             if (level === "debug") logger.debug("git command failed", data);
             else if (level === "info") logger.info("git command failed", data);
