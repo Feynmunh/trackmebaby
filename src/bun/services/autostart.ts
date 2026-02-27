@@ -6,11 +6,15 @@
  * macOS: ~/Library/LaunchAgents/dev.trackmebaby.app.plist
  * Windows: Registry HKCU\Software\Microsoft\Windows\CurrentVersion\Run
  */
-import { existsSync, writeFileSync, unlinkSync, mkdirSync, readFileSync } from "node:fs";
+import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { toErrorData } from "../../shared/error.ts";
+import { createLogger } from "../../shared/logger.ts";
 
 const APP_ID = "dev.trackmebaby.app";
 const APP_NAME = "trackmebaby";
+
+const logger = createLogger("autostart");
 
 export class AutostartService {
     private platform: string;
@@ -35,11 +39,13 @@ export class AutostartService {
                 case "win32":
                     return await this.enableWindows(exePath);
                 default:
-                    console.warn(`[Autostart] Unsupported platform: ${this.platform}`);
+                    logger.warn("unsupported platform", {
+                        platform: this.platform,
+                    });
                     return false;
             }
-        } catch (err: any) {
-            console.error(`[Autostart] Failed to enable:`, err.message);
+        } catch (err: unknown) {
+            logger.error("failed to enable", { error: toErrorData(err) });
             return false;
         }
     }
@@ -59,8 +65,8 @@ export class AutostartService {
                 default:
                     return false;
             }
-        } catch (err: any) {
-            console.error(`[Autostart] Failed to disable:`, err.message);
+        } catch (err: unknown) {
+            logger.error("failed to disable", { error: toErrorData(err) });
             return false;
         }
     }
@@ -80,7 +86,8 @@ export class AutostartService {
                 default:
                     return false;
             }
-        } catch {
+        } catch (err: unknown) {
+            logger.warn("failed to check status", { error: toErrorData(err) });
             return false;
         }
     }
@@ -88,7 +95,9 @@ export class AutostartService {
     // --- Linux: .desktop file in ~/.config/autostart/ ---
 
     private getLinuxDesktopPath(): string {
-        const configDir = process.env.XDG_CONFIG_HOME || join(process.env.HOME || "/tmp", ".config");
+        const configDir =
+            process.env.XDG_CONFIG_HOME ||
+            join(process.env.HOME || "/tmp", ".config");
         const autostartDir = join(configDir, "autostart");
         mkdirSync(autostartDir, { recursive: true });
         return join(autostartDir, `${APP_NAME}.desktop`);
@@ -107,7 +116,7 @@ StartupNotify=false
 `;
         const path = this.getLinuxDesktopPath();
         writeFileSync(path, desktopEntry, "utf-8");
-        console.log(`[Autostart] Linux: Created ${path}`);
+        logger.info("linux autostart created", { path });
         return true;
     }
 
@@ -115,7 +124,7 @@ StartupNotify=false
         const path = this.getLinuxDesktopPath();
         if (existsSync(path)) {
             unlinkSync(path);
-            console.log(`[Autostart] Linux: Removed ${path}`);
+            logger.info("linux autostart removed", { path });
         }
         return true;
     }
@@ -127,7 +136,11 @@ StartupNotify=false
     // --- macOS: LaunchAgent plist ---
 
     private getMacOSPlistPath(): string {
-        const launchAgentsDir = join(process.env.HOME || "/tmp", "Library", "LaunchAgents");
+        const launchAgentsDir = join(
+            process.env.HOME || "/tmp",
+            "Library",
+            "LaunchAgents",
+        );
         mkdirSync(launchAgentsDir, { recursive: true });
         return join(launchAgentsDir, `${APP_ID}.plist`);
     }
@@ -152,7 +165,7 @@ StartupNotify=false
 `;
         const path = this.getMacOSPlistPath();
         writeFileSync(path, plist, "utf-8");
-        console.log(`[Autostart] macOS: Created ${path}`);
+        logger.info("macos autostart created", { path });
         return true;
     }
 
@@ -160,7 +173,7 @@ StartupNotify=false
         const path = this.getMacOSPlistPath();
         if (existsSync(path)) {
             unlinkSync(path);
-            console.log(`[Autostart] macOS: Removed ${path}`);
+            logger.info("macos autostart removed", { path });
         }
         return true;
     }
@@ -173,16 +186,18 @@ StartupNotify=false
 
     private async enableWindows(exePath: string): Promise<boolean> {
         await Bun.$`reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v ${APP_NAME} /t REG_SZ /d "${exePath}" /f`.quiet();
-        console.log(`[Autostart] Windows: Added registry key`);
+        logger.info("windows autostart added", { appName: APP_NAME });
         return true;
     }
 
     private async disableWindows(): Promise<boolean> {
         try {
             await Bun.$`reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v ${APP_NAME} /f`.quiet();
-            console.log(`[Autostart] Windows: Removed registry key`);
-        } catch {
-            // Key might not exist
+            logger.info("windows autostart removed", { appName: APP_NAME });
+        } catch (err: unknown) {
+            logger.warn("windows registry key not found", {
+                error: toErrorData(err),
+            });
         }
         return true;
     }
@@ -191,7 +206,10 @@ StartupNotify=false
         try {
             await Bun.$`reg query "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run" /v ${APP_NAME}`.quiet();
             return true;
-        } catch {
+        } catch (err: unknown) {
+            logger.warn("failed to query windows registry", {
+                error: toErrorData(err),
+            });
             return false;
         }
     }

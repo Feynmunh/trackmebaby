@@ -1,14 +1,18 @@
 /**
  * AI Provider Factory — creates the appropriate provider based on settings
  */
-import type { AIProvider } from "./provider.ts";
-import { GroqProvider } from "./groq-provider.ts";
 
-export interface AIProviderConfig {
+import { createLogger } from "../../../shared/logger.ts";
+import { GroqProvider } from "./groq-provider.ts";
+import type { AIProvider } from "./provider.ts";
+
+interface AIProviderConfig {
     provider: string;
     apiKey: string;
     model: string;
 }
+
+const logger = createLogger("ai");
 
 /**
  * Create an AI provider based on the given configuration.
@@ -23,7 +27,9 @@ export function createAIProvider(config: AIProviderConfig): AIProvider {
             // For now, use Groq provider with OpenAI compatibility
             return new GroqProvider(config.apiKey, config.model);
         default:
-            console.warn(`[AI] Unknown provider "${config.provider}", falling back to Groq`);
+            logger.warn("unknown ai provider, falling back", {
+                provider: config.provider,
+            });
             return new GroqProvider(config.apiKey, config.model);
     }
 }

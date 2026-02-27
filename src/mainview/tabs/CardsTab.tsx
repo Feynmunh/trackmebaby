@@ -1,122 +1,88 @@
-import { useState, useEffect } from "react";
+import { FolderOpen } from "lucide-react";
+import { useEffect, useState } from "react";
+import { timeAgo } from "../../shared/time.ts";
 import ProjectDashboard from "../components/ProjectDashboard";
-import type { Project, GitSnapshot, ActivityEvent, ProjectStats } from "../../shared/types.ts";
+import { useProjectData } from "../hooks/useProjectData.ts";
+import {
+    getPlatform,
+    getSettings,
+    scanProjects,
+    selectFolder,
+    updateSettings,
+} from "../rpc";
 
-// Try to import RPC, fallback to mock for dev/build
-let rpcApi: {
-    getProjects: () => Promise<Project[]>;
-    getGitStatus: (id: string) => Promise<GitSnapshot | null>;
-    getProjectStats: (id: string) => Promise<ProjectStats | null>;
-    getProjectActivity: (id: string, since: string) => Promise<ActivityEvent[]>;
-    scanProjects: (basePath: string) => Promise<Project[]>;
-} | null = null;
+export default function CardsTab({
+    onNavigateToSettings,
+}: {
+    onNavigateToSettings?: () => void;
+}) {
+    const {
+        projects,
+        gitSnapshots,
+        projectEvents,
+        projectStats,
+        projectActivitySummary,
+        statsLoading,
+        lastUpdated,
+        loading,
+        viewMode,
+        activeIndex,
+        fetchStatsForProject,
+        openDashboard,
+        closeDashboard,
+    } = useProjectData();
 
-try {
-    rpcApi = await import("../rpc.ts");
-} catch {
-    // RPC not available (outside Electrobun)
-}
-
-export default function CardsTab({ onNavigateToSettings }: { onNavigateToSettings?: () => void }) {
-    const [projects, setProjects] = useState<Project[]>([]);
-    const [gitSnapshots, setGitSnapshots] = useState<Record<string, GitSnapshot | null>>({});
-    const [projectEvents, setProjectEvents] = useState<Record<string, ActivityEvent[]>>({});
-    const [projectStats, setProjectStats] = useState<Record<string, ProjectStats | null>>({});
-    const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'grid' | 'dashboard'>('grid');
-    const [activeIndex, setActiveIndex] = useState(0);
+    const [platform, setPlatform] = useState<string>("");
+    const [selectingFolder, setSelectingFolder] = useState(false);
+    const [basePathInput, setBasePathInput] = useState("");
+    const [savingPath, setSavingPath] = useState(false);
 
     useEffect(() => {
-        loadProjects();
+        getPlatform().then(setPlatform);
     }, []);
 
-    async function loadProjects() {
-        if (!rpcApi) {
-            setLoading(false);
-            return;
-        }
+    const isLinux = platform === "linux";
 
+    const handleSelectFolder = async () => {
+        setSelectingFolder(true);
         try {
-            const projs = await rpcApi.getProjects();
-            // Sort by activity
-            const sortedProjs = [...projs].sort((a, b) =>
-                (new Date(b.lastActivityAt ?? 0).getTime()) - (new Date(a.lastActivityAt ?? 0).getTime())
-            );
-            setProjects(sortedProjs);
-
-            const snapshots: Record<string, GitSnapshot | null> = {};
-            const events: Record<string, ActivityEvent[]> = {};
-
-            // Initial load: lightweight data for all
-            for (const proj of sortedProjs) {
-                try {
-                    snapshots[proj.id] = await rpcApi.getGitStatus(proj.id);
-                } catch {
-                    snapshots[proj.id] = null;
-                }
-
-                try {
-                    const since = new Date();
-                    since.setDate(since.getDate() - 7); // 7 days of activity
-                    events[proj.id] = await rpcApi.getProjectActivity(proj.id, since.toISOString());
-                } catch {
-                    events[proj.id] = [];
-                }
+            const settings = await getSettings();
+            const selected = await selectFolder(settings.basePath || undefined);
+            if (selected) {
+                await scanProjects(selected);
+                // Small delay to ensure DB is flushed
+                await new Promise((resolve) => setTimeout(resolve, 100));
+                window.location.reload();
             }
-
-            setGitSnapshots(snapshots);
-            setProjectEvents(events);
-        } catch (err) {
-            console.error("Failed to load projects:", err);
         } finally {
-            setLoading(false);
+            setSelectingFolder(false);
         }
-    }
+    };
 
-    const fetchStatsForProject = async (projectId: string) => {
-        if (!rpcApi || projectStats[projectId]) return;
-
+    const handleSavePath = async () => {
+        if (!basePathInput.trim()) return;
+        setSavingPath(true);
         try {
-            const stats = await rpcApi.getProjectStats(projectId);
-            setProjectStats(prev => ({ ...prev, [projectId]: stats }));
+            await updateSettings({ basePath: basePathInput.trim() });
+            await scanProjects(basePathInput.trim());
+            // Small delay to ensure DB is flushed
+            await new Promise((resolve) => setTimeout(resolve, 100));
+            window.location.reload();
         } catch (err) {
-            console.error(`Failed to fetch stats for ${projectId}:`, err);
-            setProjectStats(prev => ({ ...prev, [projectId]: null }));
+            console.error("Failed to save path:", err);
+        } finally {
+            setSavingPath(false);
         }
     };
-
-    const openDashboard = (projectId: string) => {
-        const index = projects.findIndex(p => p.id === projectId);
-        if (index === -1) return;
-
-        setActiveIndex(index);
-        setViewMode('dashboard');
-        fetchStatsForProject(projectId);
-    };
-
-    const closeDashboard = () => {
-        setViewMode('grid');
-    };
-
-    // Keyboard shortcuts
-    useEffect(() => {
-        const handleKey = (e: KeyboardEvent) => {
-            if (e.key === "Escape" && viewMode === 'dashboard') {
-                closeDashboard();
-            }
-        };
-
-        window.addEventListener("keydown", handleKey);
-        return () => window.removeEventListener("keydown", handleKey);
-    }, [viewMode]);
 
     if (loading) {
-        // ... loading state ...
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-3">
                     <div className="w-8 h-8 border-2 border-mac-accent border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-mac-secondary">Loading projects...</p>
+                    <p className="text-sm text-mac-secondary">
+                        Loading projects...
+                    </p>
                 </div>
             </div>
         );
@@ -127,20 +93,71 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
             <div className="flex flex-col items-center justify-center h-full text-center px-8">
                 <div className="bg-mac-surface rounded-2xl p-12 shadow-mac-md flex flex-col items-center max-w-md">
                     <div className="w-16 h-16 rounded-2xl bg-mac-bg flex items-center justify-center mb-5">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-8 h-8 text-mac-secondary">
-                            <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                        </svg>
+                        <FolderOpen className="w-8 h-8 text-mac-secondary" />
                     </div>
-                    <h2 className="text-xl font-semibold text-mac-text mb-2">No projects yet</h2>
+                    <h2 className="text-xl font-semibold text-mac-text mb-2">
+                        {isLinux
+                            ? "Enter your project folder path"
+                            : "Select your project folder"}
+                    </h2>
                     <p className="text-mac-secondary text-sm mb-6 leading-relaxed">
-                        Set your base folder in Settings to start tracking your projects automatically.
+                        {isLinux
+                            ? "Enter the full path to your projects folder (e.g., /home/username/projects or ~/projects)"
+                            : "Choose a folder containing your projects to start tracking your work automatically."}
                     </p>
-                    <button
-                        className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac"
-                        onClick={() => document.getElementById('tab-settings')?.click()}
-                    >
-                        Open Settings
-                    </button>
+                    {isLinux ? (
+                        <div className="flex flex-col gap-2 w-full max-w-xs">
+                            <input
+                                type="text"
+                                value={basePathInput}
+                                onChange={(e) =>
+                                    setBasePathInput(e.target.value)
+                                }
+                                placeholder="/home/username/projects or ~/projects"
+                                className="w-full bg-mac-bg border border-black/20 dark:border-white/10 rounded-lg px-3 py-2 text-[14px] text-mac-text placeholder-mac-secondary focus:ring-2 focus:ring-mac-accent/30 outline-none transition-all"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        handleSavePath();
+                                    }
+                                }}
+                            />
+                            <button
+                                className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac flex items-center justify-center gap-2 disabled:opacity-50"
+                                onClick={handleSavePath}
+                                disabled={savingPath || !basePathInput.trim()}
+                            >
+                                {savingPath ? (
+                                    <>
+                                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                        Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FolderOpen size={18} />
+                                        Save & Scan
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    ) : (
+                        <button
+                            className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac flex items-center gap-2"
+                            onClick={handleSelectFolder}
+                            disabled={selectingFolder}
+                        >
+                            {selectingFolder ? (
+                                <>
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    Selecting...
+                                </>
+                            ) : (
+                                <>
+                                    <FolderOpen size={18} />
+                                    Select Folder
+                                </>
+                            )}
+                        </button>
+                    )}
                 </div>
             </div>
         );
@@ -149,12 +166,18 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
     return (
         <div className="relative h-full w-full overflow-hidden">
             {/* Grid View */}
-            <div className={`h-full w-full p-8 transition-all duration-500 overflow-y-auto ${viewMode === 'grid' ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none absolute'}`}>
+            <div
+                className={`h-full w-full p-8 transition-all duration-500 overflow-y-auto ${viewMode === "grid" ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute"}`}
+            >
                 <div className="max-w-6xl mx-auto">
                     <header className="mb-10 flex items-center justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-mac-text">Projects</h1>
-                            <p className="text-mac-secondary text-sm mt-1">Select a project for details</p>
+                            <h1 className="text-3xl font-bold text-mac-text">
+                                Projects
+                            </h1>
+                            <p className="text-mac-secondary text-sm mt-1">
+                                Select a project for details
+                            </p>
                         </div>
                         <div className="text-xs font-medium text-mac-secondary bg-mac-surface px-3 py-1.5 rounded-full shadow-mac-sm">
                             {projects.length} PROJECTS
@@ -170,39 +193,50 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
                                     onClick={() => openDashboard(project.id)}
                                     className="bg-mac-surface rounded-2xl p-6 shadow-mac border border-mac-border hover:shadow-mac-md transition-all duration-200 cursor-pointer group active:scale-[0.98]"
                                 >
-                                    <h3 className="text-lg font-semibold text-mac-text mb-4 group-hover:text-mac-accent transition-colors">{project.name}</h3>
+                                    <h3 className="text-lg font-semibold text-mac-text mb-4 group-hover:text-mac-accent transition-colors">
+                                        {project.name}
+                                    </h3>
                                     {snapshot && (
                                         <div className="flex flex-wrap gap-2 mb-4">
                                             {snapshot.uncommittedCount > 0 ? (
                                                 <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-accent/10 text-mac-accent px-2 py-0.5 rounded border border-mac-accent/20">
-                                                    {snapshot.uncommittedCount} changes
+                                                    {snapshot.uncommittedCount}{" "}
+                                                    changes
                                                 </span>
                                             ) : (
                                                 <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-bg text-mac-secondary px-2 py-0.5 rounded border border-mac-border">
                                                     0 changes
                                                 </span>
                                             )}
-                                            {project.worktrees && project.worktrees.length > 1 && (
-                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20">
-                                                    {project.worktrees.length} worktrees
-                                                </span>
-                                            )}
+                                            {project.worktrees &&
+                                                project.worktrees.length >
+                                                    1 && (
+                                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20">
+                                                        {
+                                                            project.worktrees
+                                                                .length
+                                                        }{" "}
+                                                        worktrees
+                                                    </span>
+                                                )}
                                         </div>
                                     )}
 
                                     <div className="mt-auto pt-4 border-t border-mac-border flex items-center justify-between">
                                         <span className="text-xs text-mac-secondary">
-                                            {project.lastActivityAt ? (
-                                                (() => {
-                                                    const diff = Date.now() - new Date(project.lastActivityAt).getTime();
-                                                    const mins = Math.floor(diff / 60000);
-                                                    if (mins < 1) return "Just now";
-                                                    if (mins < 60) return `${mins}m ago`;
-                                                    const hours = Math.floor(mins / 60);
-                                                    if (hours < 24) return `${hours}h ago`;
-                                                    return `${Math.floor(hours / 24)}d ago`;
-                                                })()
-                                            ) : 'Never active'}
+                                            {project.lastActivityAt
+                                                ? timeAgo(
+                                                      project.lastActivityAt,
+                                                      {
+                                                          emptyLabel:
+                                                              "Never active",
+                                                          justNowLabel:
+                                                              "Just now",
+                                                          maxDays:
+                                                              Number.POSITIVE_INFINITY,
+                                                      },
+                                                  )
+                                                : "Never active"}
                                         </span>
                                     </div>
                                 </div>
@@ -213,20 +247,39 @@ export default function CardsTab({ onNavigateToSettings }: { onNavigateToSetting
             </div>
 
             {/* Dashboard View */}
-            <div className={`absolute inset-0 h-full w-full bg-mac-bg transition-all duration-500 ${viewMode === 'dashboard' ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0 pointer-events-none'}`}>
+            <div
+                className={`absolute inset-0 h-full w-full bg-mac-bg transition-all duration-500 ${viewMode === "dashboard" ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}`}
+            >
                 {projects[activeIndex] && (
-                    <>
-                        <div className="h-full w-full">
-                            <ProjectDashboard
-                                project={projects[activeIndex]}
-                                gitSnapshot={gitSnapshots[projects[activeIndex].id]}
-                                projectStats={projectStats[projects[activeIndex].id]}
-                                events={projectEvents[projects[activeIndex].id] ?? []}
-                                onBack={closeDashboard}
-                                onNavigateToSettings={onNavigateToSettings}
-                            />
-                        </div>
-                    </>
+                    <div className="h-full w-full">
+                        <ProjectDashboard
+                            project={projects[activeIndex]}
+                            gitSnapshot={gitSnapshots[projects[activeIndex].id]}
+                            projectStats={
+                                projectStats[projects[activeIndex].id]
+                            }
+                            events={
+                                projectEvents[projects[activeIndex].id] ?? []
+                            }
+                            activitySummary={
+                                projectActivitySummary[projects[activeIndex].id]
+                            }
+                            statsLoading={
+                                statsLoading[projects[activeIndex].id] ?? false
+                            }
+                            statsLastUpdated={
+                                lastUpdated[projects[activeIndex].id]
+                            }
+                            onRefreshStats={() =>
+                                fetchStatsForProject(
+                                    projects[activeIndex].id,
+                                    true,
+                                )
+                            }
+                            onBack={closeDashboard}
+                            onNavigateToSettings={onNavigateToSettings}
+                        />
+                    </div>
                 )}
             </div>
         </div>

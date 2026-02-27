@@ -3,25 +3,31 @@
  * Defines the contract between Bun (backend) and webview (frontend)
  */
 import type { RPCSchema } from "electrobun/bun";
+import type { LogEntry } from "./logger.ts";
 import type {
-    Project,
     ActivityEvent,
-    GitSnapshot,
-    Settings,
-    ProjectStats,
+    ActivitySummary,
     GitHubData,
+    GitSnapshot,
+    Project,
+    ProjectStats,
+    Settings,
 } from "./types.ts";
 
 export type TrackmeBabyRPC = {
     bun: RPCSchema<{
         requests: {
             getProjects: {
-                params: {};
+                params: Record<string, never>;
                 response: Project[];
             };
             getProjectActivity: {
                 params: { projectId: string; since: string };
                 response: ActivityEvent[];
+            };
+            getProjectActivitySummary: {
+                params: { projectId: string; since: string; until: string };
+                response: ActivitySummary[];
             };
             getGitStatus: {
                 params: { projectId: string };
@@ -36,7 +42,7 @@ export type TrackmeBabyRPC = {
                 response: string;
             };
             getSettings: {
-                params: {};
+                params: Record<string, never>;
                 response: Settings;
             };
             updateSettings: {
@@ -47,24 +53,28 @@ export type TrackmeBabyRPC = {
                 params: { basePath: string };
                 response: Project[];
             };
+            selectFolder: {
+                params: { defaultPath?: string };
+                response: string | null;
+            };
             getPlatform: {
-                params: {};
+                params: Record<string, never>;
                 response: string;
             };
             windowMinimize: {
-                params: {};
+                params: Record<string, never>;
                 response: { success: boolean };
             };
             windowMaximize: {
-                params: {};
+                params: Record<string, never>;
                 response: { success: boolean };
             };
             windowClose: {
-                params: {};
+                params: Record<string, never>;
                 response: { success: boolean };
             };
             windowGetPosition: {
-                params: {};
+                params: Record<string, never>;
                 response: { x: number; y: number };
             };
             windowSetPosition: {
@@ -72,15 +82,15 @@ export type TrackmeBabyRPC = {
                 response: { success: boolean };
             };
             githubStartAuth: {
-                params: {};
+                params: Record<string, never>;
                 response: { success: boolean; error?: string };
             };
             githubSignOut: {
-                params: {};
+                params: Record<string, never>;
                 response: { success: boolean };
             };
             getGitHubAuthStatus: {
-                params: {};
+                params: Record<string, never>;
                 response: { authenticated: boolean; username?: string };
             };
             getGitHubData: {
@@ -93,11 +103,11 @@ export type TrackmeBabyRPC = {
             };
         };
         messages: {
-            log: { msg: string };
+            log: { entry: LogEntry };
         };
     }>;
     webview: RPCSchema<{
-        requests: {};
+        requests: Record<string, never>;
         messages: {
             projectsUpdated: { projects: Project[] };
             activityEvent: { event: ActivityEvent };

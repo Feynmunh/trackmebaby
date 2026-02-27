@@ -2,11 +2,12 @@
  * Tests for file watcher service — lifecycle and filtering only
  * (Event detection tests are skipped in CI due to fs.watch timing sensitivity)
  */
-import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+
 import { Database } from "bun:sqlite";
-import { mkdirSync, rmSync, existsSync } from "node:fs";
-import { runMigrations } from "../db/schema.ts";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, rmSync } from "node:fs";
 import { upsertProject } from "../db/queries.ts";
+import { runMigrations } from "../db/schema.ts";
 import { WatcherService } from "./watcher.ts";
 
 const TEST_DIR = "/tmp/trackmebaby-watcher-test";

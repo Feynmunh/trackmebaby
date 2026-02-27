@@ -3,12 +3,20 @@
  * Uses @parcel/watcher-wasm with fallback to fs.watch for compatibility
  * Implements debouncing and .gitignore-aware filtering
  */
-import { watch } from "node:fs";
-import { readFileSync, existsSync } from "node:fs";
+
+import type { Database } from "bun:sqlite";
+import {
+    existsSync,
+    readdirSync,
+    readFileSync,
+    statSync,
+    watch,
+} from "node:fs";
 import { join } from "node:path";
 import ignore, { type Ignore } from "ignore";
-import type { Database } from "bun:sqlite";
-import { insertEvent, getProjectByPath } from "../db/queries.ts";
+import { toErrorData } from "../../shared/error.ts";
+import { createLogger } from "../../shared/logger.ts";
+import { getProjectByPath, insertEvent } from "../db/queries.ts";
 
 export interface WatcherEvent {
     type: "file_create" | "file_modify" | "file_delete";
@@ -45,24 +53,39 @@ const DEFAULT_IGNORES = [
 ];
 
 interface WatcherInstance {
-    unsubscribe: () => void;
+    unsubscribe: () => Promise<void> | void;
     ignore: Ignore;
     useParcel: boolean;
 }
 
 let parcelLoadFailed = false;
 
-async function tryLoadParcelWatcher() {
+type ParcelSubscription = { unsubscribe: () => Promise<void> };
+
+async function tryLoadParcelWatcher(): Promise<{
+    subscribe: (
+        path: string,
+        cb: (
+            err: Error | null,
+            events?: Array<{ type: string; path: string }>,
+        ) => void,
+        options?: { ignore?: string[] },
+    ) => Promise<ParcelSubscription>;
+} | null> {
     if (parcelLoadFailed) return null;
     try {
         const parcel = await import("@parcel/watcher-wasm");
         return parcel;
-    } catch {
+    } catch (err: unknown) {
         parcelLoadFailed = true;
-        console.log("[Watcher] @parcel/watcher-wasm unavailable, using fs.watch fallback");
+        logger.warn("parcel watcher unavailable, using fs.watch fallback", {
+            error: toErrorData(err),
+        });
         return null;
     }
 }
+
+const logger = createLogger("watcher");
 
 export class WatcherService {
     private watchers: Map<string, WatcherInstance> = new Map();
@@ -97,50 +120,63 @@ export class WatcherService {
 
             if (parcel) {
                 try {
-                    const unsubscribe = await parcel.subscribe(projectPath, (err, events) => {
-                        if (err) {
-                            console.error(`[Watcher] Error watching ${projectPath}:`, err.message);
-                            return;
-                        }
-                        if (!events || events.length === 0) return;
+                    const subscription = await parcel.subscribe(
+                        projectPath,
+                        (err, events) => {
+                            if (err) {
+                                logger.error("watcher error", {
+                                    projectPath,
+                                    error: { message: err.message },
+                                });
+                                return;
+                            }
+                            if (!events || events.length === 0) return;
 
-                        for (const event of events) {
-                            const relativePath = event.path;
-                            if (ig.ignores(relativePath)) continue;
-                            if (ig.ignores(relativePath.replace(/^\//, ""))) continue;
+                            for (const event of events) {
+                                const relativePath = event.path;
+                                if (ig.ignores(relativePath)) continue;
+                                if (ig.ignores(relativePath.replace(/^\//, "")))
+                                    continue;
 
-                            this.handleRawEvent(projectPath, event.type, event.path);
-                        }
-                    }, {
-                        ignore: [
-                            "**/node_modules/**",
-                            "**/.git/**",
-                            "**/dist/**",
-                            "**/build/**",
-                            "**/.next/**",
-                            "**/.turbo/**",
-                            "**/*.lock",
-                            "**/.DS_Store",
-                            "**/*.swp",
-                            "**/*.swo",
-                            "**/.env",
-                            "**/coverage/**",
-                            "**/.cache/**",
-                            "**/__pycache__/**",
-                        ],
-                    });
+                                this.handleRawEvent(
+                                    projectPath,
+                                    event.type,
+                                    event.path,
+                                );
+                            }
+                        },
+                        {
+                            ignore: [
+                                "**/node_modules/**",
+                                "**/.git/**",
+                                "**/dist/**",
+                                "**/build/**",
+                                "**/.next/**",
+                                "**/.turbo/**",
+                                "**/*.lock",
+                                "**/.DS_Store",
+                                "**/*.swp",
+                                "**/*.swo",
+                                "**/.env",
+                                "**/coverage/**",
+                                "**/.cache/**",
+                                "**/__pycache__/**",
+                            ],
+                        },
+                    );
 
                     this.watchers.set(projectPath, {
-                        unsubscribe: () => {
-                            (unsubscribe as any).unsubscribe();
-                        },
+                        unsubscribe: () => subscription.unsubscribe(),
                         ignore: ig,
-                        useParcel: true
+                        useParcel: true,
                     });
-                    console.log(`[Watcher] Watching (parcel): ${projectPath}`);
+                    logger.info("watching (parcel)", { projectPath });
                     return;
-                } catch (err: any) {
-                    console.log(`[Watcher] Parcel failed for ${projectPath}, falling back: ${err.message}`);
+                } catch (err: unknown) {
+                    logger.warn("parcel watcher failed, falling back", {
+                        projectPath,
+                        error: toErrorData(err),
+                    });
                 }
             }
         }
@@ -154,7 +190,10 @@ export class WatcherService {
 
         const watchRecursive = (dir: string) => {
             try {
-                const relativeDir = dir === projectPath ? "" : dir.slice(projectPath.length + 1);
+                const relativeDir =
+                    dir === projectPath
+                        ? ""
+                        : dir.slice(projectPath.length + 1);
 
                 // If it's a directory we're about to watch, check if it's ignored
                 if (relativeDir !== "" && ig.ignores(relativeDir)) {
@@ -162,40 +201,61 @@ export class WatcherService {
                 }
 
                 // Add non-recursive watcher to this directory
-                const watcher = watch(dir, { recursive: false }, (eventType, filename) => {
-                    if (!filename) return;
-                    const relativePath = join(relativeDir, filename);
-                    if (ig.ignores(relativePath)) return;
+                const watcher = watch(
+                    dir,
+                    { recursive: false },
+                    (eventType, filename) => {
+                        if (!filename) return;
+                        const relativePath = join(relativeDir, filename);
+                        if (ig.ignores(relativePath)) return;
 
-                    this.handleRawEvent(projectPath, eventType, relativePath);
+                        this.handleRawEvent(
+                            projectPath,
+                            eventType,
+                            relativePath,
+                        );
 
-                    // If a new directory is created, we need to watch it too
-                    if (eventType === "rename") {
-                        const fullPath = join(dir, filename);
-                        if (existsSync(fullPath) && require("node:fs").statSync(fullPath).isDirectory()) {
-                            watchRecursive(fullPath);
+                        // If a new directory is created, we need to watch it too
+                        if (eventType === "rename") {
+                            const fullPath = join(dir, filename);
+                            if (
+                                existsSync(fullPath) &&
+                                statSync(fullPath).isDirectory()
+                            ) {
+                                watchRecursive(fullPath);
+                            }
                         }
-                    }
-                });
+                    },
+                );
 
-                watcher.on("error", (err: any) => {
-                    if (err.code === "ENOSPC") {
-                        console.error(`[Watcher] ENOSPC error on ${dir}. inotify limit too low. Run: sudo sysctl fs.inotify.max_user_watches=524288`);
+                watcher.on("error", (err: unknown) => {
+                    const errorCode =
+                        err instanceof Error && "code" in err
+                            ? (err as Error & { code?: string }).code
+                            : undefined;
+                    if (errorCode === "ENOSPC") {
+                        logger.error("inotify limit too low", {
+                            dir,
+                            errorCode,
+                        });
                     } else {
-                        console.error(`[Watcher] Error on ${dir}:`, err.message);
+                        logger.error("watcher error", {
+                            dir,
+                            error: toErrorData(err),
+                        });
                     }
                 });
 
                 watchers.push(() => watcher.close());
 
                 // Recursively walk subdirectories
-                const files = require("node:fs").readdirSync(dir, { withFileTypes: true });
+                const files = readdirSync(dir, { withFileTypes: true });
                 for (const file of files) {
                     if (file.isDirectory()) {
                         watchRecursive(join(dir, file.name));
                     }
                 }
-            } catch (err: any) {
+            } catch (_err: unknown) {
                 // Ignore access errors for restricted dirs
             }
         };
@@ -203,13 +263,20 @@ export class WatcherService {
         try {
             watchRecursive(projectPath);
             this.watchers.set(projectPath, {
-                unsubscribe: () => watchers.forEach(un => un()),
+                unsubscribe: () => {
+                    for (const un of watchers) {
+                        un();
+                    }
+                },
                 ignore: ig,
-                useParcel: false
+                useParcel: false,
             });
-            console.log(`[Watcher] Watching (manual-recursive): ${projectPath}`);
-        } catch (err: any) {
-            console.error(`[Watcher] Failed manual watch for ${projectPath}:`, err.message);
+            logger.info("watching (manual-recursive)", { projectPath });
+        } catch (err: unknown) {
+            logger.error("failed manual watch", {
+                projectPath,
+                error: toErrorData(err),
+            });
         }
     }
 
@@ -219,9 +286,9 @@ export class WatcherService {
     removeProject(projectPath: string): void {
         const instance = this.watchers.get(projectPath);
         if (instance) {
-            instance.unsubscribe();
+            void instance.unsubscribe();
             this.watchers.delete(projectPath);
-            console.log(`[Watcher] Stopped watching: ${projectPath}`);
+            logger.info("stopped watching", { projectPath });
         }
     }
 
@@ -230,7 +297,7 @@ export class WatcherService {
      */
     stopAll(): void {
         for (const [, instance] of this.watchers) {
-            instance.unsubscribe();
+            void instance.unsubscribe();
         }
         this.watchers.clear();
         this.debounceTimers.clear();
@@ -243,7 +310,11 @@ export class WatcherService {
         return this.watchers.size;
     }
 
-    private handleRawEvent(projectPath: string, eventType: string | undefined, filename: string): void {
+    private handleRawEvent(
+        projectPath: string,
+        eventType: string | undefined,
+        filename: string,
+    ): void {
         const ig = this.watchers.get(projectPath)?.ignore;
         if (ig) {
             if (ig.ignores(filename)) return;
@@ -258,11 +329,15 @@ export class WatcherService {
             setTimeout(() => {
                 this.debounceTimers.delete(debounceKey);
                 this.emitEvent(projectPath, eventType, filename);
-            }, this.debounceMs)
+            }, this.debounceMs),
         );
     }
 
-    private emitEvent(projectPath: string, eventType: string | undefined, filename: string): void {
+    private emitEvent(
+        projectPath: string,
+        eventType: string | undefined,
+        filename: string,
+    ): void {
         let type: WatcherEvent["type"];
         const useParcel = this.watchers.get(projectPath)?.useParcel;
 
@@ -292,16 +367,16 @@ export class WatcherService {
             if (project) {
                 insertEvent(this.db, project.id, type, filename);
             }
-        } catch (err: any) {
-            console.error(`[Watcher] DB insert error:`, err.message);
+        } catch (err: unknown) {
+            logger.error("db insert error", { error: toErrorData(err) });
         }
 
         // Notify callbacks
         for (const cb of this.callbacks) {
             try {
                 cb(event);
-            } catch (err: any) {
-                console.error(`[Watcher] Callback error:`, err.message);
+            } catch (err: unknown) {
+                logger.error("callback error", { error: toErrorData(err) });
             }
         }
     }
@@ -320,7 +395,11 @@ export class WatcherService {
                     .map((line) => line.trim())
                     .filter((line) => line && !line.startsWith("#"));
                 ig.add(patterns);
-            } catch {
+            } catch (err: unknown) {
+                logger.warn("failed to read .gitignore", {
+                    gitignorePath,
+                    error: toErrorData(err),
+                });
             }
         }
 
