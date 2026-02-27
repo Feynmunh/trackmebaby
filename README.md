@@ -1,6 +1,6 @@
 # trackmebaby
 
-A background desktop app that watches your projects folder and keeps track of what you're working on. Ask AI questions about your work history.
+A background desktop app that watches your projects folder and keeps track of what you're working on. Ask AI questions about your work history
 
 ## Stack
 
