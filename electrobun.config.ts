@@ -19,6 +19,8 @@ export default {
             "src/bun/rpc",
             "src/bun/services",
             "src/bun/services/ai",
+            "src/bun/services/git-tracker",
+            "src/bun/services/github",
             "src/shared",
         ],
         // Vite builds to dist/, we copy from there
