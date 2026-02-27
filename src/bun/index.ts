@@ -182,8 +182,9 @@ async function startServices(): Promise<void> {
         console.log(
             "[trackmebaby] No base path configured. Open Settings to get started.",
         );
-        createWindow();
     }
+    // Always open the dashboard on startup
+    createWindow();
 }
 
 // --- Graceful Shutdown ---
