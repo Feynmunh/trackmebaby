@@ -37,6 +37,15 @@ export function useGitHubIntegration(
                     setGithubLoading(false);
                     return;
                 }
+
+                const authStatus = await getGitHubAuthStatus();
+                if (cancelled) return;
+                if (!authStatus.authenticated) {
+                    setIsGitHubAuthenticated(false);
+                    setGithubData(null);
+                    setGithubLoading(false);
+                    return;
+                }
             } catch (err: unknown) {
                 logger.warn("github data fetch failed", {
                     error: toErrorData(err),
