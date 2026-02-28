@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import TabBar from "./components/TabBar";
+import AITab from "./features/ai/AITab.tsx";
+import SettingsPanel from "./features/settings/SettingsPanel.tsx";
 import { getPlatform } from "./rpc";
-import AITab from "./tabs/AITab";
 import CardsTab from "./tabs/CardsTab";
-import SettingsPanel from "./tabs/SettingsPanel";
 
 type TabId = "cards" | "ai" | "settings";
 
