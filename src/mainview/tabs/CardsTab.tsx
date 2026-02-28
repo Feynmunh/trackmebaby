@@ -36,6 +36,7 @@ export default function CardsTab({
     const [selectingFolder, setSelectingFolder] = useState(false);
     const [basePathInput, setBasePathInput] = useState("");
     const [savingPath, setSavingPath] = useState(false);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         getPlatform().then(setPlatform);
@@ -101,6 +102,7 @@ export default function CardsTab({
             />
         );
     }
+    const normalizedSearch = search.trim().toLowerCase();
 
     return (
         <div className="relative h-full w-full overflow-hidden">
@@ -108,8 +110,26 @@ export default function CardsTab({
             <div
                 className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
+                <div className="max-w-6xl mx-auto mb-6">
+                    <label
+                        htmlFor="projects-search"
+                        className="text-[10px] font-bold text-mac-secondary uppercase tracking-[0.2em]"
+                    >
+                        Search Projects
+                    </label>
+                    <input
+                        id="projects-search"
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Filter by name"
+                        className="mt-2 w-full bg-mac-surface border border-mac-border rounded-xl px-4 py-2 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:ring-2 focus:ring-mac-accent/30"
+                    />
+                </div>
                 <ProjectsGrid
-                    projects={projects}
+                    projects={projects.filter((project) =>
+                        project.name.toLowerCase().includes(normalizedSearch),
+                    )}
                     gitSnapshots={gitSnapshots}
                     onOpenDashboard={openDashboard}
                 />
