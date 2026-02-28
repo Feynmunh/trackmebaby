@@ -106,7 +106,7 @@ export default function CardsTab({
         <div className="relative h-full w-full overflow-hidden">
             {/* Grid View */}
             <div
-                className={`h-full w-full p-8 transition-all duration-500 overflow-y-auto ${viewMode === "grid" ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute"}`}
+                className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
                 <ProjectsGrid
                     projects={projects}
