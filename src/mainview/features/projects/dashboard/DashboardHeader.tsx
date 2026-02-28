@@ -16,6 +16,7 @@ export default function DashboardHeader({
             <div className="flex items-center gap-6">
                 <button
                     onClick={onBack}
+                    aria-label="Back to projects"
                     className="w-10 h-10 rounded-xl bg-mac-surface shadow-mac flex items-center justify-center hover:bg-mac-surface/80 transition-all active:scale-95 group"
                 >
                     <svg

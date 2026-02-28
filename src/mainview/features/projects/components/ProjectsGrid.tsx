@@ -32,10 +32,12 @@ export default function ProjectsGrid({
                 {projects.map((project) => {
                     const snapshot = gitSnapshots[project.id];
                     return (
-                        <div
+                        <button
                             key={project.id}
+                            type="button"
                             onClick={() => onOpenDashboard(project.id)}
-                            className="bg-mac-surface rounded-2xl p-6 shadow-mac border border-mac-border hover:shadow-mac-md transition-all duration-200 cursor-pointer group active:scale-[0.98]"
+                            className="bg-mac-surface rounded-2xl p-6 shadow-mac border border-mac-border hover:shadow-mac-md transition-all duration-200 cursor-pointer group active:scale-[0.98] text-left"
+                            aria-label={`Open ${project.name} dashboard`}
                         >
                             <h3 className="text-lg font-semibold text-mac-text mb-4 group-hover:text-mac-accent transition-colors">
                                 {project.name}
@@ -72,7 +74,7 @@ export default function ProjectsGrid({
                                         : "Never active"}
                                 </span>
                             </div>
-                        </div>
+                        </button>
                     );
                 })}
             </div>

@@ -4,6 +4,10 @@ import {
     ELECTROBUN_STATIC_BUILD,
 } from "./electrobun.static.config.ts";
 
+type ElectrobunConfigWithWatch = ElectrobunConfig & {
+    build: ElectrobunConfig["build"] & { watch?: string[] };
+};
+
 export default {
     app: {
         name: "trackmebaby",
@@ -32,4 +36,4 @@ export default {
         },
         ...ELECTROBUN_STATIC_BUILD,
     },
-} as ElectrobunConfig;
+} satisfies ElectrobunConfigWithWatch;

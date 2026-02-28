@@ -19,6 +19,8 @@ export default function ProjectsEmptyState({
     selectingFolder,
     onSelectFolder,
 }: ProjectsEmptyStateProps) {
+    const basePathInputId = "projects-base-path-input";
+
     return (
         <div className="flex flex-col items-center justify-center h-full text-center px-8">
             <div className="bg-mac-surface rounded-2xl p-12 shadow-mac-md flex flex-col items-center max-w-md">
@@ -37,7 +39,11 @@ export default function ProjectsEmptyState({
                 </p>
                 {isLinux ? (
                     <div className="flex flex-col gap-2 w-full max-w-xs">
+                        <label htmlFor={basePathInputId} className="sr-only">
+                            Projects folder path
+                        </label>
                         <input
+                            id={basePathInputId}
                             type="text"
                             value={basePathInput}
                             onChange={(e) => onBasePathChange(e.target.value)}
