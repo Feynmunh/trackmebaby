@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { timeAgo } from "../../../shared/time.ts";
 import type {
     ActivityEvent,
@@ -35,6 +35,41 @@ interface OverviewPageProps {
     onRefreshStats?: () => void;
 }
 
+const getLocalDateKey = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+};
+
+const scoreFuzzyMatch = (query: string, text: string): number | null => {
+    if (!query) {
+        return 0;
+    }
+
+    let score = 0;
+    let queryIndex = 0;
+    let textIndex = 0;
+    let consecutive = 0;
+
+    while (queryIndex < query.length && textIndex < text.length) {
+        if (query[queryIndex] === text[textIndex]) {
+            score += 10 + consecutive * 5;
+            consecutive += 1;
+            queryIndex += 1;
+        } else {
+            consecutive = 0;
+        }
+        textIndex += 1;
+    }
+
+    if (queryIndex < query.length) {
+        return null;
+    }
+
+    return score - (text.length - query.length);
+};
+
 export default function OverviewPage({
     project,
     gitSnapshot,
@@ -63,13 +98,6 @@ export default function OverviewPage({
         return () => clearInterval(timer);
     }, []);
 
-    const getLocalDateKey = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        return `${year}-${month}-${day}`;
-    };
-
     const summaryMap = new Map<string, number>();
     if (activitySummary) {
         for (const entry of activitySummary) {
@@ -78,36 +106,155 @@ export default function OverviewPage({
     }
     const branchList = projectStats?.branches ?? [];
 
-    if (isWidget) {
-        const dailyCounts: ActivityChartItem[] = Array.from(
-            { length: 7 },
-            (_, i) => {
-                const date = new Date();
-                date.setDate(date.getDate() - i);
-                const dayKey = getLocalDateKey(date);
-                const count = activitySummary
-                    ? (summaryMap.get(dayKey) ?? 0)
-                    : events.filter(
-                          (e) =>
-                              new Date(e.timestamp).toDateString() ===
-                              date.toDateString(),
-                      ).length;
-                return { day: date.toDateString().slice(0, 3), count };
-            },
-        ).reverse();
-        const maxCount = Math.max(...dailyCounts.map((d) => d.count), 1);
-        const vitality = getVitalityStatus(project, eventCount, gitSnapshot);
+    const dailyCounts: ActivityChartItem[] = Array.from(
+        { length: 7 },
+        (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dayKey = getLocalDateKey(date);
+            const count = activitySummary
+                ? (summaryMap.get(dayKey) ?? 0)
+                : events.filter(
+                      (event) =>
+                          new Date(event.timestamp).toDateString() ===
+                          date.toDateString(),
+                  ).length;
+            return { day: date.toDateString().slice(0, 3), count };
+        },
+    ).reverse();
 
+    const maxCount = Math.max(...dailyCounts.map((d) => d.count), 1);
+    const vitality = getVitalityStatus(project, eventCount, gitSnapshot);
+
+    const heartbeatCounts: ActivityChartItem[] = Array.from(
+        { length: 7 },
+        (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            const dateStr = date.toDateString();
+            const dayEvents = events.filter(
+                (event) => new Date(event.timestamp).toDateString() === dateStr,
+            );
+            const count = dayEvents.length;
+            return { day: dateStr.split(" ")[0], count };
+        },
+    ).reverse();
+
+    const heartbeatMax = Math.max(
+        ...heartbeatCounts.map((entry) => entry.count),
+        1,
+    );
+
+    const [vitalityQuery, setVitalityQuery] = useState("");
+    const vitalitySearch = vitalityQuery.trim().toLowerCase();
+
+    const vitalityBars = useMemo(() => {
+        const bv = projectStats?.branchCount ?? 0;
+        const cv = projectStats?.totalCommits ?? 0;
+        const iv = githubData?.openIssues ?? 0;
+        const pv = githubData?.openPRs ?? 0;
+
+        const items = [
+            {
+                key: "branches",
+                label: "Branches",
+                value: bv,
+                displayVal: statsLoading ? null : String(bv || "-"),
+                loading: statsLoading,
+                onClick: () => setShowingBranches(!showingBranches),
+                stripe: "rgba(229,81,14,0.9)",
+                needsAuth: false,
+            },
+            {
+                key: "commits",
+                label: "Commits",
+                value: cv,
+                displayVal: statsLoading ? null : String(cv || "-"),
+                loading: statsLoading,
+                onClick: onCommitsClick,
+                stripe: "rgba(229,81,14,0.55)",
+                needsAuth: false,
+            },
+            {
+                key: "issues",
+                label: "Issues",
+                value: iv,
+                displayVal: githubLoading
+                    ? null
+                    : !isGitHubAuthenticated
+                      ? "—"
+                      : String(iv || "-"),
+                loading: githubLoading,
+                onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
+                stripe: "rgba(160,160,160,0.6)",
+                needsAuth: !isGitHubAuthenticated,
+            },
+            {
+                key: "prs",
+                label: "Pull Req.",
+                value: pv,
+                displayVal: githubLoading
+                    ? null
+                    : !isGitHubAuthenticated
+                      ? "—"
+                      : String(pv || "-"),
+                loading: githubLoading,
+                onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
+                stripe: "rgba(120,120,120,0.4)",
+                needsAuth: !isGitHubAuthenticated,
+            },
+        ];
+
+        if (!vitalitySearch) {
+            return items;
+        }
+
+        return items
+            .map((item) => {
+                const score = scoreFuzzyMatch(
+                    vitalitySearch,
+                    item.label.toLowerCase(),
+                );
+                if (score === null) {
+                    return null;
+                }
+                return { item, score };
+            })
+            .filter(
+                (
+                    entry,
+                ): entry is {
+                    item: (typeof items)[number];
+                    score: number;
+                } => Boolean(entry),
+            )
+            .sort((a, b) => b.score - a.score)
+            .map((entry) => entry.item);
+    }, [
+        githubData?.openIssues,
+        githubData?.openPRs,
+        githubLoading,
+        isGitHubAuthenticated,
+        onCommitsClick,
+        onGitHubClick,
+        onGitHubSignIn,
+        projectStats?.branchCount,
+        projectStats?.totalCommits,
+        showingBranches,
+        statsLoading,
+        vitalitySearch,
+    ]);
+
+    if (isWidget) {
         return (
-            <div className="space-y-6">
-                <div className="flex items-center justify-between mb-2">
-                    <h2 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em]">
+            <div className="space-y-5">
+                <div className="flex items-start justify-between gap-2">
+                    <h2 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em] shrink-0">
                         Project Vitality
                     </h2>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-end">
                         {statsLastUpdated && (
                             <span className="text-[10px] text-mac-secondary uppercase tracking-widest">
-                                Updated{" "}
                                 {timeAgo(statsLastUpdated, {
                                     emptyLabel: "never",
                                     justNowLabel: "just now",
@@ -131,179 +278,112 @@ export default function OverviewPage({
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-                    <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <StatCard
-                            title="Branches"
-                            value={projectStats?.branchCount ?? "-"}
-                            icon={
-                                <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 16 16"
-                                        fill="currentColor"
-                                        className="w-3.5 h-3.5 text-orange-500"
+                <div className="bg-transparent rounded-xl border border-mac-border p-4 relative overflow-visible">
+                    <div className="space-y-3">
+                        {vitalityBars.map((row) => {
+                            const pct =
+                                maxCount > 0 ? (row.value / maxCount) * 100 : 0;
+                            return (
+                                <div
+                                    key={row.key}
+                                    className="flex items-center gap-3"
+                                >
+                                    <button
+                                        onClick={row.onClick}
+                                        className="w-[68px] text-right text-[10px] font-semibold uppercase tracking-widest text-mac-secondary hover:text-orange-400 active:text-orange-500 transition-colors shrink-0 leading-none"
                                     >
-                                        <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
-                                    </svg>
-                                </div>
-                            }
-                            onClick={() => {
-                                setShowingBranches(!showingBranches);
-                            }}
-                            loading={statsLoading}
-                            loadingIndicator={
-                                <div className="w-3.5 h-3.5 border-2 border-mac-border border-t-orange-500 rounded-full animate-spin" />
-                            }
-                            authPromptLabel="Branches"
-                            className={`relative bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors ${showingBranches ? "z-[60]" : "z-0"}`}
-                            iconWrapperClassName="mb-3"
-                            valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
-                            titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
-                        >
-                            {showingBranches && branchList.length > 0 && (
-                                <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-mac-surface border border-mac-border rounded-xl p-4">
-                                    <h4 className="text-[10px] text-mac-secondary uppercase tracking-widest mb-3 pb-2 border-b border-mac-border">
-                                        All Branches
-                                    </h4>
-                                    <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
-                                        {branchList.map((branch: string) => (
-                                            <div
-                                                key={branch}
-                                                className="flex items-center gap-2 text-[12px] text-mac-text py-1 px-2 rounded hover:bg-mac-hover"
-                                            >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 16 16"
-                                                    fill="currentColor"
-                                                    className="w-3 h-3 text-mac-secondary"
-                                                >
-                                                    <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
-                                                </svg>
-                                                <span className="truncate">
-                                                    {branch}
+                                        {row.label}
+                                    </button>
+                                    <div className="flex-1 h-[13px] rounded-sm overflow-hidden bg-mac-hover">
+                                        {row.loading ? (
+                                            <div className="h-full w-1/3 bg-mac-border/40 rounded animate-pulse" />
+                                        ) : row.needsAuth ? (
+                                            <div className="h-full flex items-center px-2">
+                                                <span className="text-[9px] text-mac-secondary/40 italic">
+                                                    sign in
                                                 </span>
                                             </div>
-                                        ))}
+                                        ) : (
+                                            <div
+                                                className="h-full rounded-sm"
+                                                style={{
+                                                    width: `${Math.max(pct, row.value > 0 ? 2 : 0)}%`,
+                                                    background: `repeating-linear-gradient(90deg, ${row.stripe} 0px, ${row.stripe} 4px, transparent 4px, transparent 7px)`,
+                                                    transition:
+                                                        "width 0.6s ease",
+                                                }}
+                                            />
+                                        )}
                                     </div>
+                                    <span className="text-[11px] font-bold text-mac-text w-6 text-right shrink-0 tabular-nums">
+                                        {row.loading ? (
+                                            <span className="text-mac-secondary/50 animate-pulse">
+                                                ·
+                                            </span>
+                                        ) : (
+                                            row.displayVal
+                                        )}
+                                    </span>
                                 </div>
-                            )}
-                        </StatCard>
-
-                        <StatCard
-                            title="Commits"
-                            value={projectStats?.totalCommits ?? "-"}
-                            icon={
-                                <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        viewBox="0 0 16 16"
-                                        fill="currentColor"
-                                        className="w-3.5 h-3.5 text-orange-500"
-                                    >
-                                        <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
-                                    </svg>
-                                </div>
-                            }
-                            onClick={onCommitsClick}
-                            loading={statsLoading}
-                            loadingIndicator={
-                                <div className="w-3.5 h-3.5 border-2 border-mac-border border-t-orange-500 rounded-full animate-spin" />
-                            }
-                            authPromptLabel="Commits"
-                            className="bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors"
-                            iconWrapperClassName="mb-3"
-                            valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
-                            titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
-                        />
-
-                        <StatCard
-                            title="Issues"
-                            value={githubData?.openIssues ?? "-"}
-                            icon={
-                                <div className="w-7 h-7 rounded-lg bg-mac-surface flex items-center justify-center">
-                                    <IssueIcon className="w-3.5 h-3.5 text-mac-secondary" />
-                                </div>
-                            }
-                            onClick={
-                                isGitHubAuthenticated
-                                    ? onGitHubClick
-                                    : onGitHubSignIn
-                            }
-                            loading={githubLoading}
-                            loadingIndicator={
-                                <div className="w-3.5 h-3.5 border-2 border-mac-border border-t-orange-500 rounded-full animate-spin" />
-                            }
-                            showAuthPrompt={!isGitHubAuthenticated}
-                            authPromptLabel="Issues"
-                            onAuthClick={onGitHubSignIn}
-                            authLoading={githubLoading}
-                            className="bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors"
-                            iconWrapperClassName="mb-3"
-                            valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
-                            titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
-                            authValueClassName="text-xl mb-0.5"
-                            authLabelClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
-                        />
-
-                        <StatCard
-                            title="Pull Requests"
-                            value={githubData?.openPRs ?? "-"}
-                            icon={
-                                <div className="w-7 h-7 rounded-lg bg-mac-surface flex items-center justify-center">
-                                    <PullRequestIcon className="w-3.5 h-3.5 text-mac-secondary" />
-                                </div>
-                            }
-                            onClick={
-                                isGitHubAuthenticated
-                                    ? onGitHubClick
-                                    : onGitHubSignIn
-                            }
-                            loading={githubLoading}
-                            loadingIndicator={
-                                <div className="w-3.5 h-3.5 border-2 border-mac-border border-t-orange-500 rounded-full animate-spin" />
-                            }
-                            showAuthPrompt={!isGitHubAuthenticated}
-                            authPromptLabel="Pull Requests"
-                            onAuthClick={onGitHubSignIn}
-                            authLoading={githubLoading}
-                            className="bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors"
-                            iconWrapperClassName="mb-3"
-                            valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
-                            titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
-                            authValueClassName="text-xl mb-0.5"
-                            authLabelClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
-                        />
+                            );
+                        })}
                     </div>
 
-                    <ActivityChart
-                        dailyCounts={dailyCounts}
-                        eventCount={eventCount}
-                        maxCount={maxCount}
-                        variant="pulse"
-                    />
+                    <div
+                        className="flex justify-between mt-3 pt-2 border-t border-mac-border/20"
+                        style={{ paddingLeft: "80px", paddingRight: "36px" }}
+                    >
+                        {dailyCounts.map((t) => (
+                            <span
+                                key={t.day}
+                                className="text-[9px] text-mac-secondary/40 tabular-nums"
+                            >
+                                {t.day}
+                            </span>
+                        ))}
+                    </div>
+
+                    {showingBranches && branchList.length > 0 && (
+                        <div
+                            className="absolute left-0 right-0 z-50 bg-mac-surface border border-mac-border rounded-xl p-4 shadow-mac"
+                            style={{ top: "calc(100% + 8px)" }}
+                        >
+                            <h4 className="text-[10px] text-mac-secondary uppercase tracking-widest mb-3 pb-2 border-b border-mac-border">
+                                All Branches
+                            </h4>
+                            <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
+                                {branchList.map((branch: string) => (
+                                    <div
+                                        key={branch}
+                                        className="flex items-center gap-2 text-[12px] text-mac-text py-1 px-2 rounded hover:bg-mac-hover"
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 16 16"
+                                            fill="currentColor"
+                                            className="w-3 h-3 text-mac-secondary shrink-0"
+                                        >
+                                            <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
+                                        </svg>
+                                        <span className="truncate">
+                                            {branch}
+                                        </span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
+
+                <ActivityChart
+                    dailyCounts={dailyCounts}
+                    eventCount={eventCount}
+                    maxCount={maxCount}
+                    variant="pulse"
+                />
             </div>
         );
     }
-
-    const heartbeatCounts: ActivityChartItem[] = Array.from(
-        { length: 7 },
-        (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
-            const dateStr = date.toDateString();
-            const dayEvents = events.filter(
-                (event) => new Date(event.timestamp).toDateString() === dateStr,
-            );
-            const count = dayEvents.length;
-            return { day: dateStr.split(" ")[0], count };
-        },
-    ).reverse();
-    const heartbeatMax = Math.max(
-        ...heartbeatCounts.map((entry) => entry.count),
-        1,
-    );
 
     return (
         <div className="flex flex-col h-full px-24 py-12 select-none">
@@ -383,7 +463,6 @@ export default function OverviewPage({
                     <div className="text-xs font-bold text-mac-secondary uppercase tracking-widest">
                         Active Branches
                     </div>
-
                     {showingBranches && branchList.length > 0 && (
                         <div className="absolute top-full left-0 right-0 mt-4 z-50 bg-mac-surface border border-mac-border rounded-2xl shadow-mac-lg p-6 animate-in fade-in slide-in-from-top-2 duration-200">
                             <h4 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-4 pb-3 border-b border-mac-border/50">
