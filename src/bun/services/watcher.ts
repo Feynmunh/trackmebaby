@@ -112,6 +112,10 @@ export class WatcherService {
      */
     async addProject(projectPath: string): Promise<void> {
         if (this.watchers.has(projectPath)) return;
+        if (!existsSync(projectPath)) {
+            logger.warn("project path missing", { projectPath });
+            return;
+        }
 
         const ig = this.buildIgnoreFilter(projectPath);
 

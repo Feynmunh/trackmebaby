@@ -59,4 +59,10 @@ describe("WatcherService", () => {
         watcher.removeProject("/nonexistent");
         expect(watcher.activeCount).toBe(0);
     });
+
+    test("addProject does not throw for missing path", async () => {
+        const missingPath = "/tmp/trackmebaby-watcher-missing";
+        await watcher.addProject(missingPath);
+        expect(watcher.activeCount).toBe(0);
+    });
 });

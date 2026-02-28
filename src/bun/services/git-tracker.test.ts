@@ -152,4 +152,31 @@ describe("GitTrackerService", () => {
         const status = await tracker.getSnapshot(TEST_DIR);
         expect(status!.branch).toBe("feature-test");
     }, 10000);
+
+    test("getProjectStats returns null for non-git directory", async () => {
+        const stats = await tracker.getProjectStats(TEST_DIR);
+        expect(stats).toBeNull();
+    });
+
+    test("getProjectStats returns branch data", async () => {
+        const ok = await initGitRepo(TEST_DIR, "stats-test");
+        if (!ok) {
+            logger.warn("skipping test: git init failed");
+            return;
+        }
+
+        writeFileSync(join(TEST_DIR, "a.ts"), "const a = 1;");
+        Bun.spawnSync(["git", "-C", TEST_DIR, "add", "."]);
+        const committed = await gitCommit(TEST_DIR, "initial");
+        if (!committed) {
+            logger.warn("skipping test: git commit failed");
+            return;
+        }
+
+        const stats = await tracker.getProjectStats(TEST_DIR);
+        expect(stats).toBeTruthy();
+        expect(stats!.branchCount).toBeGreaterThanOrEqual(1);
+        expect(stats!.branches.length).toBeGreaterThanOrEqual(1);
+        expect(Array.isArray(stats!.contributors)).toBe(true);
+    }, 15000);
 });
