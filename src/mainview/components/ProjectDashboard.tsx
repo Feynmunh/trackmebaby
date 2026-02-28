@@ -122,12 +122,12 @@ export default function ProjectDashboard({
             )}
 
             {/* Main Unified Content */}
-            <main className="flex-1 overflow-y-auto custom-scrollbar p-10">
-                <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+            <main className="flex-1 overflow-y-auto custom-scrollbar p-6 lg:p-8 xl:p-10">
+                <div className="max-w-[1600px] mx-auto grid grid-cols-1 xl:grid-cols-12 gap-6 xl:gap-8">
                     {/* Left Column: Core Stats & Repo History (Span 8) */}
-                    <div className="lg:col-span-8 order-2 lg:order-1 space-y-12">
+                    <div className="xl:col-span-8 order-2 xl:order-1 space-y-10">
                         {/* Git History Timeline */}
-                        <section ref={timelineRef} className="scroll-mt-12">
+                        <section ref={timelineRef} className="scroll-mt-10">
                             <GitPage
                                 gitSnapshot={gitSnapshot}
                                 projectStats={projectStats}
@@ -149,7 +149,7 @@ export default function ProjectDashboard({
                         </section>
 
                         {/* Remote Environment */}
-                        <section ref={githubRef} className="scroll-mt-12">
+                        <section ref={githubRef} className="scroll-mt-10">
                             <GitHubPage
                                 githubData={githubData}
                                 githubLoading={githubLoading}
@@ -161,7 +161,7 @@ export default function ProjectDashboard({
                     </div>
 
                     {/* Right Column: Insights & Surroundings (Span 4) */}
-                    <div className="lg:col-span-4 order-1 lg:order-2 space-y-12">
+                    <div className="xl:col-span-4 order-1 xl:order-2 space-y-10">
                         {/* Project Vitality (Overview) */}
                         <section>
                             <OverviewPage
