@@ -1,5 +1,5 @@
 import { Folder, FolderOpen, GitBranch, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import ProjectDashboard from "../components/ProjectDashboard";
 import { useProjectData } from "../hooks/useProjectData.ts";
 import {
@@ -36,6 +36,83 @@ export default function CardsTab({
     const [basePathInput, setBasePathInput] = useState("");
     const [savingPath, setSavingPath] = useState(false);
     const [search, setSearch] = useState("");
+
+    const trimmedSearch = search.trim();
+    const normalizedSearch = trimmedSearch.toLowerCase();
+
+    const scoreFuzzyMatch = (query: string, text: string): number | null => {
+        if (!query) {
+            return 0;
+        }
+
+        let score = 0;
+        let queryIndex = 0;
+        let textIndex = 0;
+        let consecutive = 0;
+
+        while (queryIndex < query.length && textIndex < text.length) {
+            if (query[queryIndex] === text[textIndex]) {
+                score += 10 + consecutive * 5;
+                consecutive += 1;
+                queryIndex += 1;
+            } else {
+                consecutive = 0;
+            }
+            textIndex += 1;
+        }
+
+        if (queryIndex < query.length) {
+            return null;
+        }
+
+        return score - (text.length - query.length);
+    };
+
+    const filteredProjects = useMemo(() => {
+        if (!normalizedSearch) {
+            return projects;
+        }
+
+        const scored = projects
+            .map((project) => {
+                const nameScore = scoreFuzzyMatch(
+                    normalizedSearch,
+                    project.name.toLowerCase(),
+                );
+                const pathScore = scoreFuzzyMatch(
+                    normalizedSearch,
+                    project.path.toLowerCase(),
+                );
+                const score = Math.max(
+                    nameScore ?? Number.NEGATIVE_INFINITY,
+                    pathScore ?? Number.NEGATIVE_INFINITY,
+                );
+
+                if (score === Number.NEGATIVE_INFINITY) {
+                    return null;
+                }
+
+                return { project, score };
+            })
+            .filter(
+                (
+                    entry,
+                ): entry is {
+                    project: (typeof projects)[number];
+                    score: number;
+                } => Boolean(entry),
+            );
+
+        scored.sort((a, b) => {
+            if (b.score !== a.score) {
+                return b.score - a.score;
+            }
+
+            return a.project.name.localeCompare(b.project.name);
+        });
+
+        return scored.map((entry) => entry.project);
+    }, [normalizedSearch, projects]);
 
     useEffect(() => {
         getPlatform().then(setPlatform);
@@ -192,9 +269,11 @@ export default function CardsTab({
                     </header>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())).map((project) => {
+                        {filteredProjects.map((project) => {
                             const snapshot = gitSnapshots[project.id];
-                            const isSynced = snapshot ? snapshot.uncommittedCount === 0 : false;
+                            const isSynced = snapshot
+                                ? snapshot.uncommittedCount === 0
+                                : false;
                             return (
                                 <div
                                     key={project.id}
