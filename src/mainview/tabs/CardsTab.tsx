@@ -1,4 +1,4 @@
-import { Folder, FolderOpen, GitBranch } from "lucide-react";
+import { Folder, FolderOpen, GitBranch, Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import ProjectDashboard from "../components/ProjectDashboard";
 import { useProjectData } from "../hooks/useProjectData.ts";
@@ -9,12 +9,6 @@ import {
     selectFolder,
     updateSettings,
 } from "../rpc";
-
-function shortenPath(fullPath: string): string {
-    const parts = fullPath.replace(/\\/g, "/").split("/").filter(Boolean);
-    if (parts.length <= 2) return fullPath;
-    return "../" + parts.slice(-2).join("/");
-}
 
 export default function CardsTab({
     onNavigateToSettings,
@@ -41,6 +35,7 @@ export default function CardsTab({
     const [selectingFolder, setSelectingFolder] = useState(false);
     const [basePathInput, setBasePathInput] = useState("");
     const [savingPath, setSavingPath] = useState(false);
+    const [search, setSearch] = useState("");
 
     useEffect(() => {
         getPlatform().then(setPlatform);
@@ -175,22 +170,29 @@ export default function CardsTab({
                 className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
                 <div className="max-w-5xl mx-auto">
-                    <header className="mb-10 flex items-start justify-between">
-                        <div>
+                    <header className="mb-8">
+                        <div className="flex items-start justify-between mb-4">
                             <h1 className="text-[32px] font-bold text-white leading-tight">
                                 Projects
                             </h1>
-                            <p className="text-[13px] text-[#555] mt-1">
-                                Select a project for details
-                            </p>
+                            <div className="text-[11px] font-semibold text-[#555] bg-transparent px-3 py-1.5 rounded-full border border-[#1f1f1f] tracking-wide mt-2">
+                                {projects.length} PROJECTS
+                            </div>
                         </div>
-                        <div className="text-[11px] font-semibold text-[#555] bg-transparent px-3 py-1.5 rounded-full border border-[#1f1f1f] tracking-wide mt-1">
-                            {projects.length} PROJECTS
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#444] pointer-events-none" />
+                            <input
+                                type="text"
+                                value={search}
+                                onChange={(e) => setSearch(e.target.value)}
+                                placeholder="Search projects..."
+                                className="w-full bg-transparent border border-[#1f1f1f] rounded-lg pl-8 pr-4 py-2 text-[13px] text-[#aaa] placeholder-[#3a3a3a] focus:outline-none focus:border-[#2e2e2e]"
+                            />
                         </div>
                     </header>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                        {projects.map((project) => {
+                        {projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase())).map((project) => {
                             const snapshot = gitSnapshots[project.id];
                             const isSynced = snapshot ? snapshot.uncommittedCount === 0 : false;
                             return (
@@ -207,16 +209,7 @@ export default function CardsTab({
                                                 <h3 className="text-[17px] font-semibold text-white leading-tight">
                                                     {project.name}
                                                 </h3>
-                                                <p className="text-[12px] text-[#4a4a4a] mt-0.5">
-                                                    {shortenPath(project.path)}
-                                                </p>
                                             </div>
-                                        </div>
-                                        <div className="flex items-center gap-1.5 shrink-0 ml-3 mt-0.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500/50" />
-                                            <span className="text-[11px] font-medium text-orange-500/50 tracking-wide">
-                                                ACTIVE
-                                            </span>
                                         </div>
                                     </div>
 
