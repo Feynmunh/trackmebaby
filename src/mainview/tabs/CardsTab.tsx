@@ -129,6 +129,7 @@ export default function CardsTab({
             const selected = await selectFolder(settings.basePath || undefined);
             if (selected) {
                 await scanProjects(selected);
+                // Small delay to allow the DB write from scanProjects to flush before reload
                 await new Promise((resolve) => setTimeout(resolve, 100));
                 window.location.reload();
             }
@@ -143,6 +144,7 @@ export default function CardsTab({
         try {
             await updateSettings({ basePath: basePathInput.trim() });
             await scanProjects(basePathInput.trim());
+            // Small delay to allow the DB write from scanProjects to flush before reload
             await new Promise((resolve) => setTimeout(resolve, 100));
             window.location.reload();
         } catch (err) {
@@ -205,7 +207,8 @@ export default function CardsTab({
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Filter by name"
+                            placeholder="Filter by name or path"
+                            aria-label="Filter projects by name or path"
                             className="w-full bg-mac-surface border border-mac-border rounded-xl pl-8 pr-4 py-2 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:ring-2 focus:ring-mac-accent/30"
                         />
                     </div>

@@ -35,34 +35,6 @@ interface OverviewPageProps {
     onRefreshStats?: () => void;
 }
 
-const scoreFuzzyMatch = (query: string, text: string): number | null => {
-    if (!query) {
-        return 0;
-    }
-
-    let score = 0;
-    let queryIndex = 0;
-    let textIndex = 0;
-    let consecutive = 0;
-
-    while (queryIndex < query.length && textIndex < text.length) {
-        if (query[queryIndex] === text[textIndex]) {
-            score += 10 + consecutive * 5;
-            consecutive += 1;
-            queryIndex += 1;
-        } else {
-            consecutive = 0;
-        }
-        textIndex += 1;
-    }
-
-    if (queryIndex < query.length) {
-        return null;
-    }
-
-    return score - (text.length - query.length);
-};
-
 export default function OverviewPage({
     project,
     gitSnapshot,
@@ -93,26 +65,36 @@ export default function OverviewPage({
     const branchList = projectStats?.branches ?? [];
     const vitality = getVitalityStatus(project, eventCount, gitSnapshot);
 
-    const heartbeatCounts: ActivityChartItem[] = Array.from(
-        { length: 7 },
-        (_, i) => {
-            const date = new Date();
-            date.setDate(date.getDate() - i);
+    const heartbeatCounts: ActivityChartItem[] = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const cutoff = new Date(today);
+        cutoff.setDate(cutoff.getDate() - 6);
+
+        const dateCounts = new Map<string, number>();
+        for (const event of events) {
+            const d = new Date(event.timestamp);
+            d.setHours(0, 0, 0, 0);
+            if (d < cutoff || d > today) continue;
+            const key = d.toDateString();
+            dateCounts.set(key, (dateCounts.get(key) ?? 0) + 1);
+        }
+
+        return Array.from({ length: 7 }, (_, i) => {
+            const date = new Date(today);
+            date.setDate(today.getDate() - i);
             const dateStr = date.toDateString();
-            const dayEvents = events.filter(
-                (event) => new Date(event.timestamp).toDateString() === dateStr,
-            );
-            const count = dayEvents.length;
-            return { day: dateStr.split(" ")[0], count };
-        },
-    ).reverse();
+            return {
+                day: dateStr.split(" ")[0],
+                count: dateCounts.get(dateStr) ?? 0,
+            };
+        }).reverse();
+    }, [events]);
 
     const heartbeatMax = Math.max(
         ...heartbeatCounts.map((entry) => entry.count),
         1,
     );
-
-    const vitalitySearch = "";
 
     const vitalityBars = useMemo(() => {
         const bv = projectStats?.branchCount ?? 0;
@@ -120,7 +102,7 @@ export default function OverviewPage({
         const iv = githubData?.openIssues ?? 0;
         const pv = githubData?.openPRs ?? 0;
 
-        const items = [
+        return [
             {
                 key: "branches",
                 label: "Branches",
@@ -170,32 +152,6 @@ export default function OverviewPage({
                 needsAuth: !isGitHubAuthenticated,
             },
         ];
-
-        if (!vitalitySearch) {
-            return items;
-        }
-
-        return items
-            .map((item) => {
-                const score = scoreFuzzyMatch(
-                    vitalitySearch,
-                    item.label.toLowerCase(),
-                );
-                if (score === null) {
-                    return null;
-                }
-                return { item, score };
-            })
-            .filter(
-                (
-                    entry,
-                ): entry is {
-                    item: (typeof items)[number];
-                    score: number;
-                } => Boolean(entry),
-            )
-            .sort((a, b) => b.score - a.score)
-            .map((entry) => entry.item);
     }, [
         githubData?.openIssues,
         githubData?.openPRs,
@@ -208,7 +164,6 @@ export default function OverviewPage({
         projectStats?.totalCommits,
         showingBranches,
         statsLoading,
-        vitalitySearch,
     ]);
 
     const barMax = Math.max(...vitalityBars.map((r) => r.value), 1);
