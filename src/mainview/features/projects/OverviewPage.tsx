@@ -145,8 +145,7 @@ export default function OverviewPage({
         1,
     );
 
-    const [vitalityQuery, setVitalityQuery] = useState("");
-    const vitalitySearch = vitalityQuery.trim().toLowerCase();
+    const vitalitySearch = "";
 
     const vitalityBars = useMemo(() => {
         const bv = projectStats?.branchCount ?? 0;
