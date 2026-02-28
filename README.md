@@ -75,6 +75,13 @@ bun run dev:hmr
 bun run build:prod
 ```
 
+## PR Checklist (Contract Changes)
+
+If you modify `src/shared/types.ts` or `src/shared/rpc-types.ts`:
+- [ ] Note the contract change in the PR summary
+- [ ] Update backend handlers and frontend usage in the same PR
+- [ ] Verify tests and build
+
 ## Configuration
 
 Set your projects folder in Settings, or via environment variable:
