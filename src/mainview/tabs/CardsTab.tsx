@@ -186,17 +186,12 @@ export default function CardsTab({
             <div
                 className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
-                <div className="max-w-6xl mx-auto mb-6">
+                <div className="max-w-6xl mx-auto mb-5">
                     <div className="flex items-center justify-between mb-3">
-                        <div>
-                            <h1 className="text-3xl font-bold text-mac-text">
-                                Projects
-                            </h1>
-                            <p className="text-mac-secondary text-sm mt-1">
-                                Select a project for details
-                            </p>
-                        </div>
-                        <div className="text-xs font-medium text-mac-secondary bg-mac-surface px-3 py-1.5 rounded-full shadow-mac-sm">
+                        <h1 className="text-[32px] font-bold text-mac-text leading-tight">
+                            Projects
+                        </h1>
+                        <div className="text-xs font-medium text-mac-secondary border border-mac-border bg-transparent px-3 py-1.5 rounded-full">
                             {filteredProjects.length} PROJECTS
                         </div>
                     </div>
@@ -207,9 +202,9 @@ export default function CardsTab({
                             type="text"
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Filter by name or path"
-                            aria-label="Filter projects by name or path"
-                            className="w-full bg-mac-surface border border-mac-border rounded-xl pl-8 pr-4 py-2 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:ring-2 focus:ring-mac-accent/30"
+                            placeholder="Search projects..."
+                            aria-label="Search projects"
+                            className="w-full bg-mac-surface border border-mac-border rounded-xl pl-8 pr-4 py-2.5 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:ring-2 focus:ring-mac-accent/30"
                         />
                     </div>
                 </div>
