@@ -213,8 +213,8 @@ export default function CardsTab({
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1.5 shrink-0 ml-3 mt-0.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
-                                            <span className="text-[11px] font-medium text-green-400 tracking-wide">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                                            <span className="text-[11px] font-medium text-orange-400 tracking-wide">
                                                 ACTIVE
                                             </span>
                                         </div>
@@ -232,7 +232,7 @@ export default function CardsTab({
                                             <span
                                                 className={`text-[11px] font-semibold px-2.5 py-0.5 rounded ${
                                                     isSynced
-                                                        ? "bg-[#15803d] text-white"
+                                                        ? "bg-orange-600 text-white"
                                                         : "bg-[#854d0e] text-white"
                                                 }`}
                                             >
