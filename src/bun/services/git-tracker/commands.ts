@@ -1,9 +1,8 @@
 import { runGit, runGitLines } from "../git-command.ts";
-import type { Contributor, DiffSummary, ParsedCommit } from "./parsers.ts";
+import type { DiffSummary, ParsedCommit } from "./parsers.ts";
 import {
     COMMIT_MARKER,
     parseBranches,
-    parseContributors,
     parseDiffStat,
     parseGitLog,
 } from "./parsers.ts";
@@ -39,15 +38,4 @@ export async function getBranches(projectPath: string): Promise<string[]> {
         timeoutMs: 5000,
     });
     return parseBranches(lines.join("\n"));
-}
-
-export async function getContributors(
-    projectPath: string,
-): Promise<Contributor[]> {
-    const lines = await runGitLines(["shortlog", "-sn", "--no-merges"], {
-        projectPath,
-        label: "GitTracker",
-        timeoutMs: 8000,
-    });
-    return parseContributors(lines.join("\n")).slice(0, 3);
 }

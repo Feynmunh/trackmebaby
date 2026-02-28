@@ -185,13 +185,20 @@ export default function CardsTab({
                 className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
                 <div className="max-w-6xl mx-auto mb-6">
-                    <label
-                        htmlFor="projects-search"
-                        className="text-[10px] font-bold text-mac-secondary uppercase tracking-[0.2em]"
-                    >
-                        Search Projects
-                    </label>
-                    <div className="relative mt-2">
+                    <div className="flex items-center justify-between mb-3">
+                        <div>
+                            <h1 className="text-3xl font-bold text-mac-text">
+                                Projects
+                            </h1>
+                            <p className="text-mac-secondary text-sm mt-1">
+                                Select a project for details
+                            </p>
+                        </div>
+                        <div className="text-xs font-medium text-mac-secondary bg-mac-surface px-3 py-1.5 rounded-full shadow-mac-sm">
+                            {filteredProjects.length} PROJECTS
+                        </div>
+                    </div>
+                    <div className="relative">
                         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-mac-secondary pointer-events-none" />
                         <input
                             id="projects-search"

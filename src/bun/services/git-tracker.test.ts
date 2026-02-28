@@ -177,6 +177,5 @@ describe("GitTrackerService", () => {
         expect(stats).toBeTruthy();
         expect(stats!.branchCount).toBeGreaterThanOrEqual(1);
         expect(stats!.branches.length).toBeGreaterThanOrEqual(1);
-        expect(Array.isArray(stats!.contributors)).toBe(true);
     }, 15000);
 });

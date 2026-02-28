@@ -10,7 +10,7 @@ interface GitPageProps {
     projectStats?: ProjectStats | null;
     statsLoading?: boolean;
     isWidget?: boolean;
-    section?: "timeline" | "workstate" | "contributors" | "all";
+    section?: "timeline" | "workstate" | "all";
 }
 
 const formatCommitTime = (dateStr: string | null): string =>
@@ -354,40 +354,6 @@ export default function GitPage({
         );
     }
 
-    if (isWidget && section === "contributors") {
-        return (
-            <section className="flex flex-col min-h-0">
-                <h3 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em] mb-4">
-                    Contributors
-                </h3>
-                <div className="bg-transparent rounded-xl border border-mac-border overflow-hidden">
-                    <div className="divide-y divide-mac-border">
-                        {projectStats?.contributors?.slice(0, 4).map((c) => (
-                            <div
-                                key={c.name}
-                                className="flex items-center justify-between px-4 py-3 hover:bg-mac-hover transition-colors"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <div className="w-7 h-7 rounded-lg bg-transparent flex items-center justify-center text-mac-secondary font-semibold border border-mac-border text-xs">
-                                        {c.name[0].toUpperCase()}
-                                    </div>
-                                    <span className="text-[13px] text-mac-text">
-                                        {c.name}
-                                    </span>
-                                </div>
-                                <div className="flex items-center gap-1.5 border border-mac-border rounded px-2 py-0.5">
-                                    <span className="text-[11px] font-semibold text-orange-400/80">
-                                        {c.commits}
-                                    </span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            </section>
-        );
-    }
-
     return (
         <div className="flex flex-col h-full px-24 py-12 select-none">
             <header className="flex items-end justify-between mb-12 border-b border-mac-border pb-8">
@@ -668,44 +634,6 @@ export default function GitPage({
                                     </p>
                                 </div>
                             )}
-                        </div>
-                    </section>
-
-                    <section className="flex flex-col min-h-0 flex-1">
-                        <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
-                            Key Contributors
-                        </h3>
-                        <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-6 border border-mac-border shadow-mac flex-1 overflow-y-auto custom-scrollbar">
-                            <div className="space-y-4">
-                                {projectStats?.contributors?.map((c) => (
-                                    <div
-                                        key={c.name}
-                                        className="group flex items-center justify-between p-3 rounded-2xl hover:bg-mac-surface/50 transition-all border border-transparent hover:border-mac-border/30"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-10 h-10 rounded-2xl bg-mac-bg flex items-center justify-center text-mac-text font-black border border-mac-border/20 group-hover:border-mac-accent/20 transition-all">
-                                                {c.name[0].toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <div className="text-sm font-bold text-mac-text tracking-tight">
-                                                    {c.name}
-                                                </div>
-                                                <div className="text-[10px] text-mac-secondary font-bold uppercase tracking-widest opacity-60">
-                                                    Contributor
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="flex flex-col items-end">
-                                            <span className="text-sm font-black text-mac-accent">
-                                                {c.commits}
-                                            </span>
-                                            <span className="text-[10px] text-mac-secondary font-bold uppercase tracking-tighter">
-                                                Commits
-                                            </span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
                         </div>
                     </section>
                 </div>
