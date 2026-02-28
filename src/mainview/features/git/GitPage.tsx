@@ -75,14 +75,14 @@ export default function GitPage({
                         [1, 2, 3].map((i) => (
                             <div
                                 key={i}
-                                className="bg-mac-surface rounded-xl p-4 border border-mac-border animate-pulse"
+                                className="bg-transparent rounded-xl p-4 border border-mac-border animate-pulse"
                             >
                                 <div className="h-3 bg-mac-border rounded w-3/4 mb-3" />
                                 <div className="h-2 bg-mac-border rounded w-1/3" />
                             </div>
                         ))
                     ) : commits.length === 0 ? (
-                        <div className="bg-mac-surface rounded-xl p-6 border border-mac-border text-center">
+                        <div className="bg-transparent rounded-xl p-6 border border-mac-border text-center">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
@@ -103,10 +103,10 @@ export default function GitPage({
                             <div
                                 key={commit.hash}
                                 id={`commit-${commit.hash}`}
-                                className="bg-mac-surface rounded-xl p-4 border border-mac-border cursor-default scroll-mt-4"
+                                className="bg-transparent rounded-xl p-4 border border-mac-border hover:border-mac-accent/20 transition-colors cursor-default scroll-mt-4"
                             >
                                 <div className="flex items-start gap-3">
-                                    <div className="w-7 h-7 rounded-lg bg-mac-surface flex items-center justify-center shrink-0 border border-mac-border">
+                                    <div className="w-7 h-7 rounded-lg bg-transparent flex items-center justify-center shrink-0 border border-mac-border">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             viewBox="0 0 16 16"
@@ -171,7 +171,7 @@ export default function GitPage({
                     {hasMore && !isLoading && (
                         <button
                             onClick={() => setShowAllCommits(!showAllCommits)}
-                            className="w-full py-2.5 rounded-xl border border-mac-border bg-mac-surface text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:bg-mac-hover mt-2"
+                            className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
                         >
                             {showAllCommits
                                 ? "Show Less"
@@ -234,7 +234,7 @@ export default function GitPage({
                         Local Environment
                     </h3>
                     {gitSnapshot.uncommittedCount > 0 && (
-                        <div className="px-2 py-0.5 rounded border border-mac-border bg-mac-surface text-orange-400 text-[9px] font-semibold uppercase tracking-widest">
+                        <div className="px-2 py-0.5 rounded border border-mac-border bg-transparent text-orange-400 text-[9px] font-semibold uppercase tracking-widest">
                             {gitSnapshot.uncommittedCount} Unsaved
                         </div>
                     )}
@@ -250,17 +250,17 @@ export default function GitPage({
                                 return (
                                     <div
                                         key={i}
-                                        className="group bg-mac-surface/40 hover:bg-mac-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-mac-border hover:border-mac-accent/40 shadow-mac transition-all cursor-default"
+                                        className="group bg-transparent rounded-xl p-4 border border-mac-border hover:border-mac-accent/20 transition-colors cursor-default"
                                     >
                                         <div className="flex items-start gap-4">
-                                            <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0 border border-amber-500/20 group-hover:border-mac-accent/20 transition-colors">
+                                            <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0 border border-orange-500/20">
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 24 24"
                                                     fill="none"
                                                     stroke="currentColor"
                                                     strokeWidth={2}
-                                                    className="w-5 h-5 text-amber-500 group-hover:text-mac-accent transition-colors"
+                                                    className="w-3.5 h-3.5 text-orange-400"
                                                 >
                                                     <path
                                                         strokeLinecap="round"
@@ -270,8 +270,8 @@ export default function GitPage({
                                                 </svg>
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <div className="flex items-center justify-between gap-3 mb-2">
-                                                    <p className="text-sm font-bold text-mac-text leading-snug truncate">
+                                                <div className="flex items-center justify-between gap-3 mb-1">
+                                                    <p className="text-[13px] font-semibold text-mac-text leading-snug truncate">
                                                         {file.split("/").pop()}
                                                     </p>
                                                     <span className="text-[10px] text-mac-secondary font-mono opacity-60 whitespace-nowrap">
@@ -315,7 +315,7 @@ export default function GitPage({
                                     onClick={() =>
                                         setShowAllFiles(!showAllFiles)
                                     }
-                            className="w-full py-2.5 rounded-xl border border-mac-border bg-mac-surface text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:bg-mac-hover mt-2"
+                            className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
                                 >
                                     {showAllFiles
                                         ? "Show Less"
@@ -324,7 +324,7 @@ export default function GitPage({
                             )}
                         </>
                     ) : (
-                        <div className="bg-mac-surface rounded-xl p-6 border border-mac-border text-center">
+                        <div className="bg-transparent rounded-xl p-6 border border-mac-border text-center">
                             <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 mb-3 mx-auto border border-orange-500/20">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -360,24 +360,24 @@ export default function GitPage({
                 <h3 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em] mb-4">
                     Contributors
                 </h3>
-                <div className="bg-mac-surface rounded-xl p-3 border border-mac-border">
-                    <div className="space-y-1">
+                <div className="bg-transparent rounded-xl border border-mac-border overflow-hidden">
+                    <div className="divide-y divide-mac-border">
                         {projectStats?.contributors?.slice(0, 4).map((c) => (
                             <div
                                 key={c.name}
-                                className="flex items-center justify-between p-2 rounded-lg hover:bg-mac-hover"
+                                className="flex items-center justify-between px-4 py-3 hover:bg-mac-hover transition-colors"
                             >
                                 <div className="flex items-center gap-3">
-                                    <div className="w-7 h-7 rounded-lg bg-mac-surface flex items-center justify-center text-mac-text font-bold border border-mac-border text-xs">
+                                    <div className="w-7 h-7 rounded-lg bg-transparent flex items-center justify-center text-mac-secondary font-semibold border border-mac-border text-xs">
                                         {c.name[0].toUpperCase()}
                                     </div>
                                     <span className="text-[13px] text-mac-text">
                                         {c.name}
                                     </span>
                                 </div>
-                                <span className="text-[13px] font-bold text-orange-400">
-                                    {c.commits}
-                                </span>
+                                <div className="flex items-center gap-1.5 border border-mac-border rounded px-2 py-0.5">
+                                    <span className="text-[11px] font-semibold text-orange-400/80">{c.commits}</span>
+                                </div>
                             </div>
                         ))}
                     </div>
