@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useEffect, useState } from "react";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
@@ -102,6 +103,7 @@ export default function CardsTab({
             />
         );
     }
+
     const normalizedSearch = search.trim().toLowerCase();
 
     return (
@@ -117,14 +119,17 @@ export default function CardsTab({
                     >
                         Search Projects
                     </label>
-                    <input
-                        id="projects-search"
-                        type="text"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                        placeholder="Filter by name"
-                        className="mt-2 w-full bg-mac-surface border border-mac-border rounded-xl px-4 py-2 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:ring-2 focus:ring-mac-accent/30"
-                    />
+                    <div className="relative mt-2">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-mac-secondary pointer-events-none" />
+                        <input
+                            id="projects-search"
+                            type="text"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                            placeholder="Filter by name"
+                            className="w-full bg-mac-surface border border-mac-border rounded-xl pl-8 pr-4 py-2 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:ring-2 focus:ring-mac-accent/30"
+                        />
+                    </div>
                 </div>
                 <ProjectsGrid
                     projects={projects.filter((project) =>
