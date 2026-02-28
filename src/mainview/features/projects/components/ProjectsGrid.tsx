@@ -14,21 +14,7 @@ export default function ProjectsGrid({
 }: ProjectsGridProps) {
     return (
         <div className="max-w-6xl mx-auto">
-            <header className="mb-10 flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-mac-text">
-                        Projects
-                    </h1>
-                    <p className="text-mac-secondary text-sm mt-1">
-                        Select a project for details
-                    </p>
-                </div>
-                <div className="text-xs font-medium text-mac-secondary bg-mac-surface px-3 py-1.5 rounded-full shadow-mac-sm">
-                    {projects.length} PROJECTS
-                </div>
-            </header>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
                 {projects.map((project) => {
                     const snapshot = gitSnapshots[project.id];
                     return (

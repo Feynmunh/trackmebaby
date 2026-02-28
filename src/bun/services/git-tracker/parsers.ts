@@ -15,11 +15,6 @@ export interface DiffSummary {
     deletions: number;
 }
 
-export interface Contributor {
-    name: string;
-    commits: number;
-}
-
 export function parseGitLog(output: string): ParsedCommit[] {
     if (!output.trim()) return [];
     const lines = output.split("\n");
@@ -71,21 +66,6 @@ export function parseDiffStat(output: string): DiffSummary {
         insertions: insMatch ? parseInt(insMatch[1], 10) : 0,
         deletions: delMatch ? parseInt(delMatch[1], 10) : 0,
     };
-}
-
-export function parseContributors(output: string): Contributor[] {
-    if (!output.trim()) return [];
-    return output
-        .split("\n")
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0)
-        .map((line) => {
-            const match = line.match(/^(\d+)\s+(.+)$/);
-            return {
-                name: match ? match[2] : "Unknown",
-                commits: match ? parseInt(match[1], 10) : 0,
-            };
-        });
 }
 
 export function parseBranches(output: string): string[] {

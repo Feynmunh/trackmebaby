@@ -106,15 +106,6 @@ export default function DashboardContent({
                             onRefreshStats={onRefreshStats}
                         />
                     </section>
-                    <section>
-                        <GitPage
-                            gitSnapshot={gitSnapshot}
-                            projectStats={projectStats}
-                            statsLoading={statsLoading}
-                            isWidget={true}
-                            section="contributors"
-                        />
-                    </section>
                 </div>
             </div>
         </main>

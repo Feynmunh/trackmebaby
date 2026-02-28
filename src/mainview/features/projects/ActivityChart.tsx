@@ -51,8 +51,8 @@ export default function ActivityChart({
     }
 
     return (
-        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac">
-            <div className="flex items-center justify-between mb-6">
+        <div className="bg-transparent rounded-xl p-4 border border-mac-border">
+            <div className="flex items-center justify-between mb-4">
                 <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">
                     7-Day Pulse
                 </span>
@@ -60,7 +60,7 @@ export default function ActivityChart({
                     {eventCount} events today
                 </span>
             </div>
-            <div className="flex items-end justify-between h-20 gap-1.5 px-1">
+            <div className="flex items-end justify-between h-16 gap-1.5 px-1">
                 {dailyCounts.map((d, i) => (
                     <div
                         key={i}

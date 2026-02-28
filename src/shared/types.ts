@@ -77,7 +77,6 @@ export interface ProjectStats {
         insertions: number;
         deletions: number;
     } | null;
-    contributors: { name: string; commits: number }[];
 }
 
 export interface RecentCommit {

@@ -21,7 +21,6 @@ import {
 import { runGit, runGitLines } from "./git-command.ts";
 import {
     getBranches,
-    getContributors,
     getDiffStats,
     getRecentCommits,
 } from "./git-tracker/commands.ts";
@@ -224,17 +223,6 @@ export class GitTrackerService {
                 });
             }
 
-            // Top contributors
-            let contributors: { name: string; commits: number }[] = [];
-            try {
-                contributors = await getContributors(projectPath);
-            } catch (err: unknown) {
-                this.logger.warn("failed to read contributors", {
-                    projectPath,
-                    error: toErrorData(err),
-                });
-            }
-
             return {
                 branchCount,
                 branches,
@@ -242,7 +230,6 @@ export class GitTrackerService {
                 repoAgeFirstCommit,
                 recentCommits,
                 diffSummary,
-                contributors,
             };
         } catch (err: unknown) {
             this.logger.error("error getting stats", {
