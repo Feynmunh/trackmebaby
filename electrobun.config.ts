@@ -1,4 +1,8 @@
 import type { ElectrobunConfig } from "electrobun";
+import {
+    ELECTROBUN_RUNTIME,
+    ELECTROBUN_STATIC_BUILD,
+} from "./electrobun.static.config.ts";
 
 export default {
     app: {
@@ -6,9 +10,7 @@ export default {
         identifier: "dev.trackmebaby.app",
         version: "0.1.0",
     },
-    runtime: {
-        exitOnLastWindowClosed: false,
-    },
+    runtime: ELECTROBUN_RUNTIME,
     build: {
         // Linux workaround: fs.watch({ recursive: true }) is broken on Linux.
         // Electrobun's watch mode relies on it, so we explicitly list all subdirs.
@@ -28,14 +30,6 @@ export default {
             "dist/index.html": "views/mainview/index.html",
             "dist/assets": "views/mainview/assets",
         },
-        mac: {
-            bundleCEF: false,
-        },
-        linux: {
-            bundleCEF: false,
-        },
-        win: {
-            bundleCEF: false,
-        },
+        ...ELECTROBUN_STATIC_BUILD,
     },
-} satisfies ElectrobunConfig;
+} as ElectrobunConfig;
