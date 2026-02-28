@@ -1,6 +1,5 @@
-import { FolderOpen } from "lucide-react";
+import { Folder, FolderOpen, GitBranch } from "lucide-react";
 import { useEffect, useState } from "react";
-import { timeAgo } from "../../shared/time.ts";
 import ProjectDashboard from "../components/ProjectDashboard";
 import { useProjectData } from "../hooks/useProjectData.ts";
 import {
@@ -10,6 +9,12 @@ import {
     selectFolder,
     updateSettings,
 } from "../rpc";
+
+function shortenPath(fullPath: string): string {
+    const parts = fullPath.replace(/\\/g, "/").split("/").filter(Boolean);
+    if (parts.length <= 2) return fullPath;
+    return "../" + parts.slice(-2).join("/");
+}
 
 export default function CardsTab({
     onNavigateToSettings,
@@ -167,78 +172,88 @@ export default function CardsTab({
         <div className="relative h-full w-full overflow-hidden">
             {/* Grid View */}
             <div
-                className={`h-full w-full p-8 transition-all duration-500 overflow-y-auto ${viewMode === "grid" ? "opacity-100 scale-100" : "opacity-0 scale-95 pointer-events-none absolute"}`}
+                className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
-                <div className="max-w-6xl mx-auto">
-                    <header className="mb-10 flex items-center justify-between">
+                <div className="max-w-5xl mx-auto">
+                    <header className="mb-10 flex items-start justify-between">
                         <div>
-                            <h1 className="text-3xl font-bold text-mac-text">
+                            <h1 className="text-[32px] font-bold text-white leading-tight">
                                 Projects
                             </h1>
-                            <p className="text-mac-secondary text-sm mt-1">
+                            <p className="text-[13px] text-[#555] mt-1">
                                 Select a project for details
                             </p>
                         </div>
-                        <div className="text-xs font-medium text-mac-secondary bg-mac-surface px-3 py-1.5 rounded-full shadow-mac-sm">
+                        <div className="text-[11px] font-semibold text-[#888] bg-[#1a1a1a] px-3 py-1.5 rounded-full border border-[#2a2a2a] tracking-wide mt-1">
                             {projects.length} PROJECTS
                         </div>
                     </header>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                         {projects.map((project) => {
                             const snapshot = gitSnapshots[project.id];
+                            const isSynced = snapshot ? snapshot.uncommittedCount === 0 : false;
                             return (
                                 <div
                                     key={project.id}
                                     onClick={() => openDashboard(project.id)}
-                                    className="bg-mac-surface rounded-2xl p-6 shadow-mac border border-mac-border hover:shadow-mac-md transition-all duration-200 cursor-pointer group active:scale-[0.98]"
+                                    className="bg-[#111111] rounded-xl p-6 cursor-pointer"
                                 >
-                                    <h3 className="text-lg font-semibold text-mac-text mb-4 group-hover:text-mac-accent transition-colors">
-                                        {project.name}
-                                    </h3>
+                                    {/* Row 1: icon + name + active badge */}
+                                    <div className="flex items-start justify-between mb-1">
+                                        <div className="flex items-start gap-3">
+                                            <Folder className="w-5 h-5 text-[#555] mt-0.5 shrink-0" />
+                                            <div>
+                                                <h3 className="text-[17px] font-semibold text-white leading-tight">
+                                                    {project.name}
+                                                </h3>
+                                                <p className="text-[12px] text-[#4a4a4a] mt-0.5">
+                                                    {shortenPath(project.path)}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-1.5 shrink-0 ml-3 mt-0.5">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                            <span className="text-[11px] font-medium text-green-400 tracking-wide">
+                                                ACTIVE
+                                            </span>
+                                        </div>
+                                    </div>
+
+                                    {/* Row 2: branch + synced */}
                                     {snapshot && (
-                                        <div className="flex flex-wrap gap-2 mb-4">
-                                            {snapshot.uncommittedCount > 0 ? (
-                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-accent/10 text-mac-accent px-2 py-0.5 rounded border border-mac-accent/20">
-                                                    {snapshot.uncommittedCount}{" "}
-                                                    changes
+                                        <div className="flex items-center gap-2 mt-4 mb-5 ml-8">
+                                            <div className="flex items-center gap-1.5 border border-[#2a2a2a] rounded px-2 py-0.5">
+                                                <GitBranch className="w-3 h-3 text-[#666]" />
+                                                <span className="text-[12px] text-[#777] max-w-[90px] truncate">
+                                                    {snapshot.branch}
                                                 </span>
-                                            ) : (
-                                                <span className="text-[10px] font-bold uppercase tracking-wider bg-mac-bg text-mac-secondary px-2 py-0.5 rounded border border-mac-border">
-                                                    0 changes
-                                                </span>
-                                            )}
-                                            {project.worktrees &&
-                                                project.worktrees.length >
-                                                    1 && (
-                                                    <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded border border-purple-500/20">
-                                                        {
-                                                            project.worktrees
-                                                                .length
-                                                        }{" "}
-                                                        worktrees
-                                                    </span>
-                                                )}
+                                            </div>
+                                            <span
+                                                className={`text-[11px] font-semibold px-2.5 py-0.5 rounded ${
+                                                    isSynced
+                                                        ? "bg-[#15803d] text-white"
+                                                        : "bg-[#854d0e] text-white"
+                                                }`}
+                                            >
+                                                {isSynced
+                                                    ? "SYNCED"
+                                                    : `${snapshot.uncommittedCount} CHANGES`}
+                                            </span>
                                         </div>
                                     )}
 
-                                    <div className="mt-auto pt-4 border-t border-mac-border flex items-center justify-between">
-                                        <span className="text-xs text-mac-secondary">
-                                            {project.lastActivityAt
-                                                ? timeAgo(
-                                                      project.lastActivityAt,
-                                                      {
-                                                          emptyLabel:
-                                                              "Never active",
-                                                          justNowLabel:
-                                                              "Just now",
-                                                          maxDays:
-                                                              Number.POSITIVE_INFINITY,
-                                                      },
-                                                  )
-                                                : "Never active"}
-                                        </span>
-                                    </div>
+                                    {/* Row 3: last commit */}
+                                    {snapshot?.lastCommitMessage && (
+                                        <div className="ml-8">
+                                            <p className="text-[10px] text-[#3a3a3a] uppercase tracking-[0.15em] mb-1">
+                                                LAST COMMIT
+                                            </p>
+                                            <p className="text-[13px] text-[#aaa] leading-snug">
+                                                {snapshot.lastCommitMessage}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             );
                         })}
