@@ -18,7 +18,7 @@ export default function TabBar<TTab extends string>({
     settingsId,
 }: TabBarProps<TTab>) {
     return (
-        <nav className="flex flex-col w-[60px] bg-mac-sidebar backdrop-blur-xl h-full border-r border-mac-border items-center py-5 gap-1">
+        <nav className="flex flex-col w-[60px] bg-mac-sidebar backdrop-blur-xl h-full border-r border-white/[0.06] items-center py-5 gap-1">
             {/* App icon */}
             <div className="w-9 h-9 rounded-[10px] bg-mac-accent text-white flex items-center justify-center font-semibold text-base mb-8 shadow-mac">
                 T

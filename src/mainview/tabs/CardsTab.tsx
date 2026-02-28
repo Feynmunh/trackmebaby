@@ -184,7 +184,7 @@ export default function CardsTab({
                                 Select a project for details
                             </p>
                         </div>
-                        <div className="text-[11px] font-semibold text-[#888] bg-[#1a1a1a] px-3 py-1.5 rounded-full border border-[#2a2a2a] tracking-wide mt-1">
+                        <div className="text-[11px] font-semibold text-[#555] bg-transparent px-3 py-1.5 rounded-full border border-[#1f1f1f] tracking-wide mt-1">
                             {projects.length} PROJECTS
                         </div>
                     </header>
@@ -197,7 +197,7 @@ export default function CardsTab({
                                 <div
                                     key={project.id}
                                     onClick={() => openDashboard(project.id)}
-                                    className="bg-[#111111] rounded-xl p-6 cursor-pointer"
+                                    className="bg-transparent border border-[#1f1f1f] rounded-xl p-6 cursor-pointer hover:border-[#2e2e2e]"
                                 >
                                     {/* Row 1: icon + name + active badge */}
                                     <div className="flex items-start justify-between mb-1">
@@ -213,8 +213,8 @@ export default function CardsTab({
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-1.5 shrink-0 ml-3 mt-0.5">
-                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
-                                            <span className="text-[11px] font-medium text-orange-400 tracking-wide">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500/50" />
+                                            <span className="text-[11px] font-medium text-orange-500/50 tracking-wide">
                                                 ACTIVE
                                             </span>
                                         </div>
@@ -232,8 +232,8 @@ export default function CardsTab({
                                             <span
                                                 className={`text-[11px] font-semibold px-2.5 py-0.5 rounded ${
                                                     isSynced
-                                                        ? "bg-orange-600 text-white"
-                                                        : "bg-[#854d0e] text-white"
+                                                        ? "bg-orange-500/15 text-orange-400/70"
+                                                        : "bg-orange-900/20 text-orange-500/60"
                                                 }`}
                                             >
                                                 {isSynced
@@ -246,7 +246,7 @@ export default function CardsTab({
                                     {/* Row 3: last commit */}
                                     {snapshot?.lastCommitMessage && (
                                         <div className="ml-8">
-                                            <p className="text-[10px] text-[#3a3a3a] uppercase tracking-[0.15em] mb-1">
+                                            <p className="text-[10px] text-[#444] uppercase tracking-[0.15em] mb-1">
                                                 LAST COMMIT
                                             </p>
                                             <p className="text-[13px] text-[#aaa] leading-snug">
