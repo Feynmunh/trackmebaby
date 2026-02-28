@@ -129,9 +129,6 @@ export default function OverviewPage({
                                   ? 50
                                   : 100;
                     const niceMax = Math.ceil(rawMax / step) * step;
-                    const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) =>
-                        Math.round(f * niceMax),
-                    );
                     const barRows = [
                         {
                             key: "branches",
@@ -248,23 +245,6 @@ export default function OverviewPage({
                                         </div>
                                     );
                                 })}
-                            </div>
-                            {/* X-axis tick labels */}
-                            <div
-                                className="flex justify-between mt-3 pt-2 border-t border-mac-border/20"
-                                style={{
-                                    paddingLeft: "80px",
-                                    paddingRight: "36px",
-                                }}
-                            >
-                                {ticks.map((t) => (
-                                    <span
-                                        key={t}
-                                        className="text-[9px] text-mac-secondary/40 tabular-nums"
-                                    >
-                                        {t}
-                                    </span>
-                                ))}
                             </div>
                             {/* Branches dropdown */}
                             {showingBranches && projectStats?.branches && (
