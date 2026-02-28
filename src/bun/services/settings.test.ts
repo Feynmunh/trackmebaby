@@ -70,4 +70,24 @@ describe("SettingsService", () => {
         // Unchanged
         expect(settings.getAIModel()).toBe("llama-3.3-70b-versatile");
     });
+
+    test("updateMany ignores undefined fields", () => {
+        settings.setAIProvider("groq");
+        settings.updateMany({ aiProvider: undefined, watchDebounce: 250 });
+
+        expect(settings.getAIProvider()).toBe("groq");
+        expect(settings.getWatchDebounce()).toBe(250);
+    });
+
+    test("setPollInterval enforces minimum across updates", () => {
+        settings.updateMany({ pollInterval: 10000 });
+
+        expect(settings.getPollInterval()).toBe(30000);
+    });
+
+    test("setWatchDebounce enforces minimum across updates", () => {
+        settings.updateMany({ watchDebounce: 50 });
+
+        expect(settings.getWatchDebounce()).toBe(100);
+    });
 });
