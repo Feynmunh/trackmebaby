@@ -71,13 +71,13 @@ export default function ProjectDashboard({
     } = useGitHubIntegration(project.id);
 
     return (
-        <div className="flex flex-col w-full h-full bg-[#0a0a0a] select-none">
+        <div className="flex flex-col w-full h-full bg-mac-bg select-none">
             {/* Unified Dashboard Header */}
-            <header className="h-16 bg-[#0f0f0f] border-b border-[#1e1e1e] px-10 flex items-center justify-between shrink-0">
+            <header className="h-16 bg-mac-bg border-b border-mac-border px-10 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-5">
                     <button
                         onClick={onBack}
-                        className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center hover:bg-[#222] active:scale-95 group"
+                        className="w-8 h-8 rounded-lg bg-mac-surface border border-mac-border flex items-center justify-center hover:bg-mac-hover active:scale-95 group"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -85,17 +85,17 @@ export default function ProjectDashboard({
                             fill="none"
                             stroke="currentColor"
                             strokeWidth={2.5}
-                            className="w-4 h-4 text-[#888] group-hover:text-white group-hover:-translate-x-0.5 transition-transform"
+                            className="w-4 h-4 text-mac-secondary group-hover:text-mac-text group-hover:-translate-x-0.5 transition-transform"
                         >
                             <path d="M19 12H5M12 19l-7-7 7-7" />
                         </svg>
                     </button>
 
                     <div>
-                        <h1 className="text-[15px] font-bold text-white leading-tight">
+                        <h1 className="text-[15px] font-bold text-mac-text leading-tight">
                             {project.name}
                         </h1>
-                        <p className="text-[11px] text-[#444] font-mono truncate max-w-md">
+                        <p className="text-[11px] text-mac-secondary font-mono truncate max-w-md">
                             {project.path}
                         </p>
                     </div>
@@ -103,7 +103,7 @@ export default function ProjectDashboard({
 
                 <div className="flex items-center gap-3">
                     {hasWorktrees && (
-                        <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#1a1a1a] text-[#888] px-2.5 py-1 rounded border border-[#2a2a2a]">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider bg-mac-surface text-mac-secondary px-2.5 py-1 rounded border border-mac-border">
                             {project.worktrees.length} worktrees
                         </span>
                     )}
@@ -112,7 +112,7 @@ export default function ProjectDashboard({
 
             {/* Worktree Cards — stacked horizontal row */}
             {hasWorktrees && (
-                <div className="bg-[#0f0f0f] border-b border-[#1e1e1e] px-10 py-3 shrink-0">
+                <div className="bg-mac-surface border-b border-mac-border px-10 py-3 shrink-0">
                     <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-1">
                         {project.worktrees.map((wt) => (
                             <WorktreeCard key={wt.path} worktree={wt} />

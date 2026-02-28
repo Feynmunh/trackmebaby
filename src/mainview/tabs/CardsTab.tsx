@@ -172,21 +172,21 @@ export default function CardsTab({
                 <div className="max-w-5xl mx-auto">
                     <header className="mb-8">
                         <div className="flex items-start justify-between mb-4">
-                            <h1 className="text-[32px] font-bold text-white leading-tight">
+                            <h1 className="text-[32px] font-bold text-mac-text leading-tight">
                                 Projects
                             </h1>
-                            <div className="text-[11px] font-semibold text-[#555] bg-transparent px-3 py-1.5 rounded-full border border-[#1f1f1f] tracking-wide mt-2">
+                            <div className="text-[11px] font-semibold text-mac-secondary bg-transparent px-3 py-1.5 rounded-full border border-mac-border tracking-wide mt-2">
                                 {projects.length} PROJECTS
                             </div>
                         </div>
                         <div className="relative">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#444] pointer-events-none" />
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-mac-secondary pointer-events-none" />
                             <input
                                 type="text"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 placeholder="Search projects..."
-                                className="w-full bg-transparent border border-[#1f1f1f] rounded-lg pl-8 pr-4 py-2 text-[13px] text-[#aaa] placeholder-[#3a3a3a] focus:outline-none focus:border-[#2e2e2e]"
+                                className="w-full bg-transparent border border-mac-border rounded-lg pl-8 pr-4 py-2 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:border-mac-accent/30"
                             />
                         </div>
                     </header>
@@ -199,14 +199,14 @@ export default function CardsTab({
                                 <div
                                     key={project.id}
                                     onClick={() => openDashboard(project.id)}
-                                    className="bg-transparent border border-[#1f1f1f] rounded-xl p-6 cursor-pointer hover:border-[#2e2e2e]"
+                                    className="bg-transparent border border-mac-border rounded-xl p-6 cursor-pointer hover:border-mac-accent/20"
                                 >
                                     {/* Row 1: icon + name + active badge */}
                                     <div className="flex items-start justify-between mb-1">
                                         <div className="flex items-start gap-3">
-                                            <Folder className="w-5 h-5 text-[#555] mt-0.5 shrink-0" />
+                                            <Folder className="w-5 h-5 text-mac-secondary mt-0.5 shrink-0" />
                                             <div>
-                                                <h3 className="text-[17px] font-semibold text-white leading-tight">
+                                                <h3 className="text-[17px] font-semibold text-mac-text leading-tight">
                                                     {project.name}
                                                 </h3>
                                             </div>
@@ -216,9 +216,9 @@ export default function CardsTab({
                                     {/* Row 2: branch + synced */}
                                     {snapshot && (
                                         <div className="flex items-center gap-2 mt-4 mb-5 ml-8">
-                                            <div className="flex items-center gap-1.5 border border-[#2a2a2a] rounded px-2 py-0.5">
-                                                <GitBranch className="w-3 h-3 text-[#666]" />
-                                                <span className="text-[12px] text-[#777] max-w-[90px] truncate">
+                                            <div className="flex items-center gap-1.5 border border-mac-border rounded px-2 py-0.5">
+                                                <GitBranch className="w-3 h-3 text-mac-secondary" />
+                                                <span className="text-[12px] text-mac-secondary max-w-[90px] truncate">
                                                     {snapshot.branch}
                                                 </span>
                                             </div>
@@ -239,10 +239,10 @@ export default function CardsTab({
                                     {/* Row 3: last commit */}
                                     {snapshot?.lastCommitMessage && (
                                         <div className="ml-8">
-                                            <p className="text-[10px] text-[#444] uppercase tracking-[0.15em] mb-1">
+                                            <p className="text-[10px] text-mac-secondary uppercase tracking-[0.15em] mb-1">
                                                 LAST COMMIT
                                             </p>
-                                            <p className="text-[13px] text-[#aaa] leading-snug">
+                                            <p className="text-[13px] text-mac-secondary leading-snug">
                                                 {snapshot.lastCommitMessage}
                                             </p>
                                         </div>
