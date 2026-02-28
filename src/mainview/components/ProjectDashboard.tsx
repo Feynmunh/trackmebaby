@@ -71,13 +71,13 @@ export default function ProjectDashboard({
     } = useGitHubIntegration(project.id);
 
     return (
-        <div className="flex flex-col w-full h-full bg-mac-bg select-none">
+        <div className="flex flex-col w-full h-full bg-[#0a0a0a] select-none">
             {/* Unified Dashboard Header */}
-            <header className="h-20 bg-mac-surface/30 backdrop-blur-md px-12 flex items-center justify-between shrink-0">
-                <div className="flex items-center gap-6">
+            <header className="h-16 bg-[#0f0f0f] border-b border-[#1e1e1e] px-10 flex items-center justify-between shrink-0">
+                <div className="flex items-center gap-5">
                     <button
                         onClick={onBack}
-                        className="w-10 h-10 rounded-xl bg-mac-surface shadow-mac flex items-center justify-center hover:bg-mac-surface/80 transition-all active:scale-95 group"
+                        className="w-8 h-8 rounded-lg bg-[#1a1a1a] border border-[#2a2a2a] flex items-center justify-center hover:bg-[#222] active:scale-95 group"
                     >
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -85,17 +85,17 @@ export default function ProjectDashboard({
                             fill="none"
                             stroke="currentColor"
                             strokeWidth={2.5}
-                            className="w-5 h-5 text-mac-accent group-hover:-translate-x-0.5 transition-transform"
+                            className="w-4 h-4 text-[#888] group-hover:text-white group-hover:-translate-x-0.5 transition-transform"
                         >
                             <path d="M19 12H5M12 19l-7-7 7-7" />
                         </svg>
                     </button>
 
                     <div>
-                        <h1 className="text-lg font-bold text-mac-text">
+                        <h1 className="text-[15px] font-bold text-white leading-tight">
                             {project.name}
                         </h1>
-                        <p className="text-[10px] text-mac-secondary font-mono truncate max-w-md opacity-80">
+                        <p className="text-[11px] text-[#444] font-mono truncate max-w-md">
                             {project.path}
                         </p>
                     </div>
@@ -103,7 +103,7 @@ export default function ProjectDashboard({
 
                 <div className="flex items-center gap-3">
                     {hasWorktrees && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-full border border-purple-500/20">
+                        <span className="text-[10px] font-semibold uppercase tracking-wider bg-[#1a1a1a] text-[#888] px-2.5 py-1 rounded border border-[#2a2a2a]">
                             {project.worktrees.length} worktrees
                         </span>
                     )}
@@ -112,7 +112,7 @@ export default function ProjectDashboard({
 
             {/* Worktree Cards — stacked horizontal row */}
             {hasWorktrees && (
-                <div className="bg-mac-surface/20 px-12 py-4 shrink-0">
+                <div className="bg-[#0f0f0f] border-b border-[#1e1e1e] px-10 py-3 shrink-0">
                     <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-1">
                         {project.worktrees.map((wt) => (
                             <WorktreeCard key={wt.path} worktree={wt} />
@@ -122,8 +122,8 @@ export default function ProjectDashboard({
             )}
 
             {/* Main Unified Content */}
-            <main className="flex-1 overflow-y-auto custom-scrollbar p-12">
-                <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-12">
+            <main className="flex-1 overflow-y-auto custom-scrollbar p-10">
+                <div className="max-w-[1600px] mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
                     {/* Left Column: Core Stats & Repo History (Span 8) */}
                     <div className="lg:col-span-8 order-2 lg:order-1 space-y-12">
                         {/* Git History Timeline */}

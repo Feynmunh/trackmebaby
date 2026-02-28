@@ -57,8 +57,8 @@ export default function GitHubPage({
 
         return (
             <div className="flex flex-col min-h-0">
-                <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[10px] font-semibold text-[#555] uppercase tracking-[0.2em]">
                         Remote Environment
                     </h3>
                 </div>
@@ -66,8 +66,8 @@ export default function GitHubPage({
                 <div className="space-y-8 pr-4">
                     <section className="space-y-4">
                         <div className="flex items-center gap-2 px-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            <h4 className="text-xs font-black text-mac-secondary uppercase tracking-widest opacity-80">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                            <h4 className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">
                                 Active Issues
                             </h4>
                         </div>
@@ -87,7 +87,7 @@ export default function GitHubPage({
                         />
                         <div className="space-y-3">
                             {openIssues.length === 0 ? (
-                                <p className="text-xs text-mac-secondary italic opacity-50 px-1">
+                                <p className="text-[11px] text-[#444] italic px-1">
                                     No open issues
                                 </p>
                             ) : (
@@ -105,7 +105,7 @@ export default function GitHubPage({
                         {openIssues.length > 3 && (
                             <button
                                 onClick={() => setShowAllIssues(!showAllIssues)}
-                                className="w-full py-3 rounded-2xl border border-mac-border bg-mac-surface/30 text-mac-secondary text-[10px] font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors mt-2"
+                                className="w-full py-2.5 rounded-xl border border-[#2a2a2a] bg-[#111] text-[#555] text-[10px] font-semibold uppercase tracking-widest hover:bg-[#1a1a1a] mt-2"
                             >
                                 {showAllIssues
                                     ? "Show Less"
@@ -116,8 +116,8 @@ export default function GitHubPage({
 
                     <section className="space-y-4">
                         <div className="flex items-center gap-2 px-1">
-                            <div className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-                            <h4 className="text-xs font-black text-mac-secondary uppercase tracking-widest opacity-80">
+                            <div className="w-1.5 h-1.5 rounded-full bg-orange-500" />
+                            <h4 className="text-[10px] font-semibold text-[#555] uppercase tracking-widest">
                                 Open Pull Requests
                             </h4>
                         </div>
@@ -137,7 +137,7 @@ export default function GitHubPage({
                         />
                         <div className="space-y-3">
                             {openPRs.length === 0 ? (
-                                <p className="text-xs text-mac-secondary italic opacity-50 px-1">
+                                <p className="text-[11px] text-[#444] italic px-1">
                                     No active PRs
                                 </p>
                             ) : (
@@ -155,7 +155,7 @@ export default function GitHubPage({
                         {openPRs.length > 3 && (
                             <button
                                 onClick={() => setShowAllPRs(!showAllPRs)}
-                                className="w-full py-3 rounded-2xl border border-mac-border bg-mac-surface/30 text-mac-secondary text-[10px] font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors mt-2"
+                                className="w-full py-2.5 rounded-xl border border-[#2a2a2a] bg-[#111] text-[#555] text-[10px] font-semibold uppercase tracking-widest hover:bg-[#1a1a1a] mt-2"
                             >
                                 {showAllPRs
                                     ? "Show Less"

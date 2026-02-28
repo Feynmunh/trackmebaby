@@ -97,14 +97,14 @@ export default function OverviewPage({
         const vitality = getVitalityStatus(project, eventCount, gitSnapshot);
 
         return (
-            <div className="space-y-8">
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-sm font-bold text-mac-secondary uppercase tracking-[0.2em]">
+            <div className="space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                    <h2 className="text-[10px] font-semibold text-[#555] uppercase tracking-[0.2em]">
                         Project Vitality
                     </h2>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         {statsLastUpdated && (
-                            <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">
+                            <span className="text-[10px] text-[#3a3a3a] uppercase tracking-widest">
                                 Updated{" "}
                                 {timeAgo(statsLastUpdated, {
                                     emptyLabel: "never",
@@ -116,31 +116,31 @@ export default function OverviewPage({
                         {onRefreshStats && (
                             <button
                                 onClick={onRefreshStats}
-                                className="px-2.5 py-1 rounded-full border border-mac-border/40 bg-mac-surface/50 text-[9px] font-black uppercase tracking-widest text-mac-secondary hover:text-mac-accent hover:border-mac-accent/40 transition-colors"
+                                className="px-2 py-0.5 rounded border border-[#2a2a2a] bg-[#1a1a1a] text-[9px] font-bold uppercase tracking-widest text-[#555] hover:text-orange-400 hover:border-orange-500/30 transition-colors"
                             >
                                 Refresh
                             </button>
                         )}
                         <span
-                            className={`text-[10px] font-bold ${vitality.colorClass} ${vitality.bgClass} px-2 py-0.5 rounded uppercase tracking-widest`}
+                            className={`text-[10px] font-semibold ${vitality.colorClass} ${vitality.bgClass} px-2 py-0.5 rounded uppercase tracking-widest`}
                         >
                             {vitality.label}
                         </span>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+                    <div className="lg:col-span-8 grid grid-cols-2 md:grid-cols-4 gap-3">
                         <StatCard
                             title="Branches"
                             value={projectStats?.branchCount ?? "-"}
                             icon={
-                                <div className="w-8 h-8 rounded-lg bg-mac-accent/10 flex items-center justify-center group-hover:bg-mac-accent/20 transition-colors">
+                                <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         viewBox="0 0 16 16"
                                         fill="currentColor"
-                                        className="w-4 h-4 text-mac-accent"
+                                        className="w-3.5 h-3.5 text-orange-500"
                                     >
                                         <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
                                     </svg>
@@ -151,34 +151,34 @@ export default function OverviewPage({
                             }}
                             loading={statsLoading}
                             loadingIndicator={
-                                <div className="w-4 h-4 border-2 border-mac-text/20 border-t-mac-accent rounded-full animate-spin" />
+                                <div className="w-3.5 h-3.5 border-2 border-[#333] border-t-orange-500 rounded-full animate-spin" />
                             }
                             authPromptLabel="Branches"
-                            className={`relative bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98] ${showingBranches ? "z-[60]" : "z-0"}`}
-                            iconWrapperClassName="mb-4"
+                            className={`relative bg-[#111111] rounded-xl p-4 border border-[#1e1e1e] cursor-pointer ${showingBranches ? "z-[60]" : "z-0"}`}
+                            iconWrapperClassName="mb-3"
+                            valueClassName="text-xl font-bold text-white mb-0.5 h-7 flex items-center"
+                            titleClassName="text-[10px] text-[#444] uppercase tracking-widest"
                         >
                             {showingBranches && projectStats?.branches && (
-                                <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-mac-surface border border-mac-border rounded-xl shadow-mac-lg p-4 animate-in fade-in slide-in-from-top-2 duration-200">
-                                    <h4 className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest mb-3 pb-2 border-b border-mac-border/50">
+                                <div className="absolute top-full left-0 right-0 mt-2 z-50 bg-[#111] border border-[#2a2a2a] rounded-xl p-4">
+                                    <h4 className="text-[10px] text-[#444] uppercase tracking-widest mb-3 pb-2 border-b border-[#1e1e1e]">
                                         All Branches
                                     </h4>
-                                    <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
+                                    <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar">
                                         {projectStats.branches.map((branch) => (
                                             <div
                                                 key={branch}
-                                                className="flex items-center gap-2 text-[13px] text-mac-text py-1.5 px-2 rounded-lg hover:bg-mac-accent/10 hover:text-mac-accent transition-colors font-medium"
+                                                className="flex items-center gap-2 text-[12px] text-[#aaa] py-1 px-2 rounded hover:bg-[#1a1a1a]"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
                                                     viewBox="0 0 16 16"
                                                     fill="currentColor"
-                                                    className="w-3.5 h-3.5 opacity-60"
+                                                    className="w-3 h-3 text-[#555]"
                                                 >
                                                     <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
                                                 </svg>
-                                                <span className="truncate">
-                                                    {branch}
-                                                </span>
+                                                <span className="truncate">{branch}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -190,12 +190,12 @@ export default function OverviewPage({
                             title="Commits"
                             value={projectStats?.totalCommits ?? "-"}
                             icon={
-                                <div className="w-8 h-8 rounded-lg bg-green-500/10 flex items-center justify-center group-hover:bg-green-500/20 transition-colors">
+                                <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
                                         viewBox="0 0 16 16"
                                         fill="currentColor"
-                                        className="w-4 h-4 text-green-500"
+                                        className="w-3.5 h-3.5 text-orange-500"
                                     >
                                         <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                                     </svg>
@@ -204,19 +204,21 @@ export default function OverviewPage({
                             onClick={onCommitsClick}
                             loading={statsLoading}
                             loadingIndicator={
-                                <div className="w-4 h-4 border-2 border-mac-text/20 border-t-green-500 rounded-full animate-spin" />
+                                <div className="w-3.5 h-3.5 border-2 border-[#333] border-t-orange-500 rounded-full animate-spin" />
                             }
                             authPromptLabel="Commits"
-                            className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]"
-                            iconWrapperClassName="mb-4"
+                            className="bg-[#111111] rounded-xl p-4 border border-[#1e1e1e] cursor-pointer"
+                            iconWrapperClassName="mb-3"
+                            valueClassName="text-xl font-bold text-white mb-0.5 h-7 flex items-center"
+                            titleClassName="text-[10px] text-[#444] uppercase tracking-widest"
                         />
 
                         <StatCard
                             title="Issues"
                             value={githubData?.openIssues ?? "-"}
                             icon={
-                                <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
-                                    <IssueIcon className="w-4 h-4 text-emerald-500" />
+                                <div className="w-7 h-7 rounded-lg bg-[#1e1e1e] flex items-center justify-center">
+                                    <IssueIcon className="w-3.5 h-3.5 text-[#666]" />
                                 </div>
                             }
                             onClick={
@@ -226,24 +228,26 @@ export default function OverviewPage({
                             }
                             loading={githubLoading}
                             loadingIndicator={
-                                <div className="w-4 h-4 border-2 border-mac-text/20 border-t-mac-accent rounded-full animate-spin" />
+                                <div className="w-3.5 h-3.5 border-2 border-[#333] border-t-orange-500 rounded-full animate-spin" />
                             }
                             showAuthPrompt={!isGitHubAuthenticated}
                             authPromptLabel="Issues"
                             onAuthClick={onGitHubSignIn}
                             authLoading={githubLoading}
-                            className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]"
-                            iconWrapperClassName="mb-4"
-                            authValueClassName="text-2xl mb-1"
-                            authLabelClassName="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60"
+                            className="bg-[#111111] rounded-xl p-4 border border-[#1e1e1e] cursor-pointer"
+                            iconWrapperClassName="mb-3"
+                            valueClassName="text-xl font-bold text-white mb-0.5 h-7 flex items-center"
+                            titleClassName="text-[10px] text-[#444] uppercase tracking-widest"
+                            authValueClassName="text-xl mb-0.5"
+                            authLabelClassName="text-[10px] text-[#444] uppercase tracking-widest"
                         />
 
                         <StatCard
                             title="Pull Requests"
                             value={githubData?.openPRs ?? "-"}
                             icon={
-                                <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center group-hover:bg-purple-500/20 transition-colors">
-                                    <PullRequestIcon className="w-4 h-4 text-purple-500" />
+                                <div className="w-7 h-7 rounded-lg bg-[#1e1e1e] flex items-center justify-center">
+                                    <PullRequestIcon className="w-3.5 h-3.5 text-[#666]" />
                                 </div>
                             }
                             onClick={
@@ -253,16 +257,18 @@ export default function OverviewPage({
                             }
                             loading={githubLoading}
                             loadingIndicator={
-                                <div className="w-4 h-4 border-2 border-mac-text/20 border-t-mac-accent rounded-full animate-spin" />
+                                <div className="w-3.5 h-3.5 border-2 border-[#333] border-t-orange-500 rounded-full animate-spin" />
                             }
                             showAuthPrompt={!isGitHubAuthenticated}
                             authPromptLabel="Pull Requests"
                             onAuthClick={onGitHubSignIn}
                             authLoading={githubLoading}
-                            className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac hover:shadow-mac-md transition-all cursor-pointer active:scale-[0.98]"
-                            iconWrapperClassName="mb-4"
-                            authValueClassName="text-2xl mb-1"
-                            authLabelClassName="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60"
+                            className="bg-[#111111] rounded-xl p-4 border border-[#1e1e1e] cursor-pointer"
+                            iconWrapperClassName="mb-3"
+                            valueClassName="text-xl font-bold text-white mb-0.5 h-7 flex items-center"
+                            titleClassName="text-[10px] text-[#444] uppercase tracking-widest"
+                            authValueClassName="text-xl mb-0.5"
+                            authLabelClassName="text-[10px] text-[#444] uppercase tracking-widest"
                         />
                     </div>
 
