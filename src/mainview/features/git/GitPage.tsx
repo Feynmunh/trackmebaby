@@ -315,7 +315,7 @@ export default function GitPage({
                                     onClick={() =>
                                         setShowAllFiles(!showAllFiles)
                                     }
-                            className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
+                                    className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
                                 >
                                     {showAllFiles
                                         ? "Show Less"
@@ -376,7 +376,9 @@ export default function GitPage({
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-1.5 border border-mac-border rounded px-2 py-0.5">
-                                    <span className="text-[11px] font-semibold text-orange-400/80">{c.commits}</span>
+                                    <span className="text-[11px] font-semibold text-orange-400/80">
+                                        {c.commits}
+                                    </span>
                                 </div>
                             </div>
                         ))}
