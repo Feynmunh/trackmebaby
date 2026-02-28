@@ -1,8 +1,8 @@
 import type { Database } from "bun:sqlite";
-import { toErrorData, toErrorMessage } from "../../../shared/error.ts";
-import { createLogger } from "../../../shared/logger.ts";
-import { assembleContext } from "../../services/ai/context-assembler.ts";
-import { type AIProvider } from "../../services/ai/index.ts";
+import { toErrorData, toErrorMessage } from "../../../../shared/error.ts";
+import { createLogger } from "../../../../shared/logger.ts";
+import { assembleContext } from "../../../services/ai/context-assembler.ts";
+import { type AIProvider } from "../../../services/ai/index.ts";
 
 export interface AIHandlersDeps {
     db: Database;

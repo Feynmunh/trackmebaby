@@ -1,5 +1,5 @@
 import { BrowserWindow } from "electrobun/bun";
-import { toErrorMessage } from "../../../shared/error.ts";
+import { toErrorMessage } from "../../../../shared/error.ts";
 
 type BrowserWindowInstance = InstanceType<typeof BrowserWindow>;
 

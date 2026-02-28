@@ -1,8 +1,8 @@
 import { homedir } from "node:os";
 import { Utils } from "electrobun/bun";
-import type { Settings } from "../../../shared/types.ts";
-import type { ProjectScanner } from "../../services/project-scanner.ts";
-import type { SettingsService } from "../../services/settings.ts";
+import type { Settings } from "../../../../shared/types.ts";
+import type { ProjectScanner } from "../../../services/project-scanner.ts";
+import type { SettingsService } from "../../../services/settings.ts";
 
 export interface SettingsHandlersDeps {
     settingsService: SettingsService;

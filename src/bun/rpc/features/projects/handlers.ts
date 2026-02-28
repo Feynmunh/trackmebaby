@@ -3,7 +3,7 @@ import {
     getActivitySummary,
     getProjects,
     getRecentEvents,
-} from "../../db/queries.ts";
+} from "../../../db/queries.ts";
 
 export interface ProjectHandlersDeps {
     db: Database;

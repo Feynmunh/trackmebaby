@@ -1,15 +1,15 @@
 import type { Database } from "bun:sqlite";
-import { toErrorData } from "../../../shared/error.ts";
-import { createLogger } from "../../../shared/logger.ts";
-import { isIsoWithinMs, nowIso } from "../../../shared/time.ts";
+import { toErrorData } from "../../../../shared/error.ts";
+import { createLogger } from "../../../../shared/logger.ts";
+import { isIsoWithinMs, nowIso } from "../../../../shared/time.ts";
 import {
     getLatestGitSnapshot,
     getProjectById,
     getProjectStatsCache,
     insertGitSnapshot,
     setProjectStatsCache,
-} from "../../db/queries.ts";
-import type { GitTrackerService } from "../../services/git-tracker.ts";
+} from "../../../db/queries.ts";
+import type { GitTrackerService } from "../../../services/git-tracker.ts";
 
 export interface GitHandlersDeps {
     db: Database;

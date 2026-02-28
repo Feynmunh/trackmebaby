@@ -1,8 +1,8 @@
 import type { Database } from "bun:sqlite";
-import { isIsoWithinMs } from "../../../shared/time.ts";
-import type { GitHubData } from "../../../shared/types.ts";
-import { getGitHubCache, getProjectById } from "../../db/queries.ts";
-import type { GitHubService } from "../../services/github.ts";
+import { isIsoWithinMs } from "../../../../shared/time.ts";
+import type { GitHubData } from "../../../../shared/types.ts";
+import { getGitHubCache, getProjectById } from "../../../db/queries.ts";
+import type { GitHubService } from "../../../services/github.ts";
 
 export interface GitHubHandlersDeps {
     db: Database;

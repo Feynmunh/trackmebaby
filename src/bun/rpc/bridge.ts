@@ -11,13 +11,13 @@ import type { GitTrackerService } from "../services/git-tracker.ts";
 import { GitHubService } from "../services/github.ts";
 import type { ProjectScanner } from "../services/project-scanner.ts";
 import type { SettingsService } from "../services/settings.ts";
-import { createAIHandlers } from "./handlers/ai.ts";
-import { createGitHandlers } from "./handlers/git.ts";
-import { createGitHubHandlers } from "./handlers/github.ts";
-import { createProjectHandlers } from "./handlers/projects.ts";
-import { createSettingsHandlers } from "./handlers/settings.ts";
-import { createSystemHandlers } from "./handlers/system.ts";
-import { createWindowHandlers } from "./handlers/window.ts";
+import { registerAIHandlers } from "./features/ai/registrar.ts";
+import { registerGitHandlers } from "./features/git/registrar.ts";
+import { registerGitHubHandlers } from "./features/github/registrar.ts";
+import { registerProjectHandlers } from "./features/projects/registrar.ts";
+import { registerSettingsHandlers } from "./features/settings/registrar.ts";
+import { registerSystemHandlers } from "./features/system/registrar.ts";
+import { registerWindowHandlers } from "./features/window/registrar.ts";
 
 type BrowserWindowInstance = InstanceType<typeof BrowserWindow>;
 
@@ -55,20 +55,20 @@ export function createRPC(
         maxRequestTime: 15000,
         handlers: {
             requests: {
-                ...createProjectHandlers({ db }),
-                ...createGitHandlers({ db, gitTracker }),
-                ...createAIHandlers({ db, getAIProvider }),
-                ...createSettingsHandlers({
+                ...registerProjectHandlers({ db }),
+                ...registerGitHandlers({ db, gitTracker }),
+                ...registerAIHandlers({ db, getAIProvider }),
+                ...registerSettingsHandlers({
                     settingsService,
                     scanner,
                     resetAIProvider: () => {
                         aiProvider = null;
                     },
                 }),
-                ...createGitHubHandlers({ db, githubService }),
-                ...createWindowHandlers({ getMainWindow }),
+                ...registerGitHubHandlers({ db, githubService }),
+                ...registerWindowHandlers({ getMainWindow }),
             },
-            messages: createSystemHandlers(),
+            messages: registerSystemHandlers(),
         },
     });
 
