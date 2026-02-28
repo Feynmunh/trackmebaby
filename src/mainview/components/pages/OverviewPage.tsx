@@ -116,7 +116,7 @@ export default function OverviewPage({
                         {onRefreshStats && (
                             <button
                                 onClick={onRefreshStats}
-                                className="px-2 py-0.5 rounded border border-mac-border bg-mac-surface text-[9px] font-bold uppercase tracking-widest text-mac-secondary hover:text-orange-400 hover:border-orange-500/30 transition-colors"
+                                className="px-2 py-0.5 rounded border border-mac-border bg-transparent text-[9px] font-bold uppercase tracking-widest text-mac-secondary hover:text-orange-400 hover:border-orange-500/30 transition-colors"
                             >
                                 Refresh
                             </button>
@@ -154,7 +154,7 @@ export default function OverviewPage({
                                 <div className="w-3.5 h-3.5 border-2 border-mac-border border-t-orange-500 rounded-full animate-spin" />
                             }
                             authPromptLabel="Branches"
-                            className={`relative bg-mac-surface rounded-xl p-4 border border-mac-border cursor-pointer ${showingBranches ? "z-[60]" : "z-0"}`}
+                            className={`relative bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors ${showingBranches ? "z-[60]" : "z-0"}`}
                             iconWrapperClassName="mb-3"
                             valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
                             titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
@@ -207,7 +207,7 @@ export default function OverviewPage({
                                 <div className="w-3.5 h-3.5 border-2 border-mac-border border-t-orange-500 rounded-full animate-spin" />
                             }
                             authPromptLabel="Commits"
-                            className="bg-mac-surface rounded-xl p-4 border border-mac-border cursor-pointer"
+                            className="bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors"
                             iconWrapperClassName="mb-3"
                             valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
                             titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
@@ -234,7 +234,7 @@ export default function OverviewPage({
                             authPromptLabel="Issues"
                             onAuthClick={onGitHubSignIn}
                             authLoading={githubLoading}
-                            className="bg-mac-surface rounded-xl p-4 border border-mac-border cursor-pointer"
+                            className="bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors"
                             iconWrapperClassName="mb-3"
                             valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
                             titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"
@@ -263,7 +263,7 @@ export default function OverviewPage({
                             authPromptLabel="Pull Requests"
                             onAuthClick={onGitHubSignIn}
                             authLoading={githubLoading}
-                            className="bg-mac-surface rounded-xl p-4 border border-mac-border cursor-pointer"
+                            className="bg-transparent rounded-xl p-4 border border-mac-border cursor-pointer hover:border-mac-accent/20 transition-colors"
                             iconWrapperClassName="mb-3"
                             valueClassName="text-xl font-bold text-mac-text mb-0.5 h-7 flex items-center"
                             titleClassName="text-[10px] text-mac-secondary uppercase tracking-widest"

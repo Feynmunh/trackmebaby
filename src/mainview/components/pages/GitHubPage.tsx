@@ -105,7 +105,7 @@ export default function GitHubPage({
                         {openIssues.length > 3 && (
                             <button
                                 onClick={() => setShowAllIssues(!showAllIssues)}
-                                className="w-full py-2.5 rounded-xl border border-mac-border bg-mac-surface text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:bg-mac-hover mt-2"
+                                className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
                             >
                                 {showAllIssues
                                     ? "Show Less"
@@ -155,7 +155,7 @@ export default function GitHubPage({
                         {openPRs.length > 3 && (
                             <button
                                 onClick={() => setShowAllPRs(!showAllPRs)}
-                                className="w-full py-2.5 rounded-xl border border-mac-border bg-mac-surface text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:bg-mac-hover mt-2"
+                                className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
                             >
                                 {showAllPRs
                                     ? "Show Less"
