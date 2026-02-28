@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { timeAgo } from "../../../shared/time.ts";
 import type { GitHubData } from "../../../shared/types.ts";
+import GitHubItemCard from "../../components/ui/GitHubItemCard.tsx";
 import { openExternalUrl } from "../../rpc";
-import { CommitTrendGraph } from "../charts/CommitTrendGraph.tsx";
-import GitHubItemCard from "../ui/GitHubItemCard.tsx";
-import { buildTrend } from "../utils/github-trends.ts";
+import { CommitTrendGraph } from "../git/CommitTrendGraph.tsx";
+import { buildTrend } from "./github-trends.ts";
 
 interface GitHubPageProps {
     githubData?: GitHubData | null;

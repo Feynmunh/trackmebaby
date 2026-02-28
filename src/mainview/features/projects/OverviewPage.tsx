@@ -8,12 +8,13 @@ import type {
     Project,
     ProjectStats,
 } from "../../../shared/types.ts";
-import ActivityChart, {
-    type ActivityChartItem,
-} from "../charts/ActivityChart.tsx";
-import { IssueIcon, PullRequestIcon } from "../icons/GitHubIcons.tsx";
-import StatCard from "../ui/StatCard.tsx";
-import { getVitalityStatus } from "../utils/vitality.ts";
+import {
+    IssueIcon,
+    PullRequestIcon,
+} from "../../components/icons/GitHubIcons.tsx";
+import StatCard from "../../components/ui/StatCard.tsx";
+import { getVitalityStatus } from "../../components/utils/vitality.ts";
+import ActivityChart, { type ActivityChartItem } from "./ActivityChart.tsx";
 
 interface OverviewPageProps {
     project: Project;
@@ -163,24 +164,26 @@ export default function OverviewPage({
                                         All Branches
                                     </h4>
                                     <div className="space-y-1.5 max-h-48 overflow-y-auto custom-scrollbar">
-                                        {projectStats.branches.map((branch) => (
-                                            <div
-                                                key={branch}
-                                                className="flex items-center gap-2 text-[13px] text-mac-text py-1.5 px-2 rounded-lg hover:bg-mac-accent/10 hover:text-mac-accent transition-colors font-medium"
-                                            >
-                                                <svg
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    viewBox="0 0 16 16"
-                                                    fill="currentColor"
-                                                    className="w-3.5 h-3.5 opacity-60"
+                                        {projectStats.branches.map(
+                                            (branch: string) => (
+                                                <div
+                                                    key={branch}
+                                                    className="flex items-center gap-2 text-[13px] text-mac-text py-1.5 px-2 rounded-lg hover:bg-mac-accent/10 hover:text-mac-accent transition-colors font-medium"
                                                 >
-                                                    <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
-                                                </svg>
-                                                <span className="truncate">
-                                                    {branch}
-                                                </span>
-                                            </div>
-                                        ))}
+                                                    <svg
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                        viewBox="0 0 16 16"
+                                                        fill="currentColor"
+                                                        className="w-3.5 h-3.5 opacity-60"
+                                                    >
+                                                        <path d="M11.75 2.5a.75.75 0 100 1.5.75.75 0 000-1.5zm-2.25.75a2.25 2.25 0 113 2.122V6A2.5 2.5 0 0110 8.5H6a1.25 1.25 0 00-1.03 1.93.75.75 0 01-1.24.84A2.75 2.75 0 016.5 7H10A1 1 0 0011 6V5.372a2.25 2.25 0 01-1.5-2.122zM4.75 11.5a.75.75 0 100 1.5.75.75 0 000-1.5zM3.25 12.25a2.25 2.25 0 113 2.122V16.5a.75.75 0 01-1.5 0v-2.128a2.25 2.25 0 01-1.5-2.122z" />
+                                                    </svg>
+                                                    <span className="truncate">
+                                                        {branch}
+                                                    </span>
+                                                </div>
+                                            ),
+                                        )}
                                     </div>
                                 </div>
                             )}
@@ -380,7 +383,7 @@ export default function OverviewPage({
                                 All Project Branches
                             </h4>
                             <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto custom-scrollbar pr-2">
-                                {projectStats.branches.map((branch) => (
+                                {projectStats.branches.map((branch: string) => (
                                     <div
                                         key={branch}
                                         className="flex items-center gap-3 text-[15px] text-mac-text py-3 px-4 rounded-xl hover:bg-mac-accent/10 hover:text-mac-accent transition-all border border-transparent hover:border-mac-accent/20 font-medium"

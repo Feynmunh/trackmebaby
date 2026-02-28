@@ -2,8 +2,8 @@ import { useState } from "react";
 import { safeJsonParse } from "../../../shared/error.ts";
 import { timeAgo } from "../../../shared/time.ts";
 import type { GitSnapshot, ProjectStats } from "../../../shared/types.ts";
-import { CommitTrendGraph } from "../charts/CommitTrendGraph.tsx";
-import CopyableHash from "../ui/CopyableHash.tsx";
+import CopyableHash from "../../components/ui/CopyableHash.tsx";
+import { CommitTrendGraph } from "./CommitTrendGraph.tsx";
 
 interface GitPageProps {
     gitSnapshot?: GitSnapshot | null;

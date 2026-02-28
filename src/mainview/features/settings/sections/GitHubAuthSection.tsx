@@ -1,7 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { toErrorData } from "../../../shared/error.ts";
-import { createLogger } from "../../../shared/logger.ts";
-import { getGitHubAuthStatus, githubSignOut, githubStartAuth } from "../../rpc";
+import { toErrorData } from "../../../../shared/error.ts";
+import { createLogger } from "../../../../shared/logger.ts";
+import {
+    getGitHubAuthStatus,
+    githubSignOut,
+    githubStartAuth,
+} from "../../../rpc";
 
 const logger = createLogger("settings");
 

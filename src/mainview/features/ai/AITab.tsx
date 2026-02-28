@@ -1,16 +1,16 @@
 import { ArrowUp, Mic, Plus } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { toErrorData, toErrorMessage } from "../../shared/error.ts";
-import { createLogger } from "../../shared/logger.ts";
-import { nowIso } from "../../shared/time.ts";
-import type { ChatMessage } from "../../shared/types.ts";
+import { toErrorData, toErrorMessage } from "../../../shared/error.ts";
+import { createLogger } from "../../../shared/logger.ts";
+import { nowIso } from "../../../shared/time.ts";
+import type { ChatMessage } from "../../../shared/types.ts";
 
 const logger = createLogger("ai-tab");
 
 // Try to import RPC, fallback for dev/build
 let queryAIFn: ((question: string) => Promise<string>) | null = null;
 try {
-    const rpc = await import("../rpc.ts");
+    const rpc = await import("../../rpc.ts");
     queryAIFn = rpc.queryAI;
 } catch (err: unknown) {
     logger.warn("rpc not available", { error: toErrorData(err) });

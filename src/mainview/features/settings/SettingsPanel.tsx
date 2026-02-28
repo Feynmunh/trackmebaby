@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
-import { toErrorData } from "../../shared/error.ts";
-import { createLogger } from "../../shared/logger.ts";
-import type { Settings } from "../../shared/types.ts";
-import AIConfigSection from "./settings/AIConfigSection.tsx";
-import AppearanceSection from "./settings/AppearanceSection.tsx";
-import GitHubAuthSection from "./settings/GitHubAuthSection.tsx";
-import PerformanceSection from "./settings/PerformanceSection.tsx";
-import WorkspaceSection from "./settings/WorkspaceSection.tsx";
+import { toErrorData } from "../../../shared/error.ts";
+import { createLogger } from "../../../shared/logger.ts";
+import type { Settings } from "../../../shared/types.ts";
+import AIConfigSection from "./sections/AIConfigSection.tsx";
+import AppearanceSection from "./sections/AppearanceSection.tsx";
+import GitHubAuthSection from "./sections/GitHubAuthSection.tsx";
+import PerformanceSection from "./sections/PerformanceSection.tsx";
+import WorkspaceSection from "./sections/WorkspaceSection.tsx";
 
 const logger = createLogger("settings");
 
@@ -19,7 +19,7 @@ let rpcApi: {
 } | null = null;
 
 try {
-    rpcApi = await import("../rpc.ts");
+    rpcApi = await import("../../rpc.ts");
 } catch (err: unknown) {
     logger.warn("rpc not available", { error: toErrorData(err) });
 }

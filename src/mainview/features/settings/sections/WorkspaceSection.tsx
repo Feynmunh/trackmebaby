@@ -1,12 +1,12 @@
 import { FolderOpen, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
-import type { Settings } from "../../../shared/types.ts";
+import type { Settings } from "../../../../shared/types.ts";
 import {
     getPlatform,
     scanProjects,
     selectFolder,
     updateSettings,
-} from "../../rpc";
+} from "../../../rpc";
 
 interface WorkspaceSectionProps {
     settings: Settings;

@@ -1,4 +1,4 @@
-import type { Settings } from "../../../shared/types.ts";
+import type { Settings } from "../../../../shared/types.ts";
 
 interface PerformanceSectionProps {
     settings: Settings;
