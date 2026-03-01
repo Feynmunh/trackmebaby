@@ -102,11 +102,11 @@ function App() {
         });
     };
 
-    // Swipe right → advance to next tab; swipe left → go to previous tab
+    // Swipe left → advance to next tab; swipe right → go to previous tab
     // Only navigates within SWIPEABLE_TABS (settings is excluded)
     useSwipeGesture(appRef, {
-        onSwipeRight: () => navigateTab("left"),
-        onSwipeLeft: () => navigateTab("right"),
+        onSwipeLeft: () => navigateTab("left"),
+        onSwipeRight: () => navigateTab("right"),
         onSwiping: setSwipeProgress,
     });
 
@@ -165,10 +165,10 @@ function App() {
                     {activeTab !== "settings" && (
                         <SwipeHint
                             swipeProgress={swipeProgress}
-                            canGoLeft={canSwipeLeft}
-                            canGoRight={canSwipeRight}
-                            onSwipeRight={() => navigateTab("left")}
-                            onSwipeLeft={() => navigateTab("right")}
+                            canGoLeft={canSwipeRight}
+                            canGoRight={canSwipeLeft}
+                            onSwipeRight={() => navigateTab("right")}
+                            onSwipeLeft={() => navigateTab("left")}
                         />
                     )}
 
