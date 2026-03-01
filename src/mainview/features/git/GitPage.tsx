@@ -35,7 +35,7 @@ export default function GitPage({
 
         return (
             <div className="flex flex-col min-h-0">
-                <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center justify-between mb-3">
                     <h3 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em]">
                         Commit Timeline
                     </h3>
@@ -76,7 +76,7 @@ export default function GitPage({
                 <button
                     type="button"
                     onClick={() => setShowCommitsList((v) => !v)}
-                    className="flex items-center gap-2 mt-3 mb-1 px-3 py-1.5 rounded-lg border border-mac-border bg-mac-surface hover:border-mac-accent/30 hover:bg-mac-hover transition-colors text-mac-secondary hover:text-mac-text"
+                    className="w-full shrink-0 flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-mac-surface/50 hover:bg-mac-hover transition-colors text-mac-secondary hover:text-mac-text"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -107,30 +107,19 @@ export default function GitPage({
                 </button>
 
                 {showCommitsList && (
-                <div className="space-y-4 pr-4">
+                <div className="space-y-3 pr-1 mt-1">
                     {isLoading ? (
                         [1, 2, 3].map((i) => (
                             <div
                                 key={i}
-                                className="bg-transparent rounded-xl p-4 border border-mac-border animate-pulse"
+                                className="py-3 border-b border-mac-border/30 animate-pulse px-1"
                             >
-                                <div className="h-3 bg-mac-border rounded w-3/4 mb-3" />
+                                <div className="h-3 bg-mac-border rounded w-3/4 mb-2" />
                                 <div className="h-2 bg-mac-border rounded w-1/3" />
                             </div>
                         ))
                     ) : commits.length === 0 ? (
-                        <div className="bg-transparent rounded-xl p-6 border border-mac-border text-center">
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth={1}
-                                className="w-8 h-8 text-mac-secondary mx-auto mb-3"
-                            >
-                                <circle cx="12" cy="12" r="3" />
-                                <path d="M12 3v6m0 6v6" />
-                            </svg>
+                        <div className="py-6 text-center">
                             <p className="text-[10px] font-semibold text-mac-secondary uppercase tracking-widest">
                                 No recent activity
                             </p>
@@ -140,10 +129,10 @@ export default function GitPage({
                             <div
                                 key={commit.hash}
                                 id={`commit-${commit.hash}`}
-                                className="bg-transparent rounded-xl p-4 border border-mac-border hover:border-mac-accent/20 transition-colors cursor-default scroll-mt-4"
+                                className="py-3 border-b border-mac-border/30 hover:bg-mac-hover/20 transition-colors cursor-default scroll-mt-4 px-1 last:border-b-0"
                             >
                                 <div className="flex items-start gap-3">
-                                    <div className="w-7 h-7 rounded-lg bg-transparent flex items-center justify-center shrink-0 border border-mac-border">
+                                    <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             viewBox="0 0 16 16"
@@ -208,7 +197,7 @@ export default function GitPage({
                     {hasMore && !isLoading && (
                         <button
                             onClick={() => setShowAllCommits(!showAllCommits)}
-                            className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
+                            className="w-full py-1.5 text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:text-mac-text transition-colors mt-1"
                         >
                             {showAllCommits
                                 ? "Show Less"

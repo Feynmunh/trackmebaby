@@ -49,8 +49,6 @@ export default function OverviewPage({
     githubLoading = false,
     onGitHubSignIn,
     statsLoading = false,
-    statsLastUpdated,
-    onRefreshStats,
 }: OverviewPageProps) {
     const [showingBranches, setShowingBranches] = useState(false);
     const [, forceRender] = useState(0);
@@ -170,56 +168,43 @@ export default function OverviewPage({
 
     if (isWidget) {
         return (
-            <div className="space-y-5">
-                <div className="flex items-start justify-between gap-2">
+            <div className="space-y-4">
+                <div className="flex items-center justify-between gap-2">
                     <h2 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em] shrink-0">
                         Project Vitality
                     </h2>
-                    <div className="flex items-center gap-2 flex-wrap justify-end">
-                        {statsLastUpdated && (
-                            <span className="text-[10px] text-mac-secondary uppercase tracking-widest">
-                                {timeAgo(statsLastUpdated, {
-                                    emptyLabel: "never",
-                                    justNowLabel: "just now",
-                                    maxDays: Number.POSITIVE_INFINITY,
-                                })}
-                            </span>
-                        )}
-                        {onRefreshStats && (
-                            <button
-                                onClick={onRefreshStats}
-                                className="px-2 py-0.5 rounded border border-mac-border bg-transparent text-[9px] font-bold uppercase tracking-widest text-mac-secondary hover:text-orange-400 hover:border-orange-500/30 transition-colors"
-                            >
-                                Refresh
-                            </button>
-                        )}
-                        <span
-                            className={`text-[10px] font-semibold ${vitality.colorClass} ${vitality.bgClass} px-2 py-0.5 rounded uppercase tracking-widest`}
-                        >
-                            {vitality.label}
-                        </span>
-                    </div>
+                    <span
+                        className={`text-[10px] font-semibold ${vitality.colorClass} ${vitality.bgClass} px-2 py-0.5 rounded uppercase tracking-widest`}
+                    >
+                        {vitality.label}
+                    </span>
                 </div>
 
-                <div className="bg-transparent rounded-xl border border-mac-border p-4 relative overflow-visible">
-                    <div className="space-y-3">
+                <div className="relative overflow-visible">
+                    <div className="space-y-1">
                         {vitalityBars.map((row) => {
                             const pct =
                                 barMax > 0 ? (row.value / barMax) * 100 : 0;
+                            const isTop =
+                                row.value === barMax && row.value > 0;
                             return (
                                 <div
                                     key={row.key}
-                                    className="flex items-center gap-3"
+                                    className="group flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors -mx-2 cursor-pointer"
+                                    onClick={row.onClick}
                                 >
-                                    <button
-                                        onClick={row.onClick}
-                                        className="w-[68px] text-right text-[10px] font-semibold uppercase tracking-widest text-mac-secondary hover:text-orange-400 active:text-orange-500 transition-colors shrink-0 leading-none"
-                                    >
-                                        {row.label}
-                                    </button>
-                                    <div className="flex-1 h-[13px] rounded-sm overflow-hidden bg-mac-hover">
+                                    <div className="flex items-center gap-1.5 w-[72px] justify-end shrink-0">
+                                        <span
+                                            className="w-1.5 h-1.5 rounded-full shrink-0 opacity-80"
+                                            style={{ background: row.stripe }}
+                                        />
+                                        <span className="text-right text-[10px] font-semibold uppercase tracking-widest text-mac-secondary group-hover:text-mac-text transition-colors leading-none">
+                                            {row.label}
+                                        </span>
+                                    </div>
+                                    <div className="flex-1 h-[8px] rounded-full overflow-hidden bg-white/[0.05]">
                                         {row.loading ? (
-                                            <div className="h-full w-1/3 bg-mac-border/40 rounded animate-pulse" />
+                                            <div className="h-full w-1/3 bg-mac-border/40 rounded-full animate-pulse" />
                                         ) : row.needsAuth ? (
                                             <div className="h-full flex items-center px-2">
                                                 <span className="text-[9px] text-mac-secondary/40 italic">
@@ -228,17 +213,18 @@ export default function OverviewPage({
                                             </div>
                                         ) : (
                                             <div
-                                                className="h-full rounded-sm"
+                                                className="h-full rounded-full transition-all duration-700"
                                                 style={{
-                                                    width: `${Math.max(pct, row.value > 0 ? 2 : 0)}%`,
-                                                    background: `repeating-linear-gradient(90deg, ${row.stripe} 0px, ${row.stripe} 4px, transparent 4px, transparent 7px)`,
-                                                    transition:
-                                                        "width 0.6s ease",
+                                                    width: `${Math.max(pct, row.value > 0 ? 3 : 0)}%`,
+                                                    background: `linear-gradient(90deg, ${row.stripe} 0%, ${row.stripe}99 100%)`,
+                                                    boxShadow: isTop
+                                                        ? `0 0 8px ${row.stripe}70`
+                                                        : undefined,
                                                 }}
                                             />
                                         )}
                                     </div>
-                                    <span className="text-[11px] font-bold text-mac-text w-6 text-right shrink-0 tabular-nums">
+                                    <span className="text-[11px] font-bold text-mac-text w-7 text-right shrink-0 tabular-nums">
                                         {row.loading ? (
                                             <span className="text-mac-secondary/50 animate-pulse">
                                                 ·

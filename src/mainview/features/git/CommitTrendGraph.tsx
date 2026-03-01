@@ -99,7 +99,7 @@ export function CommitTrendGraph({
     const hovered = hoveredIdx !== null ? data[hoveredIdx] : null;
 
     return (
-        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac mb-6">
+        <div className="rounded-xl p-3 mb-3">
             <div className="flex items-center mb-4">
                 <div className="flex gap-4">
                     <div className="flex items-center gap-2">

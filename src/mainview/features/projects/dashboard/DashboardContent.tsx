@@ -54,62 +54,68 @@ export default function DashboardContent({
     githubRef,
 }: DashboardContentProps) {
     return (
-        <main className="flex-1 overflow-y-auto custom-scrollbar">
-            {/* ── CODE content ── */}
-            <div className="px-12 pb-12 pt-6 max-w-[1600px] mx-auto">
-                <AIOverview
-                    project={project}
-                    gitSnapshot={gitSnapshot}
-                    refreshKey={aiRefreshKey}
-                />
+        <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 px-6 py-3">
 
-                <div className="grid grid-cols-2 gap-8 mt-8">
-                    {/* Left — Summary */}
-                    <div className="space-y-8">
-                        <section>
-                            <OverviewPage
-                                project={project}
-                                gitSnapshot={gitSnapshot}
-                                projectStats={projectStats}
-                                eventCount={todayEventCount}
-                                events={events}
-                                activitySummary={activitySummary}
-                                isWidget={true}
-                                onCommitsClick={onCommitsClick}
-                                onGitHubClick={onGitHubClick}
-                                isGitHubAuthenticated={isGitHubAuthenticated}
-                                githubData={githubData}
-                                githubLoading={githubLoading}
-                                onGitHubSignIn={onGitHubSignIn}
-                                statsLoading={statsLoading}
-                                statsLastUpdated={statsLastUpdated}
-                                onRefreshStats={onRefreshStats}
-                            />
-                        </section>
-                    </div>
+            {/* ── TOP ROW: bento cells, full width stacked ── */}
+            <div className="flex flex-col gap-3 shrink-0">
 
-                    {/* Right — Commit Graph + PR / Issues */}
-                    <div className="space-y-8">
-                        <section ref={timelineRef} className="scroll-mt-6">
-                            <GitPage
-                                gitSnapshot={gitSnapshot}
-                                projectStats={projectStats}
-                                statsLoading={statsLoading}
-                                isWidget={true}
-                                section="timeline"
-                            />
-                        </section>
+                {/* AI Pulse cell — owns its own card border */}
+                <div>
+                    <AIOverview
+                        project={project}
+                        gitSnapshot={gitSnapshot}
+                        refreshKey={aiRefreshKey}
+                        onRefreshStats={onRefreshStats}
+                        statsLastUpdated={statsLastUpdated}
+                    />
+                </div>
 
-                        <section ref={githubRef} className="scroll-mt-6">
-                            <GitHubPage
-                                githubData={githubData}
-                                githubLoading={githubLoading}
-                                isGitHubAuthenticated={isGitHubAuthenticated}
-                                isWidget={true}
-                                section="environment"
-                            />
-                        </section>
-                    </div>
+                {/* Vitality bars cell */}
+                <div className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3">
+                    <OverviewPage
+                        project={project}
+                        gitSnapshot={gitSnapshot}
+                        projectStats={projectStats}
+                        eventCount={todayEventCount}
+                        events={events}
+                        activitySummary={activitySummary}
+                        isWidget={true}
+                        onCommitsClick={onCommitsClick}
+                        onGitHubClick={onGitHubClick}
+                        isGitHubAuthenticated={isGitHubAuthenticated}
+                        githubData={githubData}
+                        githubLoading={githubLoading}
+                        onGitHubSignIn={onGitHubSignIn}
+                        statsLoading={statsLoading}
+                        statsLastUpdated={statsLastUpdated}
+                        onRefreshStats={onRefreshStats}
+                    />
+                </div>
+            </div>
+
+            {/* ── BOTTOM ROW: stretches to fill remaining space ── */}
+            <div className="grid grid-cols-2 gap-3 pb-3">
+
+                {/* Commit Timeline cell */}
+                <div ref={timelineRef} className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3">
+                    <GitPage
+                        gitSnapshot={gitSnapshot}
+                        projectStats={projectStats}
+                        statsLoading={statsLoading}
+                        isWidget={true}
+                        section="timeline"
+                    />
+                </div>
+
+                {/* Remote Environment cell */}
+                <div ref={githubRef} className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3">
+                    <GitHubPage
+                        githubData={githubData}
+                        githubLoading={githubLoading}
+                        isGitHubAuthenticated={isGitHubAuthenticated}
+                        isWidget={true}
+                        section="environment"
+                    />
                 </div>
             </div>
         </main>
