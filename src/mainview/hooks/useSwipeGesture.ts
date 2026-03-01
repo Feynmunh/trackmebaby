@@ -4,15 +4,8 @@
  * Listens on window so that inner scrollable elements don't swallow
  * the wheel events before they reach the handler.
  *
- * Strategy A — Wheel events (macOS / Windows)
- *   Trackpads fire WheelEvents with deltaX. deltaMode is 0 (pixels).
- *
- * Strategy B — Pointer capture (Linux / GTK fallback)
- *   GTK intercepts large horizontal wheel deltas. We also track
- *   pointerdown/pointerup as a second detection path.
- *
- * deltaMode normalization:
- *   Linux sends deltaMode=1 (lines, ~16px each). We multiply to normalize.
+ * Strategy: Wheel events (macOS / Windows)
+ *   Trackpads fire WheelEvents with deltaX. deltaMode is always 0 (pixels).
  *
  * onSwiping callback:
  *   Called continuously during a swipe with the current progress (-1 to 1)
@@ -20,8 +13,6 @@
  */
 
 import { useEffect, useRef } from "react";
-
-const LINE_HEIGHT = 16;
 
 interface SwipeGestureOptions {
     /** Minimum accumulated horizontal delta to trigger a swipe (px). Default 50 */
@@ -32,8 +23,6 @@ interface SwipeGestureOptions {
     cooldownMs?: number;
     /** deltaX must be this many times larger than deltaY. Default 1.2 */
     axisRatio?: number;
-    /** Pointer fallback travel distance (px). Default 40 */
-    pointerThreshold?: number;
     /** Called during swipe with progress value (-1 to 1), then 0 on completion */
     onSwiping?: (progress: number) => void;
     /** Called when user swipes right */
@@ -53,7 +42,6 @@ export function useSwipeGesture(
         accumulateMs = 80,
         cooldownMs = 600,
         axisRatio = 1.2,
-        pointerThreshold = 40,
         onSwipeRight,
         onSwipeLeft,
         onSwiping,
@@ -86,15 +74,13 @@ export function useSwipeGesture(
             }
         };
 
-        // ── Strategy A: Wheel (window-level so inner scroll doesn't block) ──
         let accumulatedX = 0;
         let accumulatedY = 0;
         let accumulateTimer: ReturnType<typeof setTimeout> | null = null;
 
         const handleWheel = (e: WheelEvent) => {
-            const factor = e.deltaMode === 1 ? LINE_HEIGHT : 1;
-            const dx = e.deltaX * factor;
-            const dy = e.deltaY * factor;
+            const dx = e.deltaX;
+            const dy = e.deltaY;
 
             accumulatedX += dx;
             accumulatedY += dy;
@@ -123,73 +109,12 @@ export function useSwipeGesture(
             }, accumulateMs);
         };
 
-        // ── Strategy B: Pointer capture (Linux GTK fallback) ─────────────────
-        let pointerStartX = 0;
-        let pointerStartY = 0;
-        let trackingPointerId: number | null = null;
-
-        const handlePointerDown = (e: PointerEvent) => {
-            if (e.pointerType === "mouse") return;
-            pointerStartX = e.clientX;
-            pointerStartY = e.clientY;
-            trackingPointerId = e.pointerId;
-            (e.currentTarget as HTMLElement)?.setPointerCapture(e.pointerId);
-        };
-
-        const handlePointerUp = (e: PointerEvent) => {
-            if (trackingPointerId === null || e.pointerId !== trackingPointerId)
-                return;
-            trackingPointerId = null;
-            const dx = e.clientX - pointerStartX;
-            const dy = e.clientY - pointerStartY;
-            const absX = Math.abs(dx);
-            const absY = Math.abs(dy);
-            if (absX >= pointerThreshold && absX > absY * axisRatio) {
-                tryFire(dx);
-            } else {
-                onSwipingRef.current?.(0);
-            }
-        };
-
-        const handlePointerCancel = () => {
-            trackingPointerId = null;
-            onSwipingRef.current?.(0);
-        };
-
         // Listen on window so inner scrollable divs don't block the event
         window.addEventListener("wheel", handleWheel, { passive: true });
-        window.addEventListener(
-            "pointerdown",
-            handlePointerDown as EventListener,
-        );
-        window.addEventListener("pointerup", handlePointerUp as EventListener);
-        window.addEventListener(
-            "pointercancel",
-            handlePointerCancel as EventListener,
-        );
 
         return () => {
             window.removeEventListener("wheel", handleWheel);
-            window.removeEventListener(
-                "pointerdown",
-                handlePointerDown as EventListener,
-            );
-            window.removeEventListener(
-                "pointerup",
-                handlePointerUp as EventListener,
-            );
-            window.removeEventListener(
-                "pointercancel",
-                handlePointerCancel as EventListener,
-            );
             if (accumulateTimer !== null) clearTimeout(accumulateTimer);
         };
-    }, [
-        enabled,
-        threshold,
-        accumulateMs,
-        cooldownMs,
-        axisRatio,
-        pointerThreshold,
-    ]);
+    }, [enabled, threshold, accumulateMs, cooldownMs, axisRatio]);
 }

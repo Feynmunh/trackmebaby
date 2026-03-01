@@ -102,11 +102,11 @@ function App() {
         });
     };
 
-    // Swipe left → advance to next tab; swipe right → go to previous tab
+    // Swipe right → advance to next tab; swipe left → go to previous tab
     // Only navigates within SWIPEABLE_TABS (settings is excluded)
     useSwipeGesture(appRef, {
-        onSwipeLeft: () => navigateTab("left"),
-        onSwipeRight: () => navigateTab("right"),
+        onSwipeRight: () => navigateTab("left"),
+        onSwipeLeft: () => navigateTab("right"),
         onSwiping: setSwipeProgress,
     });
 
@@ -165,12 +165,10 @@ function App() {
                     {activeTab !== "settings" && (
                         <SwipeHint
                             swipeProgress={swipeProgress}
-                            leftLabel="Projects"
-                            rightLabel="AI Chat"
-                            canGoLeft={canSwipeRight}
-                            canGoRight={canSwipeLeft}
-                            onSwipeRight={() => navigateTab("right")}
-                            onSwipeLeft={() => navigateTab("left")}
+                            canGoLeft={canSwipeLeft}
+                            canGoRight={canSwipeRight}
+                            onSwipeRight={() => navigateTab("left")}
+                            onSwipeLeft={() => navigateTab("right")}
                         />
                     )}
 

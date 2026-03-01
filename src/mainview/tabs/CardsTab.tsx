@@ -250,7 +250,6 @@ export default function CardsTab({
                         {/* Swipe right hint — shown when inside a project dashboard, driven by live gesture progress */}
                         <SwipeHint
                             swipeProgress={swipeProgress}
-                            leftLabel="Back to projects"
                             canGoLeft={true}
                             canGoRight={false}
                             onSwipeRight={closeDashboard}
