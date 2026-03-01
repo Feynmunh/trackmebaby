@@ -20,6 +20,7 @@ interface ProjectDashboardProps {
     statsLoading?: boolean;
     statsLastUpdated?: string;
     onRefreshStats?: () => void;
+    aiRefreshKey?: number;
     onBack: () => void;
     onNavigateToSettings?: () => void;
 }
@@ -33,6 +34,7 @@ export default function ProjectDashboard({
     statsLoading = false,
     statsLastUpdated,
     onRefreshStats,
+    aiRefreshKey,
     onBack,
     onNavigateToSettings,
 }: ProjectDashboardProps) {
@@ -82,6 +84,7 @@ export default function ProjectDashboard({
                 statsLoading={statsLoading}
                 statsLastUpdated={statsLastUpdated}
                 onRefreshStats={onRefreshStats}
+                aiRefreshKey={aiRefreshKey}
                 onCommitsClick={() =>
                     timelineRef.current?.scrollIntoView({
                         behavior: "smooth",

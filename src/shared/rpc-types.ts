@@ -7,6 +7,7 @@ import type { LogEntry } from "./logger.ts";
 import type {
     ActivityEvent,
     ActivitySummary,
+    AIQueryOptions,
     GitHubData,
     GitSnapshot,
     Project,
@@ -38,7 +39,7 @@ export type TrackmeBabyRPC = {
                 response: ProjectStats | null;
             };
             queryAI: {
-                params: { question: string };
+                params: { question: string; options?: AIQueryOptions };
                 response: string;
             };
             getSettings: {
@@ -100,6 +101,10 @@ export type TrackmeBabyRPC = {
             openExternalUrl: {
                 params: { url: string };
                 response: { success: boolean; error?: string };
+            };
+            getGitDiff: {
+                params: { projectId: string };
+                response: { diff: string; error?: string };
             };
         };
         messages: {

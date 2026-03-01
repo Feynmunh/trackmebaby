@@ -31,7 +31,7 @@ export default function Tooltip({
         <div className={`group/tooltip relative inline-flex ${className}`}>
             {children}
             <div
-                className={`absolute ${positionClasses[position]} px-3 py-1.5 rounded-lg bg-mac-surface/90 backdrop-blur-md border border-mac-border text-[10px] font-bold text-mac-text whitespace-nowrap shadow-mac-lg z-[100] opacity-0 scale-90 group-hover/tooltip:opacity-100 group-hover/tooltip:scale-100 transition-all duration-150 pointer-events-none`}
+                className={`absolute ${positionClasses[position]} px-3 py-2 rounded-lg bg-mac-surface/90 backdrop-blur-md border border-mac-border text-xs font-semibold text-mac-text whitespace-nowrap shadow-mac-lg z-[100] opacity-0 scale-90 group-hover/tooltip:opacity-100 group-hover/tooltip:scale-100 transition-all duration-150 pointer-events-none`}
             >
                 {content}
                 <div

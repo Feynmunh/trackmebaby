@@ -122,3 +122,12 @@ export interface GitHubData {
     issues: GitHubIssue[];
     pullRequests: GitHubPR[];
 }
+
+export type AIQueryTask = "general" | "project_summary" | "file_summary";
+
+export interface AIQueryOptions {
+    task?: AIQueryTask;
+    projectId?: string;
+    filePath?: string;
+    fileType?: string;
+}

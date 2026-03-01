@@ -4,13 +4,11 @@
  */
 
 export interface AIProvider {
-    /**
-     * Send a query with context to the AI model.
-     * @param context - Readable activity summary (pre-formatted)
-     * @param question - User's natural language question
-     * @returns AI's response text
-     */
-    query(context: string, question: string): Promise<string>;
+    query(
+        context: string,
+        question: string,
+        systemPrompt?: string,
+    ): Promise<string>;
 
     /**
      * Test if the provider connection is working.

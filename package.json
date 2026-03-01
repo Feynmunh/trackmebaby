@@ -16,6 +16,7 @@
     },
     "dependencies": {
         "@parcel/watcher-wasm": "^2.5.6",
+        "@pierre/diffs": "^1.0.11",
         "electrobun": "1.13.1",
         "ignore": "^7.0.5",
         "lucide-react": "^0.575.0",

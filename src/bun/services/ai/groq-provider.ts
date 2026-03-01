@@ -10,7 +10,7 @@ import type { AIProvider } from "./provider.ts";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
-const SYSTEM_PROMPT = `You are trackmebaby, a developer activity tracking assistant. You help developers understand what they've been working on by analyzing their file changes, git activity, and project interactions.
+const DEFAULT_SYSTEM_PROMPT = `You are trackmebaby, a developer activity tracking assistant. You help developers understand what they've been working on by analyzing their file changes, git activity, and project interactions.
 
 When answering questions:
 - Be concise and specific
@@ -34,9 +34,13 @@ export class GroqProvider implements AIProvider {
         this.model = model;
     }
 
-    async query(context: string, question: string): Promise<string> {
+    async query(
+        context: string,
+        question: string,
+        systemPrompt?: string,
+    ): Promise<string> {
         if (!this.apiKey) {
-            return "No API key configured. Please add your Groq API key in Settings.";
+            return "Please add your GROQ_API_KEY to your .env file to get AI insights.";
         }
 
         try {
@@ -49,7 +53,10 @@ export class GroqProvider implements AIProvider {
                 body: JSON.stringify({
                     model: this.model,
                     messages: [
-                        { role: "system", content: SYSTEM_PROMPT },
+                        {
+                            role: "system",
+                            content: systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
+                        },
                         {
                             role: "user",
                             content: `Here is my recent developer activity:\n\n${context}\n\nQuestion: ${question}`,
