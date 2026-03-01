@@ -168,6 +168,12 @@ async function assembleFileContext(
         fileType === "deleted" ||
         fileType === "remove" ||
         fileType === "removed";
+    const isNew =
+        fileType === "add" ||
+        fileType === "added" ||
+        fileType === "create" ||
+        fileType === "created" ||
+        fileType === "new";
 
     const sections: string[] = [];
     sections.push("[FILE_METADATA]");
@@ -185,9 +191,9 @@ async function assembleFileContext(
 
     // For modified files, always include the diff so AI can see what changed
     const diff = await loadFileDiff(project.path, filePath);
-    const isModified = !isDeleted && !isNew && fileContent;
+    const isModified = !isDeleted && !isNew && Boolean(fileContent);
 
-    if (isModified && diff) {
+    if (isModified && diff && fileContent) {
         // Modified: include both content and diff
         sections.push("[FILE_CONTENT]");
         sections.push(fileContent);

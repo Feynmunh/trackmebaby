@@ -10,13 +10,15 @@ import { useEffect, useMemo, useState } from "react";
 import type { GitSnapshot, Project } from "../../../../shared/types.ts";
 import { getGitDiff, queryAI } from "../../../rpc.ts";
 
-const diffUnsafeCSS = `
+const getDiffUnsafeCSS = (theme: "light" | "dark") => {
+    const isDark = theme === "dark";
+    return `
     [data-diffs-header] {
-        background-color: #1e1e1e !important;
-        border-bottom: 1px solid #30363d;
+        background-color: ${isDark ? "#1e1e1e" : "#f6f8fa"} !important;
+        border-bottom: 1px solid ${isDark ? "#30363d" : "#d0d7de"};
     }
     [data-diffs] {
-        background-color: #0d1117 !important;
+        background-color: ${isDark ? "#0d1117" : "#ffffff"} !important;
     }
     pre {
         background-color: transparent !important;
@@ -28,6 +30,14 @@ const diffUnsafeCSS = `
         background-color: rgba(244, 63, 94, 0.15) !important;
     }
 `;
+};
+
+const getTheme = (): "light" | "dark" => {
+    if (typeof window === "undefined") return "dark";
+    return document.documentElement.classList.contains("dark")
+        ? "dark"
+        : "light";
+};
 
 interface DiffViewProps {
     project: Project;
@@ -57,6 +67,21 @@ export default function DiffView({
     const [fileSummaryErrors, setFileSummaryErrors] = useState<
         Record<string, string>
     >({});
+    const [theme, setTheme] = useState<"light" | "dark">("dark");
+
+    useEffect(() => {
+        setTheme(getTheme());
+
+        const observer = new MutationObserver(() => {
+            setTheme(getTheme());
+        });
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class"],
+        });
+
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         const fetchDiff = async () => {
@@ -102,7 +127,10 @@ export default function DiffView({
         return { added, removed };
     };
 
-    const fetchFileSummary = async (fileKey: string, file: FileDiffMetadata) => {
+    const fetchFileSummary = async (
+        fileKey: string,
+        file: FileDiffMetadata,
+    ) => {
         setFileSummaryLoading((prev) => ({ ...prev, [fileKey]: true }));
         setFileSummaryErrors((prev) => ({ ...prev, [fileKey]: "" }));
 
@@ -138,13 +166,15 @@ export default function DiffView({
         }
     }, [diffContent]);
 
+    const diffUnsafeCSS = useMemo(() => getDiffUnsafeCSS(theme), [theme]);
+
     return (
         <div className="bg-mac-surface/40 backdrop-blur-xl border border-mac-border rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] max-w-4xl relative">
             <div className="px-8 py-5 border-b border-mac-border flex items-center justify-between bg-mac-surface/20 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-zinc-800/60 border border-zinc-700/50">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg dark:bg-zinc-800/60 dark:border-zinc-700/50 bg-zinc-100/60 border border-zinc-200/50">
                         <GitBranch size={14} className="text-zinc-400" />
-                        <span className="text-sm font-semibold text-zinc-200">
+                        <span className="text-sm font-semibold dark:text-zinc-200 text-zinc-700">
                             {gitSnapshot.branch}
                         </span>
                     </div>
@@ -173,7 +203,7 @@ export default function DiffView({
                 </button>
             </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar bg-black">
+            <div className="flex-1 overflow-auto custom-scrollbar dark:bg-black bg-white">
                 {loading ? (
                     <div className="p-12 text-center text-mac-secondary font-medium animate-pulse">
                         Loading diff...
@@ -201,10 +231,10 @@ export default function DiffView({
                             return (
                                 <div
                                     key={fileKey}
-                                    className="bg-gradient-to-br from-zinc-800/80 to-zinc-900/80 border border-zinc-700/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
+                                    className="dark:bg-gradient-to-br dark:from-zinc-800/80 dark:to-zinc-900/80 dark:border-zinc-700/50 bg-gradient-to-br from-zinc-100/80 to-zinc-200/80 border border-zinc-200/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
                                 >
-                                    <div className="px-4 py-3 flex items-center justify-between bg-zinc-800/50 border-b border-zinc-700/30">
-                                        <div className="text-sm font-semibold text-zinc-100 truncate">
+                                    <div className="px-4 py-3 flex items-center justify-between dark:bg-zinc-800/50 dark:border-zinc-700/30 bg-zinc-50/50 border-b border-zinc-200/30">
+                                        <div className="text-sm font-semibold dark:text-zinc-100 text-zinc-800 truncate">
                                             {file.name}
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -237,10 +267,13 @@ export default function DiffView({
                                                             fileKey
                                                         ]
                                                     ) {
-                                                        void fetchFileSummary(fileKey, file);
+                                                        void fetchFileSummary(
+                                                            fileKey,
+                                                            file,
+                                                        );
                                                     }
                                                 }}
-                                                className="text-zinc-400 hover:text-zinc-100 transition-colors"
+                                                className="dark:text-zinc-400 dark:hover:text-zinc-100 text-zinc-500 hover:text-zinc-700 transition-colors"
                                                 aria-label={
                                                     isExpanded
                                                         ? "Close diff"
@@ -263,13 +296,13 @@ export default function DiffView({
                                                 </div>
                                                 {fileSummaryLoading[fileKey] ? (
                                                     <div className="space-y-2 mt-3">
-                                                        <div className="h-3 bg-zinc-800/70 rounded w-[85%] animate-pulse" />
-                                                        <div className="h-3 bg-zinc-800/60 rounded w-[60%] animate-pulse" />
+                                                        <div className="h-3 dark:bg-zinc-800/70 bg-zinc-200/70 rounded w-[85%] animate-pulse" />
+                                                        <div className="h-3 dark:bg-zinc-800/60 bg-zinc-200/60 rounded w-[60%] animate-pulse" />
                                                     </div>
                                                 ) : fileSummaryErrors[
                                                       fileKey
                                                   ] ? (
-                                                    <p className="mt-3 text-sm text-zinc-400">
+                                                    <p className="mt-3 text-sm dark:text-zinc-400 text-zinc-500">
                                                         {
                                                             fileSummaryErrors[
                                                                 fileKey
@@ -277,7 +310,7 @@ export default function DiffView({
                                                         }
                                                     </p>
                                                 ) : (
-                                                    <p className="mt-3 text-[14px] leading-relaxed text-zinc-200 font-medium">
+                                                    <p className="mt-3 text-[14px] leading-relaxed dark:text-zinc-200 text-zinc-700 font-medium">
                                                         {fileSummaries[
                                                             fileKey
                                                         ] ?? ""}
@@ -288,7 +321,10 @@ export default function DiffView({
                                                 fileDiff={file}
                                                 options={{
                                                     overflow: "wrap",
-                                                    theme: "dark-plus",
+                                                    theme:
+                                                        theme === "dark"
+                                                            ? "dark-plus"
+                                                            : "pierre-light",
                                                     expandUnchanged: false,
                                                     hunkSeparators: "line-info",
                                                     disableFileHeader: true,
