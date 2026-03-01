@@ -248,6 +248,7 @@ export default function CardsTab({
                         <SwipeHint
                             showLeft={true}
                             leftLabel="Back to projects"
+                            onSwipeRight={closeDashboard}
                         />
                         <ProjectDashboard
                             project={projects[activeIndex]}

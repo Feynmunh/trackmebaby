@@ -1,22 +1,21 @@
 /**
- * SwipeHint — subtle animated edge arrows that indicate swipe navigation is available.
+ * SwipeHint — minimal animated edge indicators for swipe navigation.
  *
- * Shows a translucent chevron on the left and/or right edge of the content area.
- * The hints briefly appear on mount (to teach the gesture) then fade out,
- * and re-appear on hover near the edges.
+ * Design: a small frosted-glass capsule with a bouncing chevron sits
+ * at mid-height on the left/right edge. It animates in on mount and
+ * loops the chevron nudge to draw attention without being intrusive.
+ * Clicking it triggers the navigation action directly.
  */
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SwipeHintProps {
-    /** Show the left arrow (swipe right = go back) */
     showLeft?: boolean;
-    /** Show the right arrow (swipe left = go forward) */
     showRight?: boolean;
-    /** Label shown on hover for the left arrow */
     leftLabel?: string;
-    /** Label shown on hover for the right arrow */
     rightLabel?: string;
+    onSwipeLeft?: () => void;
+    onSwipeRight?: () => void;
 }
 
 export default function SwipeHint({
@@ -24,61 +23,112 @@ export default function SwipeHint({
     showRight = false,
     leftLabel = "Go back",
     rightLabel = "Go forward",
+    onSwipeLeft,
+    onSwipeRight,
 }: SwipeHintProps) {
     if (!showLeft && !showRight) return null;
 
     return (
         <>
-            {/* Left edge hint */}
+            {/* ── Left hint ─────────────────────────────────────────────── */}
             {showLeft && (
-                <div
-                    className="absolute left-0 top-1/2 -translate-y-1/2 z-50 pointer-events-none
-                                flex items-center group/left
-                                animate-in fade-in slide-in-from-left-2 duration-500"
+                <button
+                    onClick={onSwipeRight}
+                    title={leftLabel}
+                    aria-label={leftLabel}
+                    style={{
+                        position: "absolute",
+                        left: 0,
+                        top: "50%",
+                        zIndex: 50,
+                        animation:
+                            "swipe-hint-enter-left 300ms cubic-bezier(0.34,1.56,0.64,1) both",
+                    }}
+                    className="group flex items-center cursor-pointer focus:outline-none"
                 >
+                    {/* Frosted glass track */}
                     <div
-                        className="flex items-center gap-1 ml-2
-                                    opacity-0 hover:opacity-100
-                                    [animation:swipe-hint-pulse_3s_ease-in-out_1]"
+                        className="flex items-center gap-1.5 ml-2 pl-1.5 pr-3 py-2
+                                   rounded-full
+                                   bg-mac-surface/70 backdrop-blur-xl
+                                   border border-mac-border/40
+                                   shadow-mac-md
+                                   transition-all duration-150
+                                   group-hover:bg-mac-surface/90
+                                   group-hover:shadow-mac-lg
+                                   group-hover:scale-105
+                                   group-active:scale-95"
+                        style={{
+                            animation: "swipe-glow 2.4s ease-in-out infinite",
+                        }}
                     >
-                        <div
-                            className="flex items-center gap-1 px-2 py-1.5 rounded-full
-                                        bg-mac-surface/60 backdrop-blur-md border border-mac-border/50
-                                        shadow-mac text-mac-secondary"
+                        {/* Bouncing chevron */}
+                        <span
+                            style={{
+                                animation:
+                                    "swipe-nudge-left 1.6s ease-in-out infinite",
+                                display: "flex",
+                            }}
                         >
                             <ChevronLeft className="w-3.5 h-3.5 text-mac-accent" />
-                            <span className="text-[11px] font-medium hidden group-hover/left:block">
-                                {leftLabel}
-                            </span>
-                        </div>
+                        </span>
+
+                        {/* Label */}
+                        <span className="text-[11px] font-medium leading-none text-mac-secondary group-hover:text-mac-text transition-colors duration-150 select-none">
+                            {leftLabel}
+                        </span>
                     </div>
-                </div>
+                </button>
             )}
 
-            {/* Right edge hint */}
+            {/* ── Right hint ────────────────────────────────────────────── */}
             {showRight && (
-                <div
-                    className="absolute right-0 top-1/2 -translate-y-1/2 z-50 pointer-events-none
-                                flex items-center
-                                animate-in fade-in slide-in-from-right-2 duration-500"
+                <button
+                    onClick={onSwipeLeft}
+                    title={rightLabel}
+                    aria-label={rightLabel}
+                    style={{
+                        position: "absolute",
+                        right: 0,
+                        top: "50%",
+                        zIndex: 50,
+                        animation:
+                            "swipe-hint-enter-right 300ms cubic-bezier(0.34,1.56,0.64,1) both",
+                    }}
+                    className="group flex items-center cursor-pointer focus:outline-none"
                 >
                     <div
-                        className="flex items-center gap-1 mr-2
-                                    opacity-0 hover:opacity-100
-                                    [animation:swipe-hint-pulse_3s_ease-in-out_1]"
+                        className="flex items-center gap-1.5 mr-2 pr-1.5 pl-3 py-2
+                                   rounded-full
+                                   bg-mac-surface/70 backdrop-blur-xl
+                                   border border-mac-border/40
+                                   shadow-mac-md
+                                   transition-all duration-150
+                                   group-hover:bg-mac-surface/90
+                                   group-hover:shadow-mac-lg
+                                   group-hover:scale-105
+                                   group-active:scale-95"
+                        style={{
+                            animation: "swipe-glow 2.4s ease-in-out infinite",
+                        }}
                     >
-                        <div
-                            className="flex items-center gap-1 px-2 py-1.5 rounded-full
-                                        bg-mac-surface/60 backdrop-blur-md border border-mac-border/50
-                                        shadow-mac text-mac-secondary"
+                        {/* Label */}
+                        <span className="text-[11px] font-medium leading-none text-mac-secondary group-hover:text-mac-text transition-colors duration-150 select-none">
+                            {rightLabel}
+                        </span>
+
+                        {/* Bouncing chevron */}
+                        <span
+                            style={{
+                                animation:
+                                    "swipe-nudge-right 1.6s ease-in-out infinite",
+                                display: "flex",
+                            }}
                         >
-                            <span className="text-[11px] font-medium hidden group-hover/right:block">
-                                {rightLabel}
-                            </span>
                             <ChevronRight className="w-3.5 h-3.5 text-mac-accent" />
-                        </div>
+                        </span>
                     </div>
-                </div>
+                </button>
             )}
         </>
     );

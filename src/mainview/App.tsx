@@ -166,6 +166,8 @@ function App() {
                             showRight={canSwipeLeft}
                             leftLabel="Projects"
                             rightLabel="AI Chat"
+                            onSwipeRight={() => navigateTab("right")}
+                            onSwipeLeft={() => navigateTab("left")}
                         />
                     )}
 
