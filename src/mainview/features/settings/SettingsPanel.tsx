@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import { toErrorData } from "../../../shared/error.ts";
 import { createLogger } from "../../../shared/logger.ts";
 import type { Settings } from "../../../shared/types.ts";
-import AIConfigSection from "./sections/AIConfigSection.tsx";
 import AppearanceSection from "./sections/AppearanceSection.tsx";
 import GitHubAuthSection from "./sections/GitHubAuthSection.tsx";
 import PerformanceSection from "./sections/PerformanceSection.tsx";
@@ -37,7 +36,6 @@ export default function SettingsPanel() {
             (localStorage.getItem("trackmebaby-theme") as "light" | "dark") ||
             "dark",
     );
-    const [apiKey, setApiKey] = useState("");
     const [saving, setSaving] = useState(false);
     const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
     const isFirstAutosave = useRef(true);
@@ -115,12 +113,6 @@ export default function SettingsPanel() {
                 <AppearanceSection theme={theme} onApplyTheme={applyTheme} />
                 <GitHubAuthSection />
                 <WorkspaceSection settings={settings} onChange={setSettings} />
-                <AIConfigSection
-                    settings={settings}
-                    apiKey={apiKey}
-                    onSettingsChange={setSettings}
-                    onApiKeyChange={setApiKey}
-                />
                 <PerformanceSection
                     settings={settings}
                     onChange={setSettings}

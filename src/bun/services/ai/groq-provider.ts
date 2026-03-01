@@ -36,7 +36,7 @@ export class GroqProvider implements AIProvider {
 
     async query(context: string, question: string): Promise<string> {
         if (!this.apiKey) {
-            return "No API key configured. Please add your Groq API key in Settings.";
+            return "Please add your GROQ_API_KEY to your .env file to get AI insights.";
         }
 
         try {
