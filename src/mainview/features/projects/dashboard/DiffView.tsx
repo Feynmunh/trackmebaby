@@ -33,12 +33,14 @@ interface DiffViewProps {
     project: Project;
     gitSnapshot: GitSnapshot;
     onClose: () => void;
+    refreshKey?: number;
 }
 
 export default function DiffView({
     project,
     gitSnapshot,
     onClose,
+    refreshKey = 0,
 }: DiffViewProps) {
     const [diffContent, setDiffContent] = useState<string>("");
     const [loading, setLoading] = useState(true);
@@ -58,6 +60,8 @@ export default function DiffView({
 
     useEffect(() => {
         const fetchDiff = async () => {
+            setLoading(true);
+            setDiffError(null);
             try {
                 const result = await getGitDiff(project.id);
                 setDiffContent(result.diff);
@@ -70,7 +74,7 @@ export default function DiffView({
             }
         };
         fetchDiff();
-    }, [project.id]);
+    }, [project.id, refreshKey]);
 
     useEffect(() => {
         setExpandedFiles({});
@@ -82,32 +86,6 @@ export default function DiffView({
     const isChangeContent = (
         entry: ContextContent | ChangeContent,
     ): entry is ChangeContent => entry.type === "change";
-
-    const buildDiffSnippet = (file: FileDiffMetadata): string => {
-        const maxLines = 16;
-        const lines: string[] = [];
-
-        for (const hunk of file.hunks ?? []) {
-            const contents = hunk.hunkContent ?? [];
-            for (const entry of contents) {
-                if (lines.length >= maxLines) break;
-                if (!isChangeContent(entry)) continue;
-
-                for (const addition of entry.additions) {
-                    if (lines.length >= maxLines) break;
-                    lines.push(`+ ${addition}`);
-                }
-
-                for (const deletion of entry.deletions) {
-                    if (lines.length >= maxLines) break;
-                    lines.push(`- ${deletion}`);
-                }
-            }
-            if (lines.length >= maxLines) break;
-        }
-
-        return lines.join("\n");
-    };
 
     const getChangeStats = (file: FileDiffMetadata) => {
         let added = 0;
@@ -124,19 +102,19 @@ export default function DiffView({
         return { added, removed };
     };
 
-    const fetchFileSummary = async (
-        fileKey: string,
-        file: FileDiffMetadata,
-        addedLines: number,
-        removedLines: number,
-    ) => {
+    const fetchFileSummary = async (fileKey: string, file: FileDiffMetadata) => {
         setFileSummaryLoading((prev) => ({ ...prev, [fileKey]: true }));
         setFileSummaryErrors((prev) => ({ ...prev, [fileKey]: "" }));
 
         try {
-            const diffSnippet = buildDiffSnippet(file);
-            const prompt = `Summarize the changes in the file "${file.name}" in project "${project.name}". Change type: ${file.type ?? "change"}. Lines added: ${addedLines}, lines removed: ${removedLines}. ${diffSnippet ? `Diff snippet:\n${diffSnippet}\n` : ""}Provide a very brief, friendly 1-2 sentence summary. Start with something personal like "It looks like you've been..." or "You've spent some time on...". Keep it concise and professional yet warm.`;
-            const response = await queryAI(prompt);
+            const prompt = "Summarize the changes in this file.";
+
+            const response = await queryAI(prompt, {
+                task: "file_summary",
+                projectId: project.id,
+                filePath: file.name,
+                fileType: file.type ?? undefined,
+            });
             setFileSummaries((prev) => ({ ...prev, [fileKey]: response }));
         } catch (err) {
             console.error("Failed to fetch file AI summary:", err);
@@ -259,12 +237,7 @@ export default function DiffView({
                                                             fileKey
                                                         ]
                                                     ) {
-                                                        void fetchFileSummary(
-                                                            fileKey,
-                                                            file,
-                                                            addedLines,
-                                                            removedLines,
-                                                        );
+                                                        void fetchFileSummary(fileKey, file);
                                                     }
                                                 }}
                                                 className="text-zinc-400 hover:text-zinc-100 transition-colors"

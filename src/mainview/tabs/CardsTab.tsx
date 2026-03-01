@@ -66,6 +66,9 @@ export default function CardsTab({
     const [basePathInput, setBasePathInput] = useState("");
     const [savingPath, setSavingPath] = useState(false);
     const [search, setSearch] = useState("");
+    const [aiRefreshKeys, setAiRefreshKeys] = useState<Record<string, number>>(
+        {},
+    );
 
     const trimmedSearch = search.trim();
     const normalizedSearch = trimmedSearch.toLowerCase();
@@ -154,6 +157,14 @@ export default function CardsTab({
         }
     };
 
+    const handleRefreshStats = (projectId: string) => {
+        fetchStatsForProject(projectId, true);
+        setAiRefreshKeys((prev) => ({
+            ...prev,
+            [projectId]: (prev[projectId] ?? 0) + 1,
+        }));
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -239,10 +250,10 @@ export default function CardsTab({
                                 lastUpdated[projects[activeIndex].id]
                             }
                             onRefreshStats={() =>
-                                fetchStatsForProject(
-                                    projects[activeIndex].id,
-                                    true,
-                                )
+                                handleRefreshStats(projects[activeIndex].id)
+                            }
+                            aiRefreshKey={
+                                aiRefreshKeys[projects[activeIndex].id] ?? 0
                             }
                             onBack={closeDashboard}
                             onNavigateToSettings={onNavigateToSettings}

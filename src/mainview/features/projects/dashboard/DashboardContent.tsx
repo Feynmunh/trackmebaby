@@ -22,6 +22,7 @@ interface DashboardContentProps {
     statsLoading?: boolean;
     statsLastUpdated?: string;
     onRefreshStats?: () => void;
+    aiRefreshKey?: number;
     onCommitsClick: () => void;
     onGitHubClick: () => void;
     isGitHubAuthenticated: boolean;
@@ -42,6 +43,7 @@ export default function DashboardContent({
     statsLoading = false,
     statsLastUpdated,
     onRefreshStats,
+    aiRefreshKey,
     onCommitsClick,
     onGitHubClick,
     isGitHubAuthenticated,
@@ -54,7 +56,11 @@ export default function DashboardContent({
     return (
         <main className="flex-1 overflow-y-auto custom-scrollbar p-12">
             <div className="max-w-[1600px] mx-auto">
-                <AIOverview project={project} gitSnapshot={gitSnapshot} />
+                <AIOverview
+                    project={project}
+                    gitSnapshot={gitSnapshot}
+                    refreshKey={aiRefreshKey}
+                />
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
                     <div className="lg:col-span-8 order-2 lg:order-1 space-y-12">

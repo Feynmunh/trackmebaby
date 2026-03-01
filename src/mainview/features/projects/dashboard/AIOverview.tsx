@@ -6,9 +6,14 @@ import DiffView from "./DiffView.tsx";
 interface AIOverviewProps {
     project: Project;
     gitSnapshot?: GitSnapshot | null;
+    refreshKey?: number;
 }
 
-export default function AIOverview({ project, gitSnapshot }: AIOverviewProps) {
+export default function AIOverview({
+    project,
+    gitSnapshot,
+    refreshKey = 0,
+}: AIOverviewProps) {
     const [summary, setSummary] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [showDiffs, setShowDiffs] = useState(false);
@@ -19,9 +24,14 @@ export default function AIOverview({ project, gitSnapshot }: AIOverviewProps) {
         const fetchSummary = async () => {
             setLoading(true);
             setSummaryError(null);
+            setSummary(null);
             try {
-                const prompt = `What have I been working on lately in project "${project.name}"? Based on the activity report, provide a very brief, friendly 1-2 sentence summary. Start with something personal like "It looks like you've been..." or "You've spent some time on...". Keep it concise and professional yet warm.`;
-                const response = await queryAI(prompt);
+                const prompt = "Summarize my recent activity in this project.";
+
+                const response = await queryAI(prompt, {
+                    task: "project_summary",
+                    projectId: project.id,
+                });
                 if (isMounted) {
                     setSummary(response);
                 }
@@ -42,7 +52,7 @@ export default function AIOverview({ project, gitSnapshot }: AIOverviewProps) {
         return () => {
             isMounted = false;
         };
-    }, [project.id]);
+    }, [project.id, refreshKey]);
 
     const hasUncommitted = (gitSnapshot?.uncommittedCount ?? 0) > 0;
 
@@ -124,6 +134,7 @@ export default function AIOverview({ project, gitSnapshot }: AIOverviewProps) {
                     <DiffView
                         project={project}
                         gitSnapshot={gitSnapshot}
+                        refreshKey={refreshKey}
                         onClose={() => setShowDiffs(false)}
                     />
                 </div>

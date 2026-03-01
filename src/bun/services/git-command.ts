@@ -44,6 +44,17 @@ export async function runGit(
     ]);
 
     clearTimeout(timeoutId);
+    if (controller.signal.aborted) {
+        try {
+            proc.kill("SIGKILL");
+        } catch (err: unknown) {
+            logger.debug("git command kill failed", {
+                command: commandParts.join(" "),
+                label: options.label,
+                error: err instanceof Error ? err.message : String(err),
+            });
+        }
+    }
     if (exitCode !== 0) {
         if (options.logOnError !== false) {
             const level = options.logLevel ?? "warn";

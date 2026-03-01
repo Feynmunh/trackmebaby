@@ -21,25 +21,25 @@ beforeEach(() => {
 });
 
 describe("Context Assembler", () => {
-    test("returns empty message when no projects", () => {
-        const context = assembleContext(db, "What did I work on today?");
+    test("returns empty message when no projects", async () => {
+        const context = await assembleContext(db, "What did I work on today?");
         expect(context).toContain("No projects");
     });
 
-    test("includes project activity in context", () => {
+    test("includes project activity in context", async () => {
         const p = upsertProject(db, "/home/user/myapp", "myapp");
         insertEvent(db, p.id, "file_create", "src/index.ts");
         insertEvent(db, p.id, "file_modify", "src/app.tsx");
         insertEvent(db, p.id, "file_delete", "src/old.ts");
 
-        const context = assembleContext(db, "What did I do today?");
+        const context = await assembleContext(db, "What did I do today?");
         expect(context).toContain("myapp");
         expect(context).toContain("1 created");
         expect(context).toContain("1 modified");
         expect(context).toContain("1 deleted");
     });
 
-    test("includes git info in context", () => {
+    test("includes git info in context", async () => {
         const p = upsertProject(db, "/home/user/myapp", "myapp");
         insertGitSnapshot(
             db,
@@ -52,13 +52,13 @@ describe("Context Assembler", () => {
             ["auth.ts", "login.tsx"],
         );
 
-        const context = assembleContext(db, "Tell me about my work");
+        const context = await assembleContext(db, "Tell me about my work");
         expect(context).toContain("feature/auth");
         expect(context).toContain("add login page");
         expect(context).toContain("2 files");
     });
 
-    test("stays under token budget", () => {
+    test("stays under token budget", async () => {
         // Create many projects with lots of events
         for (let i = 0; i < 20; i++) {
             const p = upsertProject(
@@ -71,43 +71,46 @@ describe("Context Assembler", () => {
             }
         }
 
-        const context = assembleContext(db, "What did I do?");
+        const context = await assembleContext(db, "What did I do?");
         // ~4000 tokens ≈ 16000 chars
         expect(context.length).toBeLessThan(16000);
     });
 
-    test("parses 'today' time range", () => {
+    test("parses 'today' time range", async () => {
         const p = upsertProject(db, "/home/user/app", "app");
         insertEvent(db, p.id, "file_modify", "x.ts");
 
-        const context = assembleContext(db, "What did I do today?");
+        const context = await assembleContext(db, "What did I do today?");
         expect(context).toContain("Today");
     });
 
-    test("parses 'this week' time range", () => {
+    test("parses 'this week' time range", async () => {
         const p = upsertProject(db, "/home/user/app", "app");
         insertEvent(db, p.id, "file_modify", "x.ts");
 
-        const context = assembleContext(db, "Summarize my work this week");
+        const context = await assembleContext(
+            db,
+            "Summarize my work this week",
+        );
         expect(context).toContain("This week");
     });
 
-    test("parses 'last N days' time range", () => {
+    test("parses 'last N days' time range", async () => {
         const p = upsertProject(db, "/home/user/app", "app");
         insertEvent(db, p.id, "file_modify", "x.ts");
 
-        const context = assembleContext(
+        const context = await assembleContext(
             db,
             "What did I do in the last 7 days?",
         );
         expect(context).toContain("Last 7 days");
     });
 
-    test("defaults to last 24 hours", () => {
+    test("defaults to last 24 hours", async () => {
         const p = upsertProject(db, "/home/user/app", "app");
         insertEvent(db, p.id, "file_modify", "x.ts");
 
-        const context = assembleContext(db, "What am I working on?");
+        const context = await assembleContext(db, "What am I working on?");
         expect(context).toContain("Last 24 hours");
     });
 });

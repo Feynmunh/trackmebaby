@@ -8,6 +8,7 @@ import type { TrackmeBabyRPC } from "../shared/rpc-types.ts";
 import type {
     ActivityEvent,
     ActivitySummary,
+    AIQueryOptions,
     GitHubData,
     GitSnapshot,
     Project,
@@ -106,8 +107,11 @@ export async function getProjectStats(
     return requestApi.getProjectStats({ projectId });
 }
 
-export async function queryAI(question: string): Promise<string> {
-    return requestApi.queryAI({ question });
+export async function queryAI(
+    question: string,
+    options?: AIQueryOptions,
+): Promise<string> {
+    return requestApi.queryAI({ question, options });
 }
 
 export async function getSettings(): Promise<Settings> {
