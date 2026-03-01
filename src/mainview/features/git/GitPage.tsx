@@ -24,6 +24,7 @@ export default function GitPage({
     section = "all",
 }: GitPageProps) {
     const [showAllCommits, setShowAllCommits] = useState(false);
+    const [showCommitsList, setShowCommitsList] = useState(false);
     const [showAllFiles, setShowAllFiles] = useState(false);
 
     if (isWidget && section === "timeline") {
@@ -44,6 +45,7 @@ export default function GitPage({
                     commits={allCommits}
                     onExpandAndScroll={(hash) => {
                         setShowAllCommits(true);
+                        setShowCommitsList(true);
                         setTimeout(() => {
                             const el = document.getElementById(
                                 `commit-${hash}`,
@@ -70,6 +72,41 @@ export default function GitPage({
                     }}
                 />
 
+                {/* Collapsible commit list toggle */}
+                <button
+                    type="button"
+                    onClick={() => setShowCommitsList((v) => !v)}
+                    className="flex items-center gap-2 mt-3 mb-1 px-3 py-1.5 rounded-lg border border-mac-border bg-mac-surface hover:border-mac-accent/30 hover:bg-mac-hover transition-colors text-mac-secondary hover:text-mac-text"
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                        className="w-3 h-3 shrink-0"
+                    >
+                        <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
+                    </svg>
+                    <span className="text-[11px] font-medium">View commits</span>
+                    {allCommits.length > 0 && (
+                        <span className="text-[10px] font-bold bg-mac-accent/10 text-mac-accent/80 px-1.5 py-0.5 rounded-full">
+                            {allCommits.length}
+                        </span>
+                    )}
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        className={`w-3 h-3 ml-auto transition-transform duration-200 ${
+                            showCommitsList ? "rotate-180" : ""
+                        }`}
+                    >
+                        <path d="M6 9l6 6 6-6" />
+                    </svg>
+                </button>
+
+                {showCommitsList && (
                 <div className="space-y-4 pr-4">
                     {isLoading ? (
                         [1, 2, 3].map((i) => (
@@ -179,6 +216,7 @@ export default function GitPage({
                         </button>
                     )}
                 </div>
+                )}
             </div>
         );
     }
