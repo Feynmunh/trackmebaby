@@ -65,6 +65,8 @@ export default function CardsTab({
 
     const containerRef = useRef<HTMLDivElement>(null);
 
+    const [swipeProgress, setSwipeProgress] = useState(0);
+
     const [platform, setPlatform] = useState<string>("");
     const [selectingFolder, setSelectingFolder] = useState(false);
     const [basePathInput, setBasePathInput] = useState("");
@@ -78,6 +80,7 @@ export default function CardsTab({
     useSwipeGesture(containerRef, {
         enabled: viewMode === "dashboard",
         onSwipeRight: closeDashboard,
+        onSwiping: setSwipeProgress,
     });
 
     const trimmedSearch = search.trim();
@@ -244,10 +247,12 @@ export default function CardsTab({
             >
                 {projects[activeIndex] && (
                     <div className="h-full w-full relative">
-                        {/* Swipe right hint — shown when inside a project dashboard */}
+                        {/* Swipe right hint — shown when inside a project dashboard, driven by live gesture progress */}
                         <SwipeHint
-                            showLeft={true}
+                            swipeProgress={swipeProgress}
                             leftLabel="Back to projects"
+                            canGoLeft={true}
+                            canGoRight={false}
                             onSwipeRight={closeDashboard}
                         />
                         <ProjectDashboard

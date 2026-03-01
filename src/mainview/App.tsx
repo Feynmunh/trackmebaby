@@ -63,6 +63,7 @@ function App() {
         "left" | "right" | null
     >(null);
     const [animKey, setAnimKey] = useState(0); // bump to re-trigger animation
+    const [swipeProgress, setSwipeProgress] = useState(0);
     const appRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -106,6 +107,7 @@ function App() {
     useSwipeGesture(appRef, {
         onSwipeLeft: () => navigateTab("left"),
         onSwipeRight: () => navigateTab("right"),
+        onSwiping: setSwipeProgress,
     });
 
     const activeSwipeableIdx = SWIPEABLE_TABS.indexOf(
@@ -159,13 +161,14 @@ function App() {
 
                 {/* Main content area — relative so SwipeHint arrows can be positioned */}
                 <div className="flex-1 overflow-y-auto relative">
-                    {/* Swipe edge hints — only shown on swipeable tabs */}
+                    {/* Swipe edge hints — only shown on swipeable tabs, driven by live gesture progress */}
                     {activeTab !== "settings" && (
                         <SwipeHint
-                            showLeft={canSwipeRight}
-                            showRight={canSwipeLeft}
+                            swipeProgress={swipeProgress}
                             leftLabel="Projects"
                             rightLabel="AI Chat"
+                            canGoLeft={canSwipeRight}
+                            canGoRight={canSwipeLeft}
                             onSwipeRight={() => navigateTab("right")}
                             onSwipeLeft={() => navigateTab("left")}
                         />

@@ -1,27 +1,27 @@
 /**
  * useSwipeGesture — detects horizontal trackpad swipe gestures.
  *
- * Two complementary strategies are used to handle cross-platform differences:
+ * Listens on window so that inner scrollable elements don't swallow
+ * the wheel events before they reach the handler.
  *
  * Strategy A — Wheel events (macOS / Windows)
- *   Trackpads on macOS and Windows fire WheelEvents with deltaX when the user
- *   does a two-finger horizontal swipe. deltaMode is 0 (pixels).
+ *   Trackpads fire WheelEvents with deltaX. deltaMode is 0 (pixels).
  *
  * Strategy B — Pointer capture (Linux / GTK fallback)
- *   On Linux, GTK/X11 intercepts large horizontal wheel deltas and converts
- *   them to scroll actions before they reach the webview. As a result, deltaX
- *   values are small or zero. We supplement with a pointermove tracker that
- *   uses setPointerCapture so the gesture is detected even when the pointer
- *   leaves the element during the swipe.
+ *   GTK intercepts large horizontal wheel deltas. We also track
+ *   pointerdown/pointerup as a second detection path.
  *
  * deltaMode normalization:
- *   Linux sends deltaMode=1 (lines, ~16px each) instead of deltaMode=0 (pixels).
- *   We multiply line-based deltas by LINE_HEIGHT so thresholds stay consistent.
+ *   Linux sends deltaMode=1 (lines, ~16px each). We multiply to normalize.
+ *
+ * onSwiping callback:
+ *   Called continuously during a swipe with the current progress (-1 to 1)
+ *   so the UI can show a live hint. Fires with 0 when swipe ends.
  */
 
 import { useEffect, useRef } from "react";
 
-const LINE_HEIGHT = 16; // px per line for deltaMode=1 normalization
+const LINE_HEIGHT = 16;
 
 interface SwipeGestureOptions {
     /** Minimum accumulated horizontal delta to trigger a swipe (px). Default 50 */
@@ -30,20 +30,22 @@ interface SwipeGestureOptions {
     accumulateMs?: number;
     /** How long to wait before allowing another swipe (ms). Default 600 */
     cooldownMs?: number;
-    /** deltaX must be this many times larger than deltaY to count as horizontal. Default 1.2 */
+    /** deltaX must be this many times larger than deltaY. Default 1.2 */
     axisRatio?: number;
-    /** Minimum pointer travel distance for the pointer fallback strategy (px). Default 40 */
+    /** Pointer fallback travel distance (px). Default 40 */
     pointerThreshold?: number;
-    /** Called when user swipes right (two-finger swipe right = go back) */
+    /** Called during swipe with progress value (-1 to 1), then 0 on completion */
+    onSwiping?: (progress: number) => void;
+    /** Called when user swipes right */
     onSwipeRight?: () => void;
-    /** Called when user swipes left (two-finger swipe left = go forward) */
+    /** Called when user swipes left */
     onSwipeLeft?: () => void;
-    /** Set to false to disable the gesture listener entirely */
+    /** Set to false to disable entirely */
     enabled?: boolean;
 }
 
 export function useSwipeGesture(
-    target: React.RefObject<HTMLElement | null> | "window",
+    _target: React.RefObject<HTMLElement | null> | "window",
     options: SwipeGestureOptions = {},
 ): void {
     const {
@@ -54,23 +56,21 @@ export function useSwipeGesture(
         pointerThreshold = 40,
         onSwipeRight,
         onSwipeLeft,
+        onSwiping,
         enabled = true,
     } = options;
 
-    // Keep latest callbacks in refs so the effect doesn't re-subscribe on every render
     const onSwipeRightRef = useRef(onSwipeRight);
     const onSwipeLeftRef = useRef(onSwipeLeft);
+    const onSwipingRef = useRef(onSwiping);
     useEffect(() => {
         onSwipeRightRef.current = onSwipeRight;
         onSwipeLeftRef.current = onSwipeLeft;
+        onSwipingRef.current = onSwiping;
     });
 
     useEffect(() => {
         if (!enabled) return;
-
-        const el: HTMLElement | Window | null =
-            target === "window" ? window : target.current;
-        if (!el) return;
 
         let lastFiredAt = 0;
 
@@ -78,6 +78,7 @@ export function useSwipeGesture(
             const now = Date.now();
             if (now - lastFiredAt < cooldownMs) return;
             lastFiredAt = now;
+            onSwipingRef.current?.(0);
             if (deltaX > 0) {
                 onSwipeRightRef.current?.();
             } else {
@@ -85,13 +86,12 @@ export function useSwipeGesture(
             }
         };
 
-        // ── Strategy A: Wheel events ──────────────────────────────────────────
+        // ── Strategy A: Wheel (window-level so inner scroll doesn't block) ──
         let accumulatedX = 0;
         let accumulatedY = 0;
         let accumulateTimer: ReturnType<typeof setTimeout> | null = null;
 
         const handleWheel = (e: WheelEvent) => {
-            // Normalize deltaMode: Linux sends deltaMode=1 (lines), others send 0 (pixels)
             const factor = e.deltaMode === 1 ? LINE_HEIGHT : 1;
             const dx = e.deltaX * factor;
             const dy = e.deltaY * factor;
@@ -99,16 +99,24 @@ export function useSwipeGesture(
             accumulatedX += dx;
             accumulatedY += dy;
 
+            // Report live progress for UI hint
+            const absX = Math.abs(accumulatedX);
+            const absY = Math.abs(accumulatedY);
+            if (absX > absY * axisRatio) {
+                const progress = Math.min(accumulatedX / threshold, 1);
+                onSwipingRef.current?.(progress);
+            }
+
             if (accumulateTimer !== null) clearTimeout(accumulateTimer);
-
             accumulateTimer = setTimeout(() => {
-                const absX = Math.abs(accumulatedX);
-                const absY = Math.abs(accumulatedY);
-
-                if (absX >= threshold && absX > absY * axisRatio) {
+                const aX = Math.abs(accumulatedX);
+                const aY = Math.abs(accumulatedY);
+                if (aX >= threshold && aX > aY * axisRatio) {
                     tryFire(accumulatedX);
+                } else {
+                    // Not a swipe — reset hint
+                    onSwipingRef.current?.(0);
                 }
-
                 accumulatedX = 0;
                 accumulatedY = 0;
                 accumulateTimer = null;
@@ -116,15 +124,11 @@ export function useSwipeGesture(
         };
 
         // ── Strategy B: Pointer capture (Linux GTK fallback) ─────────────────
-        // Track touch-like pointer gestures as a second detection path.
-        // Using setPointerCapture ensures we keep getting events even if the
-        // pointer moves outside the element during the swipe.
         let pointerStartX = 0;
         let pointerStartY = 0;
         let trackingPointerId: number | null = null;
 
         const handlePointerDown = (e: PointerEvent) => {
-            // Only track touch or stylus (not mouse — mouse swipes are intentional clicks)
             if (e.pointerType === "mouse") return;
             pointerStartX = e.clientX;
             pointerStartY = e.clientY;
@@ -136,54 +140,48 @@ export function useSwipeGesture(
             if (trackingPointerId === null || e.pointerId !== trackingPointerId)
                 return;
             trackingPointerId = null;
-
             const dx = e.clientX - pointerStartX;
             const dy = e.clientY - pointerStartY;
             const absX = Math.abs(dx);
             const absY = Math.abs(dy);
-
             if (absX >= pointerThreshold && absX > absY * axisRatio) {
                 tryFire(dx);
+            } else {
+                onSwipingRef.current?.(0);
             }
         };
 
         const handlePointerCancel = () => {
             trackingPointerId = null;
+            onSwipingRef.current?.(0);
         };
 
-        el.addEventListener("wheel", handleWheel as EventListener, {
-            passive: true,
-        });
+        // Listen on window so inner scrollable divs don't block the event
+        window.addEventListener("wheel", handleWheel, { passive: true });
+        window.addEventListener(
+            "pointerdown",
+            handlePointerDown as EventListener,
+        );
+        window.addEventListener("pointerup", handlePointerUp as EventListener);
+        window.addEventListener(
+            "pointercancel",
+            handlePointerCancel as EventListener,
+        );
 
-        // Pointer events only make sense on an element (not window)
-        if (el instanceof HTMLElement) {
-            el.addEventListener(
+        return () => {
+            window.removeEventListener("wheel", handleWheel);
+            window.removeEventListener(
                 "pointerdown",
                 handlePointerDown as EventListener,
             );
-            el.addEventListener("pointerup", handlePointerUp as EventListener);
-            el.addEventListener(
+            window.removeEventListener(
+                "pointerup",
+                handlePointerUp as EventListener,
+            );
+            window.removeEventListener(
                 "pointercancel",
                 handlePointerCancel as EventListener,
             );
-        }
-
-        return () => {
-            el.removeEventListener("wheel", handleWheel as EventListener);
-            if (el instanceof HTMLElement) {
-                el.removeEventListener(
-                    "pointerdown",
-                    handlePointerDown as EventListener,
-                );
-                el.removeEventListener(
-                    "pointerup",
-                    handlePointerUp as EventListener,
-                );
-                el.removeEventListener(
-                    "pointercancel",
-                    handlePointerCancel as EventListener,
-                );
-            }
             if (accumulateTimer !== null) clearTimeout(accumulateTimer);
         };
     }, [
@@ -193,6 +191,5 @@ export function useSwipeGesture(
         cooldownMs,
         axisRatio,
         pointerThreshold,
-        target,
     ]);
 }
