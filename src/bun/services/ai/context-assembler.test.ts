@@ -3,8 +3,13 @@
  */
 
 import { Database } from "bun:sqlite";
-import { beforeEach, describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { randomUUID } from "node:crypto";
+import { mkdir, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { nowIso } from "../../../shared/time.ts";
+import type { AIQueryOptions } from "../../../shared/types.ts";
 import {
     insertEvent,
     insertGitSnapshot,
@@ -14,10 +19,18 @@ import { runMigrations } from "../../db/schema.ts";
 import { assembleContext } from "./context-assembler.ts";
 
 let db: Database;
+let tempRoot: string;
 
-beforeEach(() => {
+beforeEach(async () => {
     db = new Database(":memory:");
     runMigrations(db);
+    tempRoot = join(tmpdir(), `trackmebaby-context-${randomUUID()}`);
+    await mkdir(tempRoot, { recursive: true });
+});
+
+afterEach(async () => {
+    db.close();
+    await rm(tempRoot, { recursive: true, force: true });
 });
 
 describe("Context Assembler", () => {
@@ -112,5 +125,79 @@ describe("Context Assembler", () => {
 
         const context = await assembleContext(db, "What am I working on?");
         expect(context).toContain("Last 24 hours");
+    });
+
+    test("file_summary returns error when options missing", async () => {
+        const options: AIQueryOptions = { task: "file_summary" };
+        const context = await assembleContext(db, "", options);
+        expect(context).toContain("No file context available");
+    });
+
+    test("file_summary returns error for unknown project", async () => {
+        const options: AIQueryOptions = {
+            task: "file_summary",
+            projectId: "missing",
+            filePath: "src/index.ts",
+        };
+        const context = await assembleContext(db, "", options);
+        expect(context).toContain("Project not found");
+    });
+
+    test("file_summary includes file content for new files", async () => {
+        const project = upsertProject(db, tempRoot, "temp-project");
+        const filePath = "src/new.ts";
+        const absolutePath = join(tempRoot, filePath);
+        await mkdir(join(tempRoot, "src"), { recursive: true });
+        await writeFile(absolutePath, "export const value = 1;\n");
+
+        const options: AIQueryOptions = {
+            task: "file_summary",
+            projectId: project.id,
+            filePath,
+            fileType: "created",
+        };
+        const context = await assembleContext(db, "", options);
+        expect(context).toContain("[FILE_CONTENT]");
+        expect(context).toContain("export const value");
+    });
+
+    test("file_summary includes diff for modified files", async () => {
+        const project = upsertProject(db, tempRoot, "temp-project");
+        const filePath = "src/modified.ts";
+        await mkdir(join(tempRoot, "src"), { recursive: true });
+        await writeFile(join(tempRoot, filePath), "export const value = 2;\n");
+
+        const options: AIQueryOptions = {
+            task: "file_summary",
+            projectId: project.id,
+            filePath,
+            fileType: "modified",
+        };
+        const context = await assembleContext(db, "", options);
+        expect(context).toContain("[FILE_CONTENT]");
+    });
+
+    test("file_summary includes diff for deleted files", async () => {
+        const project = upsertProject(db, tempRoot, "temp-project");
+        const options: AIQueryOptions = {
+            task: "file_summary",
+            projectId: project.id,
+            filePath: "src/deleted.ts",
+            fileType: "deleted",
+        };
+        const context = await assembleContext(db, "", options);
+        expect(context).not.toContain("[FILE_CONTENT]");
+    });
+
+    test("file_summary rejects path traversal", async () => {
+        const project = upsertProject(db, tempRoot, "temp-project");
+        const options: AIQueryOptions = {
+            task: "file_summary",
+            projectId: project.id,
+            filePath: "../secrets.txt",
+            fileType: "modified",
+        };
+        const context = await assembleContext(db, "", options);
+        expect(context).toContain("[NO_CONTENT_AVAILABLE]");
     });
 });

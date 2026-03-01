@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
-import { readFile, stat } from "node:fs/promises";
-import { resolve, sep } from "node:path";
+import { readFile, realpath, stat } from "node:fs/promises";
+import { relative, resolve } from "node:path";
 import type { AIQueryOptions } from "../../../shared/types.ts";
 import {
     getAllRecentEvents,
@@ -38,10 +38,14 @@ async function assembleProjectContext(
 ): Promise<string> {
     const timeRange = parseTimeRange(question);
     const since = timeRange.since;
-    const project = options?.projectId
-        ? getProjectById(db, options.projectId)
-        : null;
-    const projects = project ? [project] : getProjects(db);
+    let projects = getProjects(db);
+    if (options?.projectId) {
+        const project = getProjectById(db, options.projectId);
+        if (!project) {
+            return `No project was found with the specified ID (${options.projectId}).`;
+        }
+        projects = [project];
+    }
 
     if (projects.length === 0) {
         return "No projects are currently being tracked. The user has not set up any projects yet.";
@@ -183,7 +187,7 @@ async function assembleFileContext(
         sections.push(`Change: ${fileType}`);
     }
 
-    const resolvedPath = resolveProjectFilePath(project.path, filePath);
+    const resolvedPath = await resolveProjectFilePath(project.path, filePath);
     let fileContent: string | null = null;
     if (!isDeleted && resolvedPath) {
         fileContent = await loadFileContent(resolvedPath);
@@ -446,7 +450,14 @@ async function loadFileLines(
     }
 
     try {
-        const absolutePath = resolve(projectPath, relativePath);
+        const absolutePath = await resolveProjectFilePath(
+            projectPath,
+            relativePath,
+        );
+        if (!absolutePath) {
+            fileCache.set(relativePath, null);
+            return null;
+        }
         const content = await readFile(absolutePath, "utf8");
         const lines = content.split("\n");
         fileCache.set(relativePath, lines);
@@ -458,17 +469,22 @@ async function loadFileLines(
     }
 }
 
-function resolveProjectFilePath(
+async function resolveProjectFilePath(
     projectPath: string,
     filePath: string,
-): string | null {
-    const root = resolve(projectPath);
-    const rootPrefix = root.endsWith(sep) ? root : `${root}${sep}`;
-    const resolved = resolve(root, filePath);
-    if (!resolved.startsWith(rootPrefix)) {
+): Promise<string | null> {
+    try {
+        const root = await realpath(projectPath);
+        const resolved = await realpath(resolve(root, filePath));
+        const rel = relative(root, resolved);
+        if (rel.startsWith("..") || rel.includes("..")) {
+            return null;
+        }
+        return resolved;
+    } catch (err: unknown) {
+        console.error("[AI Context] Path resolution failed:", err);
         return null;
     }
-    return resolved;
 }
 
 function truncateText(text: string, maxChars: number, label: string): string {

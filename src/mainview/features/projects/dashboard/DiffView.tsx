@@ -20,7 +20,7 @@ const getDiffUnsafeCSS = (theme: "light" | "dark") => {
     [data-diffs] {
         background-color: ${isDark ? "#0d1117" : "#ffffff"} !important;
     }
-    pre {
+    [data-diffs] pre {
         background-color: transparent !important;
     }
     [data-diff-added], .diff-added {

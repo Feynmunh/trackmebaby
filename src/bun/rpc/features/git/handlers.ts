@@ -19,6 +19,7 @@ export interface GitHandlersDeps {
 
 const logger = createLogger("rpc");
 const STATS_CACHE_TTL_MS = 2 * 60 * 1000;
+const MAX_DIFF_CHARS = 12000;
 const statsInflight = new Map<string, Promise<void>>();
 
 export function createGitHandlers({ db, gitTracker }: GitHandlersDeps) {
@@ -39,10 +40,15 @@ export function createGitHandlers({ db, gitTracker }: GitHandlersDeps) {
                         projectPath: project.path,
                         label: "GitHandlers",
                         noTrim: true,
+                        timeoutMs: 20000,
                     },
                 );
                 if (diff === null) {
                     return { diff: "", error: "Unable to load git diff." };
+                }
+                if (diff.length > MAX_DIFF_CHARS) {
+                    const truncated = `${diff.substring(0, MAX_DIFF_CHARS)}\n\n(diff truncated)`;
+                    return { diff: truncated };
                 }
                 return { diff };
             } catch (err: unknown) {
