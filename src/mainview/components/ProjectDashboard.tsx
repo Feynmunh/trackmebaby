@@ -95,9 +95,6 @@ export default function ProjectDashboard({
                         <h1 className="text-[15px] font-bold text-mac-text leading-tight">
                             {project.name}
                         </h1>
-                        <p className="text-[11px] text-mac-secondary font-mono truncate max-w-md">
-                            {project.path}
-                        </p>
                     </div>
                 </div>
 

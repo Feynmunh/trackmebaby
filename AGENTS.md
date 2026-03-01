@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A background desktop app that watches your projects folder and tracks what you're working on. Built with Electrobun, React, Tailwind CSS, and Bun.
+A background desktop app that watches your projects folder and tracks what you're working on. Built with Electrobun, React, Tailwind CSS, and Bun
 
 **Stack:**
 - Runtime: Electrobun (desktop shell)

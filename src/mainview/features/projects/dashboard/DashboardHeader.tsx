@@ -35,9 +35,6 @@ export default function DashboardHeader({
                     <h1 className="text-lg font-bold text-mac-text">
                         {project.name}
                     </h1>
-                    <p className="text-[10px] text-mac-secondary font-mono truncate max-w-md opacity-80">
-                        {project.path}
-                    </p>
                 </div>
             </div>
 
