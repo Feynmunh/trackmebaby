@@ -15,11 +15,11 @@
 import { useEffect, useRef } from "react";
 
 interface SwipeGestureOptions {
-    /** Minimum accumulated horizontal delta to trigger a swipe (px). Default 50 */
+    /** Minimum accumulated horizontal delta to trigger a swipe (px). Default 30 */
     threshold?: number;
-    /** How long to accumulate events before deciding direction (ms). Default 80 */
+    /** How long to accumulate events before deciding direction (ms). Default 40 */
     accumulateMs?: number;
-    /** How long to wait before allowing another swipe (ms). Default 600 */
+    /** How long to wait before allowing another swipe (ms). Default 350 */
     cooldownMs?: number;
     /** deltaX must be this many times larger than deltaY. Default 1.2 */
     axisRatio?: number;
@@ -38,9 +38,9 @@ export function useSwipeGesture(
     options: SwipeGestureOptions = {},
 ): void {
     const {
-        threshold = 50,
-        accumulateMs = 80,
-        cooldownMs = 600,
+        threshold = 30,
+        accumulateMs = 40,
+        cooldownMs = 350,
         axisRatio = 1.2,
         onSwipeRight,
         onSwipeLeft,
