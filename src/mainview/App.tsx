@@ -64,6 +64,7 @@ function App() {
     >(null);
     const [animKey, setAnimKey] = useState(0); // bump to re-trigger animation
     const [swipeProgress, setSwipeProgress] = useState(0);
+    const [inDashboard, setInDashboard] = useState(false);
     const appRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -102,11 +103,13 @@ function App() {
         });
     };
 
-    // Swipe left → advance to next tab; swipe right → go to previous tab
+    // Swipe right → advance to next tab; swipe left → go to previous tab
     // Only navigates within SWIPEABLE_TABS (settings is excluded)
+    // Disabled when the user is inside a project dashboard (CardsTab handles its own swipe there)
     useSwipeGesture(appRef, {
-        onSwipeLeft: () => navigateTab("left"),
-        onSwipeRight: () => navigateTab("right"),
+        enabled: !inDashboard,
+        onSwipeRight: () => navigateTab("left"),
+        onSwipeLeft: () => navigateTab("right"),
         onSwiping: setSwipeProgress,
     });
 
@@ -161,8 +164,8 @@ function App() {
 
                 {/* Main content area — relative so SwipeHint arrows can be positioned */}
                 <div className="flex-1 overflow-y-auto relative">
-                    {/* Swipe edge hints — only shown on swipeable tabs, driven by live gesture progress */}
-                    {activeTab !== "settings" && (
+                    {/* Swipe edge hints — only shown on swipeable tabs when NOT inside a project dashboard */}
+                    {activeTab !== "settings" && !inDashboard && (
                         <SwipeHint
                             swipeProgress={swipeProgress}
                             canGoLeft={canSwipeRight}
@@ -182,6 +185,7 @@ function App() {
                                 onNavigateToSettings={() =>
                                     setActiveTab("settings")
                                 }
+                                onDashboardStateChange={setInDashboard}
                             />
                         )}
                         {activeTab === "ai" && <AITab />}

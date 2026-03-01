@@ -1,5 +1,5 @@
 import { Search } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import SwipeHint from "../components/SwipeHint.tsx";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
@@ -38,8 +38,10 @@ const scoreFuzzyMatch = (query: string, text: string): number | null => {
 
 export default function CardsTab({
     onNavigateToSettings,
+    onDashboardStateChange,
 }: {
     onNavigateToSettings?: () => void;
+    onDashboardStateChange?: (inDashboard: boolean) => void;
 }) {
     const {
         projects,
@@ -57,6 +59,11 @@ export default function CardsTab({
         closeDashboard,
     } = useProjectData();
 
+    // Notify parent when dashboard state changes so it can disable tab-level swipe
+    useEffect(() => {
+        onDashboardStateChange?.(viewMode === "dashboard");
+    }, [viewMode, onDashboardStateChange]);
+
     const containerRef = useRef<HTMLDivElement>(null);
 
     const [swipeProgress, setSwipeProgress] = useState(0);
@@ -67,10 +74,10 @@ export default function CardsTab({
         {},
     );
 
-    // Swipe right (two-finger swipe right) = go back to grid from dashboard
+    // Swipe left (two-finger swipe left) = go back to grid from dashboard
     useSwipeGesture(containerRef, {
         enabled: viewMode === "dashboard",
-        onSwipeRight: closeDashboard,
+        onSwipeLeft: closeDashboard,
         onSwiping: setSwipeProgress,
     });
 
@@ -211,7 +218,7 @@ export default function CardsTab({
             >
                 {projects[activeIndex] && (
                     <div className="h-full w-full relative">
-                        {/* Swipe right hint — shown when inside a project dashboard, driven by live gesture progress */}
+                        {/* Swipe left hint — shown when inside a project dashboard, driven by live gesture progress */}
                         <SwipeHint
                             swipeProgress={swipeProgress}
                             canGoLeft={true}

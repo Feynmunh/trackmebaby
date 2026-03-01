@@ -30,19 +30,19 @@ export default function SwipeHint({
     canGoLeft = true,
     canGoRight = true,
 }: SwipeHintProps) {
-    const showLeft = swipeProgress > SHOW_THRESHOLD && canGoLeft;
-    const showRight = swipeProgress < -SHOW_THRESHOLD && canGoRight;
+    const showLeft = swipeProgress < -SHOW_THRESHOLD && canGoLeft;
+    const showRight = swipeProgress > SHOW_THRESHOLD && canGoRight;
 
     if (!showLeft && !showRight) return null;
 
     const rawAbs = Math.abs(swipeProgress);
     const opacity = Math.min((rawAbs - SHOW_THRESHOLD) / 0.3, 1);
-    const translatePct = Math.max(0, (1 - rawAbs) * 60);
+    const translatePct = Math.max(0, (1 - rawAbs) * 20);
 
     const innerClass =
-        "flex items-center justify-center p-2 rounded-full " +
-        "bg-mac-surface/80 backdrop-blur-xl " +
-        "border border-mac-border/40 shadow-mac-md";
+        "flex items-center justify-center w-10 h-10 rounded-full " +
+        "bg-mac-surface/90 backdrop-blur-2xl " +
+        "border border-mac-border/60 shadow-mac-lg";
 
     return (
         <>
@@ -55,16 +55,16 @@ export default function SwipeHint({
                         position: "absolute",
                         left: 0,
                         top: "50%",
-                        transform: `translateY(-50%) translateX(-${translatePct}%)`,
+                        transform: `translateY(-50%) translateX(${translatePct}px)`,
                         opacity,
-                        zIndex: 50,
+                        zIndex: 100,
                         transition:
-                            "opacity 80ms linear, transform 80ms linear",
+                            "opacity 120ms ease-out, transform 120ms ease-out",
                     }}
-                    className="ml-2 cursor-pointer focus:outline-none"
+                    className="ml-10 cursor-pointer focus:outline-none"
                 >
                     <div className={innerClass}>
-                        <ChevronLeft className="w-4 h-4 text-mac-accent" />
+                        <ChevronLeft className="w-5 h-5 text-mac-accent" />
                     </div>
                 </button>
             )}
@@ -78,16 +78,16 @@ export default function SwipeHint({
                         position: "absolute",
                         right: 0,
                         top: "50%",
-                        transform: `translateY(-50%) translateX(${translatePct}%)`,
+                        transform: `translateY(-50%) translateX(-${translatePct}px)`,
                         opacity,
-                        zIndex: 50,
+                        zIndex: 100,
                         transition:
-                            "opacity 80ms linear, transform 80ms linear",
+                            "opacity 120ms ease-out, transform 120ms ease-out",
                     }}
-                    className="mr-2 cursor-pointer focus:outline-none"
+                    className="mr-10 cursor-pointer focus:outline-none"
                 >
                     <div className={innerClass}>
-                        <ChevronRight className="w-4 h-4 text-mac-accent" />
+                        <ChevronRight className="w-5 h-5 text-mac-accent" />
                     </div>
                 </button>
             )}
