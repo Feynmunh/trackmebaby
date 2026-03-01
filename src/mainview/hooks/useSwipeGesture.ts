@@ -5,7 +5,7 @@
  * the wheel events before they reach the handler.
  *
  * Strategy: Wheel events (macOS / Windows)
- *   Trackpads fire WheelEvents with deltaX. deltaMode is always 0 (pixels).
+ *   Trackpads fire WheelEvents with deltaX. deltaMode is 0 (pixels).
  *
  * onSwiping callback:
  *   Called continuously during a swipe with the current progress (-1 to 1)

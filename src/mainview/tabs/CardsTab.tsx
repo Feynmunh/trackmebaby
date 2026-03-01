@@ -1,18 +1,12 @@
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import SwipeHint from "../components/SwipeHint.tsx";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
 import ProjectsGrid from "../features/projects/components/ProjectsGrid.tsx";
 import { useProjectData } from "../hooks/useProjectData.ts";
 import { useSwipeGesture } from "../hooks/useSwipeGesture.ts";
-import {
-    getPlatform,
-    getSettings,
-    scanProjects,
-    selectFolder,
-    updateSettings,
-} from "../rpc";
+import { getSettings, scanProjects, selectFolder } from "../rpc";
 
 const scoreFuzzyMatch = (query: string, text: string): number | null => {
     if (!query) {
@@ -67,10 +61,7 @@ export default function CardsTab({
 
     const [swipeProgress, setSwipeProgress] = useState(0);
 
-    const [platform, setPlatform] = useState<string>("");
     const [selectingFolder, setSelectingFolder] = useState(false);
-    const [basePathInput, setBasePathInput] = useState("");
-    const [savingPath, setSavingPath] = useState(false);
     const [search, setSearch] = useState("");
     const [aiRefreshKeys, setAiRefreshKeys] = useState<Record<string, number>>(
         {},
@@ -132,12 +123,6 @@ export default function CardsTab({
         return scored.map((entry) => entry.project);
     }, [normalizedSearch, projects]);
 
-    useEffect(() => {
-        getPlatform().then(setPlatform);
-    }, []);
-
-    const isLinux = platform === "linux";
-
     const handleSelectFolder = async () => {
         setSelectingFolder(true);
         try {
@@ -151,22 +136,6 @@ export default function CardsTab({
             }
         } finally {
             setSelectingFolder(false);
-        }
-    };
-
-    const handleSavePath = async () => {
-        if (!basePathInput.trim()) return;
-        setSavingPath(true);
-        try {
-            await updateSettings({ basePath: basePathInput.trim() });
-            await scanProjects(basePathInput.trim());
-            // Small delay to allow the DB write from scanProjects to flush before reload
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            window.location.reload();
-        } catch (err) {
-            console.error("Failed to save path:", err);
-        } finally {
-            setSavingPath(false);
         }
     };
 
@@ -194,11 +163,6 @@ export default function CardsTab({
     if (projects.length === 0) {
         return (
             <ProjectsEmptyState
-                isLinux={isLinux}
-                basePathInput={basePathInput}
-                onBasePathChange={setBasePathInput}
-                onSavePath={handleSavePath}
-                savingPath={savingPath}
                 selectingFolder={selectingFolder}
                 onSelectFolder={handleSelectFolder}
             />

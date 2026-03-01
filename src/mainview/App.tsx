@@ -75,7 +75,7 @@ function App() {
         }
 
         // Detect platform — custom titlebar only shown on macOS
-        // On Linux/Windows, hiddenInset shows the native titlebar which handles
+        // On Windows, hiddenInset shows the native titlebar which handles
         // window controls (minimize, maximize, close, drag, resize)
         getPlatform()
             .then((platform) => setIsMac(platform === "darwin"))
@@ -131,7 +131,7 @@ function App() {
             ref={appRef}
             className="flex flex-col h-screen overflow-hidden bg-mac-bg font-sans selection:bg-mac-accent/20"
         >
-            {/* Custom Titlebar — macOS only (on Linux, the native titlebar handles this) */}
+            {/* Custom Titlebar — macOS only (on Windows, the native titlebar handles this) */}
             {isMac && (
                 <div className="h-10 w-full shrink-0 flex items-center justify-center bg-mac-bg border-b border-white/[0.05] z-50 relative electrobun-webkit-app-region-drag">
                     {/* Spacer for macOS traffic lights (left side) */}

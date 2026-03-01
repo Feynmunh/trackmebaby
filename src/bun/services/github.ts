@@ -144,12 +144,7 @@ export class GitHubService {
             authUrl.searchParams.set("state", crypto.randomUUID());
 
             // Open the browser
-            const openCmd =
-                process.platform === "darwin"
-                    ? "open"
-                    : process.platform === "win32"
-                      ? "start"
-                      : "xdg-open";
+            const openCmd = process.platform === "darwin" ? "open" : "start";
             Bun.spawn([openCmd, authUrl.toString()], {
                 detached: true,
                 stdio: ["ignore", "ignore", "ignore"],

@@ -2,7 +2,6 @@
  * Autostart Service — platform-specific login item configuration
  * User-level only, no sudo/admin required
  *
- * Linux: ~/.config/autostart/trackmebaby.desktop
  * macOS: ~/Library/LaunchAgents/dev.trackmebaby.app.plist
  * Windows: Registry HKCU\Software\Microsoft\Windows\CurrentVersion\Run
  */
@@ -32,8 +31,6 @@ export class AutostartService {
             const exePath = executablePath || process.execPath;
 
             switch (this.platform) {
-                case "linux":
-                    return this.enableLinux(exePath);
                 case "darwin":
                     return this.enableMacOS(exePath);
                 case "win32":
@@ -56,8 +53,6 @@ export class AutostartService {
     async disable(): Promise<boolean> {
         try {
             switch (this.platform) {
-                case "linux":
-                    return this.disableLinux();
                 case "darwin":
                     return this.disableMacOS();
                 case "win32":
@@ -77,8 +72,6 @@ export class AutostartService {
     async isEnabled(): Promise<boolean> {
         try {
             switch (this.platform) {
-                case "linux":
-                    return this.isEnabledLinux();
                 case "darwin":
                     return this.isEnabledMacOS();
                 case "win32":
@@ -90,47 +83,6 @@ export class AutostartService {
             logger.warn("failed to check status", { error: toErrorData(err) });
             return false;
         }
-    }
-
-    // --- Linux: .desktop file in ~/.config/autostart/ ---
-
-    private getLinuxDesktopPath(): string {
-        const configDir =
-            process.env.XDG_CONFIG_HOME ||
-            join(process.env.HOME || "/tmp", ".config");
-        const autostartDir = join(configDir, "autostart");
-        mkdirSync(autostartDir, { recursive: true });
-        return join(autostartDir, `${APP_NAME}.desktop`);
-    }
-
-    private enableLinux(exePath: string): boolean {
-        const desktopEntry = `[Desktop Entry]
-Type=Application
-Name=${APP_NAME}
-Comment=Developer activity tracker
-Exec=${exePath}
-Terminal=false
-Hidden=false
-X-GNOME-Autostart-enabled=true
-StartupNotify=false
-`;
-        const path = this.getLinuxDesktopPath();
-        writeFileSync(path, desktopEntry, "utf-8");
-        logger.info("linux autostart created", { path });
-        return true;
-    }
-
-    private disableLinux(): boolean {
-        const path = this.getLinuxDesktopPath();
-        if (existsSync(path)) {
-            unlinkSync(path);
-            logger.info("linux autostart removed", { path });
-        }
-        return true;
-    }
-
-    private isEnabledLinux(): boolean {
-        return existsSync(this.getLinuxDesktopPath());
     }
 
     // --- macOS: LaunchAgent plist ---

@@ -80,7 +80,6 @@ async function getMainViewUrl(): Promise<string> {
     return "views://mainview/index.html";
 }
 
-const isLinux = process.platform === "linux";
 let isCreatingWindow = false;
 
 async function createWindow(): Promise<void> {
@@ -102,10 +101,8 @@ async function createWindow(): Promise<void> {
             title: "trackmebaby",
             url,
             rpc,
-            // hiddenInset causes double titlebars and potential crashes on some Linux setups
-            titleBarStyle: isLinux ? "default" : "hiddenInset",
-            // Transparency on Linux can cause GLX/OpenGL segmentation faults (0x0)
-            transparent: !isLinux,
+            titleBarStyle: "hiddenInset",
+            transparent: true,
             styleMask: {
                 Titled: true,
                 Closable: true,

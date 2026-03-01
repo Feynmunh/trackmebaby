@@ -57,22 +57,16 @@ export function createWindowHandlers({ getMainWindow }: WindowHandlersDeps) {
         },
         openExternalUrl: ({ url }: { url: string }) => {
             try {
-                const isLinux = process.platform === "linux";
                 const isMac = process.platform === "darwin";
-                const isWindows = process.platform === "win32";
 
                 if (isMac) {
                     Bun.spawn(["open", url], {
                         detached: true,
                         stdio: ["ignore", "ignore", "ignore"],
                     }).unref();
-                } else if (isWindows) {
+                } else {
+                    // Windows
                     Bun.spawn(["cmd", "/c", "start", url], {
-                        detached: true,
-                        stdio: ["ignore", "ignore", "ignore"],
-                    }).unref();
-                } else if (isLinux) {
-                    Bun.spawn(["xdg-open", url], {
                         detached: true,
                         stdio: ["ignore", "ignore", "ignore"],
                     }).unref();
