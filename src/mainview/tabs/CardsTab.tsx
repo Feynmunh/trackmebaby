@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import SwipeHint from "../components/SwipeHint.tsx";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
 import ProjectsGrid from "../features/projects/components/ProjectsGrid.tsx";
@@ -242,7 +243,12 @@ export default function CardsTab({
                 className={`absolute inset-0 h-full w-full bg-mac-bg transition-all duration-500 ${viewMode === "dashboard" ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}`}
             >
                 {projects[activeIndex] && (
-                    <div className="h-full w-full">
+                    <div className="h-full w-full relative">
+                        {/* Swipe right hint — shown when inside a project dashboard */}
+                        <SwipeHint
+                            showLeft={true}
+                            leftLabel="Back to projects"
+                        />
                         <ProjectDashboard
                             project={projects[activeIndex]}
                             gitSnapshot={gitSnapshots[projects[activeIndex].id]}

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import SwipeHint from "./components/SwipeHint";
 import TabBar from "./components/TabBar";
 import AITab from "./features/ai/AITab.tsx";
 import SettingsPanel from "./features/settings/SettingsPanel.tsx";
@@ -57,6 +58,11 @@ const SWIPEABLE_TABS: TabId[] = ["cards", "ai"];
 function App() {
     const [activeTab, setActiveTab] = useState<TabId>("cards");
     const [isMac, setIsMac] = useState(true); // default true to avoid flash
+    // Track swipe direction so we can apply the correct slide animation
+    const [slideDirection, setSlideDirection] = useState<
+        "left" | "right" | null
+    >(null);
+    const [animKey, setAnimKey] = useState(0); // bump to re-trigger animation
     const appRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -75,29 +81,48 @@ function App() {
             .catch(() => setIsMac(false));
     }, []);
 
+    const navigateTab = (direction: "left" | "right") => {
+        setActiveTab((current) => {
+            const idx = SWIPEABLE_TABS.indexOf(
+                current as (typeof SWIPEABLE_TABS)[number],
+            );
+            if (direction === "left") {
+                if (idx === -1 || idx === SWIPEABLE_TABS.length - 1)
+                    return current;
+                setSlideDirection("left");
+                setAnimKey((k) => k + 1);
+                return SWIPEABLE_TABS[idx + 1];
+            } else {
+                if (idx <= 0) return current;
+                setSlideDirection("right");
+                setAnimKey((k) => k + 1);
+                return SWIPEABLE_TABS[idx - 1];
+            }
+        });
+    };
+
     // Swipe left → advance to next tab; swipe right → go to previous tab
     // Only navigates within SWIPEABLE_TABS (settings is excluded)
     useSwipeGesture(appRef, {
-        onSwipeLeft: () => {
-            setActiveTab((current) => {
-                const idx = SWIPEABLE_TABS.indexOf(
-                    current as (typeof SWIPEABLE_TABS)[number],
-                );
-                if (idx === -1 || idx === SWIPEABLE_TABS.length - 1)
-                    return current;
-                return SWIPEABLE_TABS[idx + 1];
-            });
-        },
-        onSwipeRight: () => {
-            setActiveTab((current) => {
-                const idx = SWIPEABLE_TABS.indexOf(
-                    current as (typeof SWIPEABLE_TABS)[number],
-                );
-                if (idx <= 0) return current;
-                return SWIPEABLE_TABS[idx - 1];
-            });
-        },
+        onSwipeLeft: () => navigateTab("left"),
+        onSwipeRight: () => navigateTab("right"),
     });
+
+    const activeSwipeableIdx = SWIPEABLE_TABS.indexOf(
+        activeTab as (typeof SWIPEABLE_TABS)[number],
+    );
+    const canSwipeLeft =
+        activeSwipeableIdx !== -1 &&
+        activeSwipeableIdx < SWIPEABLE_TABS.length - 1;
+    const canSwipeRight = activeSwipeableIdx > 0;
+
+    // Slide animation class — "left" swipe means new content enters from the right
+    const slideClass =
+        slideDirection === "left"
+            ? "tab-slide-enter-from-right"
+            : slideDirection === "right"
+              ? "tab-slide-enter-from-left"
+              : "";
 
     return (
         <div
@@ -132,17 +157,33 @@ function App() {
                     settingsId="settings"
                 />
 
-                {/* Main content area */}
-                <div className="flex-1 overflow-y-auto">
-                    {activeTab === "cards" && (
-                        <CardsTab
-                            onNavigateToSettings={() =>
-                                setActiveTab("settings")
-                            }
+                {/* Main content area — relative so SwipeHint arrows can be positioned */}
+                <div className="flex-1 overflow-y-auto relative">
+                    {/* Swipe edge hints — only shown on swipeable tabs */}
+                    {activeTab !== "settings" && (
+                        <SwipeHint
+                            showLeft={canSwipeRight}
+                            showRight={canSwipeLeft}
+                            leftLabel="Projects"
+                            rightLabel="AI Chat"
                         />
                     )}
-                    {activeTab === "ai" && <AITab />}
-                    {activeTab === "settings" && <SettingsPanel />}
+
+                    {/* Tab content with slide animation keyed to trigger on each swipe */}
+                    <div
+                        key={animKey}
+                        className={`h-full w-full ${slideClass}`}
+                    >
+                        {activeTab === "cards" && (
+                            <CardsTab
+                                onNavigateToSettings={() =>
+                                    setActiveTab("settings")
+                                }
+                            />
+                        )}
+                        {activeTab === "ai" && <AITab />}
+                        {activeTab === "settings" && <SettingsPanel />}
+                    </div>
                 </div>
             </div>
         </div>
