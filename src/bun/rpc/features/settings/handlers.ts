@@ -1,4 +1,5 @@
 import { homedir } from "node:os";
+import { join } from "node:path";
 import { Utils } from "electrobun/bun";
 import type { Settings } from "../../../../shared/types.ts";
 import type { ProjectScanner } from "../../../services/project-scanner.ts";
@@ -27,8 +28,10 @@ export function createSettingsHandlers({
         scanProjects: async ({ basePath }: { basePath: string }) => {
             // Expand ~ to home directory
             let expandedPath = basePath;
-            if (basePath.startsWith("~/")) {
-                expandedPath = `${homedir()}/${basePath.slice(2)}`;
+            if (basePath.startsWith("~/") || basePath.startsWith("~\\")) {
+                expandedPath = join(homedir(), basePath.slice(2));
+            } else if (basePath === "~") {
+                expandedPath = homedir();
             }
             const projects = await scanner.scan(expandedPath);
             settingsService.setBasePath(expandedPath);

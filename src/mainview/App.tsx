@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import TabBar from "./components/TabBar";
 import AITab from "./features/ai/AITab.tsx";
 import SettingsPanel from "./features/settings/SettingsPanel.tsx";
+import { useSwipeGesture } from "./hooks/useSwipeGesture.ts";
 import { getPlatform } from "./rpc";
 import CardsTab from "./tabs/CardsTab";
 
@@ -49,9 +50,14 @@ const tabs = [
     },
 ] as const satisfies Array<{ id: TabId; label: string; icon: JSX.Element }>;
 
+// Ordered list of tabs for swipe navigation (settings excluded — it lives in
+// the sidebar footer and is not part of the linear swipe sequence)
+const SWIPEABLE_TABS: TabId[] = ["cards", "ai"];
+
 function App() {
     const [activeTab, setActiveTab] = useState<TabId>("cards");
     const [isMac, setIsMac] = useState(true); // default true to avoid flash
+    const appRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const savedTheme = localStorage.getItem("trackmebaby-theme") || "dark";
@@ -69,8 +75,35 @@ function App() {
             .catch(() => setIsMac(false));
     }, []);
 
+    // Swipe left → advance to next tab; swipe right → go to previous tab
+    // Only navigates within SWIPEABLE_TABS (settings is excluded)
+    useSwipeGesture(appRef, {
+        onSwipeLeft: () => {
+            setActiveTab((current) => {
+                const idx = SWIPEABLE_TABS.indexOf(
+                    current as (typeof SWIPEABLE_TABS)[number],
+                );
+                if (idx === -1 || idx === SWIPEABLE_TABS.length - 1)
+                    return current;
+                return SWIPEABLE_TABS[idx + 1];
+            });
+        },
+        onSwipeRight: () => {
+            setActiveTab((current) => {
+                const idx = SWIPEABLE_TABS.indexOf(
+                    current as (typeof SWIPEABLE_TABS)[number],
+                );
+                if (idx <= 0) return current;
+                return SWIPEABLE_TABS[idx - 1];
+            });
+        },
+    });
+
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-mac-bg font-sans selection:bg-mac-accent/20">
+        <div
+            ref={appRef}
+            className="flex flex-col h-screen overflow-hidden bg-mac-bg font-sans selection:bg-mac-accent/20"
+        >
             {/* Custom Titlebar — macOS only (on Linux, the native titlebar handles this) */}
             {isMac && (
                 <div className="h-10 w-full shrink-0 flex items-center justify-center bg-mac-bg border-b border-white/[0.05] z-50 relative electrobun-webkit-app-region-drag">

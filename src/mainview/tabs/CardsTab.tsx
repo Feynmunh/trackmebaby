@@ -1,9 +1,10 @@
 import { Search } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
 import ProjectsGrid from "../features/projects/components/ProjectsGrid.tsx";
 import { useProjectData } from "../hooks/useProjectData.ts";
+import { useSwipeGesture } from "../hooks/useSwipeGesture.ts";
 import {
     getPlatform,
     getSettings,
@@ -61,6 +62,8 @@ export default function CardsTab({
         closeDashboard,
     } = useProjectData();
 
+    const containerRef = useRef<HTMLDivElement>(null);
+
     const [platform, setPlatform] = useState<string>("");
     const [selectingFolder, setSelectingFolder] = useState(false);
     const [basePathInput, setBasePathInput] = useState("");
@@ -69,6 +72,12 @@ export default function CardsTab({
     const [aiRefreshKeys, setAiRefreshKeys] = useState<Record<string, number>>(
         {},
     );
+
+    // Swipe right (two-finger swipe right) = go back to grid from dashboard
+    useSwipeGesture(containerRef, {
+        enabled: viewMode === "dashboard",
+        onSwipeRight: closeDashboard,
+    });
 
     const trimmedSearch = search.trim();
     const normalizedSearch = trimmedSearch.toLowerCase();
@@ -193,7 +202,10 @@ export default function CardsTab({
     }
 
     return (
-        <div className="relative h-full w-full overflow-hidden">
+        <div
+            ref={containerRef}
+            className="relative h-full w-full overflow-hidden"
+        >
             <div
                 className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
