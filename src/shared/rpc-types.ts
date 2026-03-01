@@ -101,6 +101,10 @@ export type TrackmeBabyRPC = {
                 params: { url: string };
                 response: { success: boolean; error?: string };
             };
+            getGitDiff: {
+                params: { projectId: string };
+                response: { diff: string; error?: string };
+            };
         };
         messages: {
             log: { entry: LogEntry };

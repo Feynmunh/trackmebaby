@@ -9,6 +9,7 @@ import {
     insertGitSnapshot,
     setProjectStatsCache,
 } from "../../../db/queries.ts";
+import { runGit } from "../../../services/git-command.ts";
 import type { GitTrackerService } from "../../../services/git-tracker.ts";
 
 export interface GitHandlersDeps {
@@ -22,6 +23,35 @@ const statsInflight = new Map<string, Promise<void>>();
 
 export function createGitHandlers({ db, gitTracker }: GitHandlersDeps) {
     return {
+        getGitDiff: async ({ projectId }: { projectId: string }) => {
+            const project = getProjectById(db, projectId);
+            if (!project) return { diff: "", error: "Project not found." };
+            try {
+                const diff = await runGit(
+                    [
+                        "diff",
+                        "--no-ext-diff",
+                        "--no-textconv",
+                        "--no-color",
+                        "HEAD",
+                    ],
+                    {
+                        projectPath: project.path,
+                        label: "GitHandlers",
+                        noTrim: true,
+                    },
+                );
+                if (diff === null) {
+                    return { diff: "", error: "Unable to load git diff." };
+                }
+                return { diff };
+            } catch (err: unknown) {
+                logger.error("git diff error", {
+                    error: toErrorData(err),
+                });
+                return { diff: "", error: "Unable to load git diff." };
+            }
+        },
         getGitStatus: async ({ projectId }: { projectId: string }) => {
             const cached = getLatestGitSnapshot(db, projectId);
             if (cached) return cached;

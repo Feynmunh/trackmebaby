@@ -9,6 +9,7 @@ interface GitCommandOptions {
     logLevel?: LogLevel;
     logOnError?: boolean;
     timeoutMs?: number;
+    noTrim?: boolean;
 }
 
 async function readStreamText(
@@ -61,7 +62,7 @@ export async function runGit(
         return null;
     }
 
-    return stdout.trim();
+    return options.noTrim ? stdout : stdout.trim();
 }
 
 export async function runGitLines(

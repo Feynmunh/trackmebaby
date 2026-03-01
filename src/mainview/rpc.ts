@@ -189,6 +189,12 @@ export async function openExternalUrl(
     return requestApi.openExternalUrl({ url });
 }
 
+export async function getGitDiff(
+    projectId: string,
+): Promise<{ diff: string; error?: string }> {
+    return requestApi.getGitDiff({ projectId });
+}
+
 // --- Push Message Subscriptions ---
 
 export function onProjectsUpdated(
