@@ -75,9 +75,7 @@ function DockItem({
             className={[
                 "relative inline-flex shrink-0 items-center justify-center",
                 "transition-colors duration-150 cursor-pointer select-none",
-                isActive
-                    ? "text-mac-accent"
-                    : "text-white",
+                isActive ? "text-mac-accent" : "text-white",
                 disabled ? "opacity-35 cursor-not-allowed" : "",
             ]
                 .filter(Boolean)

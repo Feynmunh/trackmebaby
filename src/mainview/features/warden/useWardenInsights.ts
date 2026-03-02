@@ -248,9 +248,7 @@ export function useWardenInsights(projectId: string) {
                     setHasApiKey(false);
                 }
 
-                const message = mapWardenReasonToMessage(
-                    result.reason || "",
-                );
+                const message = mapWardenReasonToMessage(result.reason || "");
                 setError(message ?? (result.reason || "Analysis failed"));
                 // Only stop spinner on failure — on success the push message will stop it
                 setIsAnalyzing(false);

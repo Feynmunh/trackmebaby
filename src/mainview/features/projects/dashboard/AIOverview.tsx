@@ -2,10 +2,10 @@ import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { timeAgo } from "../../../../shared/time.ts";
 import type { GitSnapshot, Project } from "../../../../shared/types.ts";
 import { queryAI } from "../../../rpc.ts";
 import DiffView from "./DiffView.tsx";
-import { timeAgo } from "../../../../shared/time.ts";
 
 interface AIOverviewProps {
     project: Project;
@@ -72,12 +72,23 @@ export default function AIOverview({
         return (
             <div className="flex flex-col">
                 <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-[9px] font-bold text-mac-secondary uppercase tracking-[0.2em]">Project Pulse</h3>
+                    <h3 className="text-[9px] font-bold text-mac-secondary uppercase tracking-[0.2em]">
+                        Project Pulse
+                    </h3>
                     {loading && (
                         <div className="flex gap-1">
-                            <span className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce" style={{ animationDelay: "0ms" }} />
-                            <span className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce" style={{ animationDelay: "150ms" }} />
-                            <span className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce" style={{ animationDelay: "300ms" }} />
+                            <span
+                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                style={{ animationDelay: "0ms" }}
+                            />
+                            <span
+                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                style={{ animationDelay: "150ms" }}
+                            />
+                            <span
+                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                style={{ animationDelay: "300ms" }}
+                            />
                         </div>
                     )}
                 </div>
@@ -92,7 +103,9 @@ export default function AIOverview({
                             {summary}
                         </p>
                     ) : (
-                        <p className="text-[11px] text-mac-secondary italic">{summaryError ?? "AI summary unavailable."}</p>
+                        <p className="text-[11px] text-mac-secondary italic">
+                            {summaryError ?? "AI summary unavailable."}
+                        </p>
                     )}
                 </div>
                 {hasUncommitted && gitSnapshot && (
@@ -100,11 +113,15 @@ export default function AIOverview({
                         <button
                             onClick={() => setShowDiffs(!showDiffs)}
                             className={`p-0 text-[10px] font-semibold tracking-tight leading-none text-left transition-colors group ${
-                                showDiffs ? "text-orange-500" : "text-mac-secondary hover:text-orange-500"
+                                showDiffs
+                                    ? "text-orange-500"
+                                    : "text-mac-secondary hover:text-orange-500"
                             }`}
                         >
                             <span className="underline underline-offset-4 decoration-current/30 group-hover:decoration-orange-500/50">
-                                {gitSnapshot.uncommittedCount} file{gitSnapshot.uncommittedCount !== 1 ? "s" : ""} changed
+                                {gitSnapshot.uncommittedCount} file
+                                {gitSnapshot.uncommittedCount !== 1 ? "s" : ""}{" "}
+                                changed
                             </span>
                         </button>
                         {showDiffs && (

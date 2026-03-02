@@ -74,7 +74,10 @@ export class GroqProvider implements AIProvider {
 
             if (!response.ok) {
                 const errorBody = await response.text();
-                logger.error("api error", { status: response.status, errorBody });
+                logger.error("api error", {
+                    status: response.status,
+                    errorBody,
+                });
                 if (response.status === 429) {
                     return "Rate limit reached. Please wait a moment and try again.";
                 }

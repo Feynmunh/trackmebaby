@@ -86,7 +86,9 @@ export default function GitPage({
                     >
                         <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                     </svg>
-                    <span className="text-[11px] font-medium">View commits</span>
+                    <span className="text-[11px] font-medium">
+                        View commits
+                    </span>
                     {allCommits.length > 0 && (
                         <span className="text-[10px] font-bold bg-mac-accent/10 text-mac-accent/80 px-1.5 py-0.5 rounded-full">
                             {allCommits.length}
@@ -107,104 +109,107 @@ export default function GitPage({
                 </button>
 
                 {showCommitsList && (
-                <div className="space-y-3 pr-1 mt-1">
-                    {isLoading ? (
-                        [1, 2, 3].map((i) => (
-                            <div
-                                key={i}
-                                className="py-3 border-b border-mac-border/30 animate-pulse px-1"
-                            >
-                                <div className="h-3 bg-mac-border rounded w-3/4 mb-2" />
-                                <div className="h-2 bg-mac-border rounded w-1/3" />
+                    <div className="space-y-3 pr-1 mt-1">
+                        {isLoading ? (
+                            [1, 2, 3].map((i) => (
+                                <div
+                                    key={i}
+                                    className="py-3 border-b border-mac-border/30 animate-pulse px-1"
+                                >
+                                    <div className="h-3 bg-mac-border rounded w-3/4 mb-2" />
+                                    <div className="h-2 bg-mac-border rounded w-1/3" />
+                                </div>
+                            ))
+                        ) : commits.length === 0 ? (
+                            <div className="py-6 text-center">
+                                <p className="text-[10px] font-semibold text-mac-secondary uppercase tracking-widest">
+                                    No recent activity
+                                </p>
                             </div>
-                        ))
-                    ) : commits.length === 0 ? (
-                        <div className="py-6 text-center">
-                            <p className="text-[10px] font-semibold text-mac-secondary uppercase tracking-widest">
-                                No recent activity
-                            </p>
-                        </div>
-                    ) : (
-                        commits.map((commit) => (
-                            <div
-                                key={commit.hash}
-                                id={`commit-${commit.hash}`}
-                                className="py-3 border-b border-mac-border/30 hover:bg-mac-hover/20 transition-colors cursor-default scroll-mt-4 px-1 last:border-b-0"
-                            >
-                                <div className="flex items-start gap-3">
-                                    <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5">
-                                        <svg
-                                            xmlns="http://www.w3.org/2000/svg"
-                                            viewBox="0 0 16 16"
-                                            fill="currentColor"
-                                            className="w-3.5 h-3.5 text-mac-secondary"
-                                        >
-                                            <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
-                                        </svg>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <p className="text-[13px] text-mac-text font-semibold leading-snug truncate pr-4">
-                                                {commit.message}
-                                            </p>
-                                            <span className="text-[10px] text-mac-secondary font-mono whitespace-nowrap">
-                                                {formatCommitTime(
-                                                    commit.timestamp,
-                                                )}
-                                            </span>
+                        ) : (
+                            commits.map((commit) => (
+                                <div
+                                    key={commit.hash}
+                                    id={`commit-${commit.hash}`}
+                                    className="py-3 border-b border-mac-border/30 hover:bg-mac-hover/20 transition-colors cursor-default scroll-mt-4 px-1 last:border-b-0"
+                                >
+                                    <div className="flex items-start gap-3">
+                                        <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5">
+                                            <svg
+                                                xmlns="http://www.w3.org/2000/svg"
+                                                viewBox="0 0 16 16"
+                                                fill="currentColor"
+                                                className="w-3.5 h-3.5 text-mac-secondary"
+                                            >
+                                                <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
+                                            </svg>
                                         </div>
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-[11px] text-mac-secondary truncate max-w-[120px]">
-                                                    {commit.author}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center justify-between mb-1">
+                                                <p className="text-[13px] text-mac-text font-semibold leading-snug truncate pr-4">
+                                                    {commit.message}
+                                                </p>
+                                                <span className="text-[10px] text-mac-secondary font-mono whitespace-nowrap">
+                                                    {formatCommitTime(
+                                                        commit.timestamp,
+                                                    )}
                                                 </span>
                                             </div>
+                                            <div className="flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[11px] text-mac-secondary truncate max-w-[120px]">
+                                                        {commit.author}
+                                                    </span>
+                                                </div>
 
-                                            <div className="flex items-center gap-3">
-                                                {(commit.insertions > 0 ||
-                                                    commit.deletions > 0) && (
-                                                    <div className="flex items-center gap-1.5">
-                                                        {commit.insertions >
-                                                            0 && (
-                                                            <span className="text-[9px] font-bold text-green-500">
-                                                                +
-                                                                {
-                                                                    commit.insertions
-                                                                }
-                                                            </span>
-                                                        )}
-                                                        {commit.deletions >
-                                                            0 && (
-                                                            <span className="text-[9px] font-bold text-red-500">
-                                                                -
-                                                                {
-                                                                    commit.deletions
-                                                                }
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                )}
-                                                <CopyableHash
-                                                    hash={commit.hash}
-                                                />
+                                                <div className="flex items-center gap-3">
+                                                    {(commit.insertions > 0 ||
+                                                        commit.deletions >
+                                                            0) && (
+                                                        <div className="flex items-center gap-1.5">
+                                                            {commit.insertions >
+                                                                0 && (
+                                                                <span className="text-[9px] font-bold text-green-500">
+                                                                    +
+                                                                    {
+                                                                        commit.insertions
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                            {commit.deletions >
+                                                                0 && (
+                                                                <span className="text-[9px] font-bold text-red-500">
+                                                                    -
+                                                                    {
+                                                                        commit.deletions
+                                                                    }
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    <CopyableHash
+                                                        hash={commit.hash}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))
-                    )}
-                    {hasMore && !isLoading && (
-                        <button
-                            onClick={() => setShowAllCommits(!showAllCommits)}
-                            className="w-full py-1.5 text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:text-mac-text transition-colors mt-1"
-                        >
-                            {showAllCommits
-                                ? "Show Less"
-                                : `Show ${allCommits.length - 5} More`}
-                        </button>
-                    )}
-                </div>
+                            ))
+                        )}
+                        {hasMore && !isLoading && (
+                            <button
+                                onClick={() =>
+                                    setShowAllCommits(!showAllCommits)
+                                }
+                                className="w-full py-1.5 text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:text-mac-text transition-colors mt-1"
+                            >
+                                {showAllCommits
+                                    ? "Show Less"
+                                    : `Show ${allCommits.length - 5} More`}
+                            </button>
+                        )}
+                    </div>
                 )}
             </div>
         );
