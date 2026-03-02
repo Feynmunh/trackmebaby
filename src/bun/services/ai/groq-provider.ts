@@ -6,7 +6,7 @@
 
 import { toErrorData, toErrorMessage } from "../../../shared/error.ts";
 import { createLogger } from "../../../shared/logger.ts";
-import type { AIProvider } from "./provider.ts";
+import type { AIProvider, AIQueryOptions } from "./provider.ts";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -38,6 +38,7 @@ export class GroqProvider implements AIProvider {
         context: string,
         question: string,
         systemPrompt?: string,
+        options?: AIQueryOptions,
     ): Promise<string> {
         if (!this.apiKey) {
             return "Please add your GROQ_API_KEY to your .env file to get AI insights.";
@@ -63,7 +64,7 @@ export class GroqProvider implements AIProvider {
                         },
                     ],
                     temperature: 0.3,
-                    max_tokens: 1024,
+                    max_tokens: options?.maxTokens ?? 1024,
                 }),
             });
 

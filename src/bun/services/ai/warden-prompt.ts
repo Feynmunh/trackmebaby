@@ -16,10 +16,20 @@ Respond with ONLY a JSON object (no prose, no markdown). Use this exact schema:
 Valid severity values: critical, warning, info.
 Valid category values: security, tech_debt, project_health, suggestion, testing_gap, deprecation, dependency, refactoring.
 
-Avoid repeating insights listed in the [EXISTING_INSIGHTS] section of the context.
+Avoid repeating insights listed in the [EXISTING_INSIGHTS] or [DISMISSED_INSIGHTS] sections of the context.
 Be specific and actionable, not generic. Reference actual file names and metrics from the context.
-Return 3–7 insights per analysis. Do not pad with trivial observations.
-"affectedFiles" must be an array of strings or null if not applicable.`;
+Return 3\u20137 insights per analysis. Do not pad with trivial observations.
+"affectedFiles" must be an array of strings or null if not applicable.
+
+GROUNDING RULES (you MUST follow these):
+- "affectedFiles" MUST only contain file paths that appear verbatim in the context data or in [PROJECT_FILES]. Never invent or guess file paths.
+- File activity counts in [FILE_ACTIVITY_7_DAYS] reflect raw file-save events, NOT meaningful code changes. A file with many saves in a short period likely means active development, not instability. Weight "active days" over raw counts.
+- Do NOT flag files as unstable or needing refactoring simply because they have high modification counts during recent feature development.
+- [RECENT_COMMITS] shows commit history only. [UNCOMMITTED_CHANGES] shows current working directory state. These are separate concepts \u2014 never describe uncommitted changes as belonging to a specific commit.
+- If a project shows high overall activity with recent feature-addition commits, interpret this as active development rather than project health issues.
+- Prefer fewer, high-confidence insights over padding with generic observations. If nothing is genuinely concerning, return fewer than 3 insights.
+- [DISMISSED_INSIGHTS] lists insights the user explicitly rejected. NEVER regenerate these or semantically similar insights.
+- [VALUED_INSIGHTS] lists insights the user approved or liked. Generate more insights in those categories and styles when relevant data supports it.`;
 
 export interface ParsedInsight {
     severity: string;

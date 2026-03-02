@@ -22,6 +22,9 @@ export function useWardenInsights(projectId: string) {
     const [activeTab, setActiveTab] = useState<"new" | "approved" | "liked">(
         "new",
     );
+    const [error, setError] = useState<string | null>(null);
+    const [page, setPage] = useState(0);
+    const PAGE_SIZE = 20;
 
     const isMounted = useRef(false);
 
@@ -39,14 +42,22 @@ export function useWardenInsights(projectId: string) {
                 setInsights(tabInsights);
                 setHasApiKey(configured);
                 setCounts(counts);
+                setError(null);
             }
         } catch (err) {
             console.error(
                 `[useWardenInsights] Error fetching insights for ${projectId}:`,
                 err,
             );
+            if (isMounted.current) {
+                setError(err instanceof Error ? err.message : "Failed to fetch insights");
+            }
         }
     }, [projectId, activeTab]);
+
+    useEffect(() => {
+        setPage(0);
+    }, [activeTab]);
 
     useEffect(() => {
         isMounted.current = true;
@@ -74,6 +85,8 @@ export function useWardenInsights(projectId: string) {
         };
     }, [projectId, fetchAllData]);
 
+    const clearError = useCallback(() => setError(null), []);
+
     const approveInsight = useCallback(
         async (insightId: string) => {
             // Optimistic UI update: update local state
@@ -87,12 +100,14 @@ export function useWardenInsights(projectId: string) {
 
             try {
                 await updateWardenInsightStatus(insightId, "approved");
+                setError(null);
                 void fetchAllData();
             } catch (err) {
                 console.error(
                     `[useWardenInsights] Failed to approve insight ${insightId}:`,
                     err,
                 );
+                setError(err instanceof Error ? err.message : "Failed to approve insight");
                 void fetchAllData();
             }
         },
@@ -106,12 +121,14 @@ export function useWardenInsights(projectId: string) {
 
             try {
                 await updateWardenInsightStatus(insightId, "dismissed");
+                setError(null);
                 void fetchAllData();
             } catch (err) {
                 console.error(
                     `[useWardenInsights] Failed to dismiss insight ${insightId}:`,
                     err,
                 );
+                setError(err instanceof Error ? err.message : "Failed to dismiss insight");
                 void fetchAllData();
             }
         },
@@ -131,12 +148,14 @@ export function useWardenInsights(projectId: string) {
 
             try {
                 await updateWardenInsightStatus(insightId, "liked");
+                setError(null);
                 void fetchAllData();
             } catch (err) {
                 console.error(
                     `[useWardenInsights] Failed to like insight ${insightId}:`,
                     err,
                 );
+                setError(err instanceof Error ? err.message : "Failed to like insight");
                 void fetchAllData();
             }
         },
@@ -145,11 +164,16 @@ export function useWardenInsights(projectId: string) {
 
     const triggerAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
+        setError(null);
         try {
             const result = await triggerWardenAnalysis(projectId);
             if (!result.success && result.reason === "MISSING_API_KEY") {
                 if (isMounted.current) {
                     setHasApiKey(false);
+                }
+            } else if (!result.success) {
+                if (isMounted.current) {
+                    setError(result.reason || "Analysis failed");
                 }
             }
             await fetchAllData();
@@ -158,6 +182,9 @@ export function useWardenInsights(projectId: string) {
                 `[useWardenInsights] Failed to trigger analysis for ${projectId}:`,
                 err,
             );
+            if (isMounted.current) {
+                setError(err instanceof Error ? err.message : "Failed to trigger analysis");
+            }
         } finally {
             if (isMounted.current) {
                 setIsAnalyzing(false);
@@ -165,12 +192,22 @@ export function useWardenInsights(projectId: string) {
         }
     }, [projectId, fetchAllData]);
 
+    const totalPages = Math.ceil(insights.length / PAGE_SIZE);
+    const displayedInsights = insights.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+
     return {
-        insights,
+    return {
+        insights: displayedInsights,
+        allInsights: insights,
+        page,
+        setPage,
+        totalPages,
         counts,
         isLoading,
         isAnalyzing,
         hasApiKey,
+        error,
+        clearError,
         activeTab,
         setActiveTab,
         approveInsight,

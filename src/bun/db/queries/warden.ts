@@ -123,29 +123,34 @@ export function updateWardenInsightStatus(
     insightId: string,
     newStatus: WardenInsightStatus,
 ): boolean {
-    const current = db
-        .query("SELECT status, resolved_at FROM warden_insights WHERE id = ?")
-        .get(insightId) as {
-        status: string;
-        resolved_at: string | null;
-    } | null;
+    // Use transaction to prevent TOCTOU race between SELECT and UPDATE
+    const tx = db.transaction(() => {
+        const current = db
+            .query("SELECT status, resolved_at FROM warden_insights WHERE id = ?")
+            .get(insightId) as {
+            status: string;
+            resolved_at: string | null;
+        } | null;
 
-    if (!current) return false;
+        if (!current) return false;
 
-    let resolvedAt: string | null = current.resolved_at;
-    if (newStatus === "new") {
-        resolvedAt = null;
-    } else if (current.status === "new" && !resolvedAt) {
-        resolvedAt = nowIso();
-    }
+        let resolvedAt: string | null = current.resolved_at;
+        if (newStatus === "new") {
+            resolvedAt = null;
+        } else if (current.status === "new" && !resolvedAt) {
+            resolvedAt = nowIso();
+        }
 
-    const result = db
-        .query(
-            "UPDATE warden_insights SET status = ?, resolved_at = ? WHERE id = ?",
-        )
-        .run(newStatus, resolvedAt, insightId);
+        const result = db
+            .query(
+                "UPDATE warden_insights SET status = ?, resolved_at = ? WHERE id = ?",
+            )
+            .run(newStatus, resolvedAt, insightId);
 
-    return (result.changes as number) > 0;
+        return (result.changes as number) > 0;
+    });
+
+    return tx();
 }
 
 export function deleteWardenInsightsByProject(
@@ -172,4 +177,58 @@ export function getWardenInsightCountsByProject(
         }
     }
     return counts;
+}
+
+/**
+ * Clean up old dismissed insights (older than 30 days) and cap
+ * total insights per project to prevent unbounded growth.
+ */
+export function cleanupWardenInsights(
+    db: Database,
+    projectId: string,
+    maxPerStatus: number = 50,
+    dismissedRetentionDays: number = 30,
+): { archivedDismissed: number; capped: number } {
+    let archivedDismissed = 0;
+    let capped = 0;
+
+    // 1. Delete old dismissed insights
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - dismissedRetentionDays);
+    const cutoffIso = cutoff.toISOString();
+
+    const dismissResult = db
+        .query(
+            "DELETE FROM warden_insights WHERE project_id = ? AND status = 'dismissed' AND resolved_at < ?"
+        )
+        .run(projectId, cutoffIso);
+    archivedDismissed = dismissResult.changes as number;
+
+    // 2. Cap insights per active status (keep newest)
+    for (const status of ["new", "approved", "liked"] as const) {
+        const overflow = db
+            .query(
+                `SELECT id FROM warden_insights
+                 WHERE project_id = ? AND status = ?
+                 ORDER BY created_at DESC
+                 LIMIT -1 OFFSET ?`
+            )
+            .all(projectId, status, maxPerStatus) as { id: string }[];
+
+        if (overflow.length > 0) {
+            const ids = overflow.map((r) => r.id);
+            for (const id of ids) {
+                db.query("DELETE FROM warden_insights WHERE id = ?").run(id);
+            }
+            capped += overflow.length;
+        }
+    }
+
+    if (archivedDismissed > 0 || capped > 0) {
+        console.log(
+            `[Warden] Cleanup: archived ${archivedDismissed} dismissed, capped ${capped} overflow insights`,
+        );
+    }
+
+    return { archivedDismissed, capped };
 }

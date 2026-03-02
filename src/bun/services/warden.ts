@@ -1,11 +1,13 @@
 import type { Database } from "bun:sqlite";
+import { existsSync } from "node:fs";
+import { join } from "node:path";
 import type {
     GitSnapshot,
     WardenCategory,
     WardenInsight,
     WardenSeverity,
 } from "../../shared/types.ts";
-import { getProjectByPath, insertWardenInsight } from "../db/queries.ts";
+import { cleanupWardenInsights, getProjectById, getProjectByPath, insertWardenInsight } from "../db/queries.ts";
 import {
     type AIProvider,
     createAIProvider,
@@ -20,6 +22,12 @@ import type { SettingsService } from "./settings.ts";
 
 type InsightsCallback = (projectId: string, insights: WardenInsight[]) => void;
 
+interface QueueEntry {
+    projectId: string;
+    isManual: boolean;
+    resolve: (insights: WardenInsight[]) => void;
+}
+
 export class WardenService {
     private db: Database;
     private settingsService: SettingsService;
@@ -28,6 +36,11 @@ export class WardenService {
     private lastCommitHash: Map<string, string> = new Map();
     private onInsightsGenerated?: InsightsCallback;
     private readonly COOLDOWN_MS = 5 * 60 * 1000;
+    private readonly MAX_RETRIES = 1;
+    private readonly WARDEN_MAX_TOKENS = 2048;
+    private readonly MAX_CONCURRENT = 2;
+    private activeCount = 0;
+    private queue: QueueEntry[] = [];
 
     constructor(
         db: Database,
@@ -58,8 +71,6 @@ export class WardenService {
             return [];
         }
 
-        const provider = this.getAIProvider();
-
         const lastRun = this.lastRunAt.get(projectId) ?? 0;
         if (!isManual && Date.now() - lastRun < this.COOLDOWN_MS) {
             return [];
@@ -69,25 +80,79 @@ export class WardenService {
             return [];
         }
 
+        // Check if already queued
+        if (this.queue.some((e) => e.projectId === projectId)) {
+            return [];
+        }
+
+        // Route through global queue
+        return new Promise<WardenInsight[]>((resolve) => {
+            // Manual triggers go to front of queue
+            const entry: QueueEntry = { projectId, isManual, resolve };
+            if (isManual) {
+                this.queue.unshift(entry);
+            } else {
+                this.queue.push(entry);
+            }
+            this.processQueue();
+        });
+    }
+
+    private processQueue(): void {
+        while (
+            this.queue.length > 0 &&
+            this.activeCount < this.MAX_CONCURRENT
+        ) {
+            const entry = this.queue.shift()!;
+            this.activeCount++;
+            void this.executeAnalysis(entry.projectId, entry.isManual)
+                .then((insights) => entry.resolve(insights))
+                .finally(() => {
+                    this.activeCount--;
+                    this.processQueue();
+                });
+        }
+    }
+
+    private async executeAnalysis(
+        projectId: string,
+        isManual: boolean,
+    ): Promise<WardenInsight[]> {
+        if (this.isRunning.get(projectId) === true) {
+            return [];
+        }
+
         this.isRunning.set(projectId, true);
+        const provider = this.getAIProvider();
 
         try {
-            const context = await assembleWardenContext(this.db, projectId);
-            const aiText = await provider.query(
+            // Clean up old insights before analysis to keep context fresh
+            cleanupWardenInsights(this.db, projectId);
+
+            const project = getProjectById(this.db, projectId);
+            const projectRoot = project?.path ?? null;
+            const context = await assembleWardenContext(this.db, projectId, projectRoot);
+            // Query AI with retry on JSON parse failure
+            let parsedInsights = await this.queryWithRetry(
+                provider,
                 context,
-                "Analyze this project activity for potential issues.",
-                WARDEN_SYSTEM_PROMPT,
             );
 
-            // AIProvider implementations currently return a user-friendly error string
-            // if response.ok is false. parseWardenResponse will return [] for those.
-            const parsedInsights = parseWardenResponse(aiText);
-
-            if (
-                parsedInsights.length === 0 &&
-                aiText.includes("AI query failed")
-            ) {
-                throw new Error(aiText);
+            // Validate affectedFiles: strip paths that don't exist on disk
+            for (const insight of parsedInsights) {
+                if (insight.affectedFiles && projectRoot) {
+                    insight.affectedFiles = insight.affectedFiles.filter(
+                        (filePath) => {
+                            const abs = filePath.startsWith("/")
+                                ? filePath
+                                : join(projectRoot, filePath);
+                            return existsSync(abs);
+                        },
+                    );
+                    if (insight.affectedFiles.length === 0) {
+                        insight.affectedFiles = null;
+                    }
+                }
             }
 
             const inserted: WardenInsight[] = [];
@@ -121,6 +186,36 @@ export class WardenService {
         }
     }
 
+    private async queryWithRetry(
+        provider: AIProvider,
+        context: string,
+    ) {
+        for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
+            const aiText = await provider.query(
+                context,
+                "Analyze this project activity for potential issues.",
+                WARDEN_SYSTEM_PROMPT,
+                { maxTokens: this.WARDEN_MAX_TOKENS },
+            );
+
+            // Check for API-level error
+            if (aiText.includes("AI query failed")) {
+                throw new Error(aiText);
+            }
+
+            const insights = parseWardenResponse(aiText);
+            if (insights.length > 0) {
+                return insights;
+            }
+
+            // Parse returned empty (malformed JSON) — retry once
+            if (attempt < this.MAX_RETRIES) {
+                console.warn(`[Warden] Parse failed, retrying (attempt ${attempt + 1})...`);
+            }
+        }
+        return [];
+    }
+
     onGitStatusChange(projectPath: string, snapshot: GitSnapshot): void {
         const project = getProjectByPath(this.db, projectPath);
         if (!project) return;
@@ -133,5 +228,29 @@ export class WardenService {
         if (!newHash) return;
 
         void this.analyzeProject(project.id, false);
+    }
+
+    /**
+     * Run initial analysis for a set of projects with staggered delays.
+     * First project runs immediately, others are staggered by 30s.
+     */
+    scheduleInitialAnalysis(projectIds: string[]): void {
+        if (projectIds.length === 0) return;
+        const apiKey = getSavedApiKey();
+        if (!apiKey) return;
+
+        console.log(`[Warden] Scheduling initial analysis for ${projectIds.length} projects`);
+
+        // First project immediately
+        void this.analyzeProject(projectIds[0], false);
+
+        // Remaining projects staggered
+        const STAGGER_MS = 30_000;
+        for (let i = 1; i < projectIds.length; i++) {
+            const id = projectIds[i];
+            setTimeout(() => {
+                void this.analyzeProject(id, false);
+            }, i * STAGGER_MS);
+        }
     }
 }

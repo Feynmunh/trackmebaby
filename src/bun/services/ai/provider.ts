@@ -3,11 +3,16 @@
  * All AI implementations must conform to this interface
  */
 
+export interface AIQueryOptions {
+    maxTokens?: number;
+}
+
 export interface AIProvider {
     query(
         context: string,
         question: string,
         systemPrompt?: string,
+        options?: AIQueryOptions,
     ): Promise<string>;
 
     /**

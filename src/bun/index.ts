@@ -204,6 +204,9 @@ async function startServices(): Promise<void> {
         await gitTracker.startTracking(projects.map((p) => p.path));
 
         console.log(`[trackmebaby] Tracking ${projects.length} projects`);
+
+        // Schedule initial Warden analysis for all projects (staggered)
+        wardenService.scheduleInitialAnalysis(projects.map((p) => p.id));
     } else {
         console.log(
             "[trackmebaby] No base path configured. Open Settings to get started.",
