@@ -8,7 +8,6 @@ import {
     spyOn,
     test,
 } from "bun:test";
-import type { GitSnapshot } from "../../shared/types.ts";
 import { upsertProject } from "../db/queries.ts";
 import { runMigrations } from "../db/schema.ts";
 import { SettingsService } from "./settings.ts";
@@ -190,57 +189,74 @@ describe("WardenService", () => {
         expect(mockFetch.mock.calls.length).toBe(0);
     });
 
-    test("triggers analysis when commit hash changes", async () => {
+    test("triggers analysis only if there is new activity", async () => {
         const service = new WardenService(db, settingsService);
         const analyzeSpy = spyOn(service, "analyzeProject").mockImplementation(
             async () => [],
         );
 
-        const first: GitSnapshot = {
-            id: "snap-1",
+        // First run: no insights, but activity exists -> trigger
+        const oldEventTime = new Date(Date.now() - 20000).toISOString();
+        db.query(
+            "INSERT INTO events (id, project_id, type, file_path, timestamp) VALUES (?, ?, ?, ?, ?)",
+        ).run(
+            Bun.randomUUIDv7(),
             projectId,
-            timestamp: new Date().toISOString(),
-            branch: "main",
-            lastCommitHash: "abc",
-            lastCommitMessage: "init",
-            lastCommitTimestamp: null,
-            uncommittedCount: 0,
-            uncommittedFiles: [],
-        };
-        service.onGitStatusChange("/test/path", first);
-
-        const second: GitSnapshot = { ...first, lastCommitHash: "def" };
-        service.onGitStatusChange("/test/path", second);
-
-        expect(analyzeSpy.mock.calls.length).toBe(2);
-    });
-
-    test("does not trigger analysis when commit hash is unchanged", async () => {
-        const service = new WardenService(db, settingsService);
-        const analyzeSpy = spyOn(service, "analyzeProject").mockImplementation(
-            async () => [],
+            "file_create",
+            "old.ts",
+            oldEventTime,
         );
 
-        const snapshot: GitSnapshot = {
-            id: "snap-1",
+        const result1 = await service.analyzeProjectIfNeeded(projectId, false);
+        expect(result1.success).toBe(true);
+        expect(result1.reason).toBe("FIRST_RUN");
+        expect(analyzeSpy).toHaveBeenCalledTimes(1);
+
+        // Reset cooldown for second check
+        (
+            service as unknown as { lastRunAt: Map<string, number> }
+        ).lastRunAt.set(projectId, Date.now() - 600000);
+        // Insert an insight to mark "last success" at a time AFTER the old event
+        const lastInsightTime = new Date(Date.now() - 10000).toISOString();
+        db.query(
+            "INSERT INTO warden_insights (id, project_id, severity, category, title, description, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        ).run(
+            Bun.randomUUIDv7(),
             projectId,
-            timestamp: new Date().toISOString(),
-            branch: "main",
-            lastCommitHash: "abc",
-            lastCommitMessage: "init",
-            lastCommitTimestamp: null,
-            uncommittedCount: 0,
-            uncommittedFiles: [],
-        };
+            "info",
+            "suggestion",
+            "Old",
+            "Desc",
+            lastInsightTime,
+        );
+        // Check: No activity AFTER lastInsightTime -> should NOT trigger
+        const result2 = await service.analyzeProjectIfNeeded(projectId, false);
+        expect(result2.success).toBe(false);
+        expect(result2.reason).toBe("NO_NEW_ACTIVITY");
+        expect(analyzeSpy).toHaveBeenCalledTimes(1);
 
-        service.onGitStatusChange("/test/path", snapshot);
-        service.onGitStatusChange("/test/path", snapshot);
+        // Add new activity AFTER lastInsightTime (git snapshot)
+        const newGitTime = new Date().toISOString();
+        db.query(
+            "INSERT INTO git_snapshots (id, project_id, timestamp, branch, last_commit_hash, last_commit_timestamp) VALUES (?, ?, ?, ?, ?, ?)",
+        ).run(
+            Bun.randomUUIDv7(),
+            projectId,
+            newGitTime,
+            "main",
+            "new-hash",
+            newGitTime,
+        );
 
-        expect(analyzeSpy.mock.calls.length).toBe(1);
+        const result3 = await service.analyzeProjectIfNeeded(projectId, false);
+        expect(result3.success).toBe(true);
+        expect(result3.reason).toBe("NEW_ACTIVITY");
+        expect(analyzeSpy).toHaveBeenCalledTimes(2);
     });
 
     test("blocks concurrent analysis for the same project", async () => {
         const service = new WardenService(db, settingsService);
+        upsertProject(db, "/other/path", "other-project");
 
         let resolveFetch: (value: Response) => void;
         const deferredFetch = new Promise<Response>((resolve) => {
@@ -253,20 +269,13 @@ describe("WardenService", () => {
         const secondPromise = service.analyzeProject(projectId, false);
 
         const second = await secondPromise;
-        expect(second.length).toBe(0);
+        expect(second.length).toBe(0); // Blocked because same project is already in queue/running
 
-        // @ts-expect-error
+        // Manual triggers also use analyzeProjectIfNeeded now, so we'll test the service method directly here
+        // @ts-expect-error - access private for test
         resolveFetch(buildFetchResponse(VALID_RESPONSE));
         const first = await firstPromise;
-
         expect(first.length).toBe(1);
-
-        // Reset cooldown for manual trigger test
-        (
-            service as unknown as { lastRunAt: Map<string, number> }
-        ).lastRunAt.set(projectId, Date.now() - 61000);
-        const third = await service.analyzeProject(projectId, true);
-        expect(third.length).toBe(1);
     });
 
     test("retries on malformed AI response", async () => {

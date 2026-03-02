@@ -41,18 +41,19 @@ const gitTracker = new GitTrackerService(db, settingsService.getPollInterval());
 let onWardenInsights:
     | ((projectId: string, insights: WardenInsight[]) => void)
     | undefined;
+let onWardenAnalysisFailed:
+    | ((projectId: string, reason: string) => void)
+    | undefined;
 const wardenService = new WardenService(
     db,
     settingsService,
     (projectId, insights) => {
         onWardenInsights?.(projectId, insights);
     },
+    (projectId, reason) => {
+        onWardenAnalysisFailed?.(projectId, reason);
+    },
 );
-
-// Hook Warden into git-tracker for auto-analysis on commits
-gitTracker.onStatusChange((projectPath, snapshot) => {
-    wardenService.onGitStatusChange(projectPath, snapshot);
-});
 
 // --- Window Management ---
 const DEV_SERVER_PORT = 5173;
@@ -76,17 +77,22 @@ interface RpcWithWardenInsights {
             projectId: string;
             insights: WardenInsight[];
         }) => void;
+        wardenAnalysisFailed?: (payload: {
+            projectId: string;
+            reason: string;
+        }) => void;
     };
 }
-
 onWardenInsights = (projectId, insights) => {
     const webview = (rpc as RpcWithWardenInsights).webview;
-
     if (webview && typeof webview.wardenInsightsUpdated === "function") {
-        webview.wardenInsightsUpdated({
-            projectId,
-            insights,
-        });
+        webview.wardenInsightsUpdated({ projectId, insights });
+    }
+};
+onWardenAnalysisFailed = (projectId, reason) => {
+    const webview = (rpc as RpcWithWardenInsights).webview;
+    if (webview && typeof webview.wardenAnalysisFailed === "function") {
+        webview.wardenAnalysisFailed({ projectId, reason });
     }
 };
 
@@ -208,9 +214,6 @@ async function startServices(): Promise<void> {
         await gitTracker.startTracking(projects.map((p) => p.path));
 
         console.log(`[trackmebaby] Tracking ${projects.length} projects`);
-
-        // Schedule initial Warden analysis for all projects (staggered)
-        wardenService.scheduleInitialAnalysis(projects.map((p) => p.id));
     } else {
         console.log(
             "[trackmebaby] No base path configured. Open Settings to get started.",

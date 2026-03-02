@@ -37,21 +37,7 @@ export function createTriggerWardenAnalysisHandler(
 ) {
     return async ({ projectId }: { projectId: string }) => {
         try {
-            const insights = await wardenService.analyzeProject(
-                projectId,
-                true,
-            ); // manual=true
-
-            if (insights.length === 0) {
-                const hasKey = !!getSavedApiKey();
-                return {
-                    success: false,
-                    insightCount: 0,
-                    reason: hasKey ? "NO_INSIGHTS" : "MISSING_API_KEY",
-                };
-            }
-
-            return { success: true, insightCount: insights.length };
+            return await wardenService.analyzeProjectIfNeeded(projectId, true);
         } catch (err: unknown) {
             console.error("[RPC] Warden analysis failed:", err);
             return { success: false, insightCount: 0, reason: "ERROR" };
@@ -62,6 +48,12 @@ export function createTriggerWardenAnalysisHandler(
 export function createIsAIConfiguredHandler() {
     return async () => {
         return !!getSavedApiKey();
+    };
+}
+
+export function createOnProjectViewHandler(wardenService: WardenService) {
+    return async ({ projectId }: { projectId: string }) => {
+        return wardenService.analyzeProjectIfNeeded(projectId, false);
     };
 }
 
@@ -108,5 +100,6 @@ export function createWardenHandlers(deps: WardenHandlersDeps) {
             deps.db,
         ),
         isAIConfigured: createIsAIConfiguredHandler(),
+        onProjectView: createOnProjectViewHandler(deps.wardenService),
     };
 }

@@ -8,8 +8,11 @@ import {
     getWardenInsightCountsByProject,
     getWardenInsights,
     isAIConfigured,
+    onProjectView,
+    onWardenAnalysisFailed,
     onWardenInsightsUpdated,
-    triggerWardenAnalysis,
+    onWardenAnalysisFailed,
+    onProjectView,
     updateWardenInsightStatus,
 } from "../../rpc.ts";
 
@@ -76,16 +79,40 @@ export function useWardenInsights(projectId: string) {
 
         load();
 
-        // Subscribe to push notifications for real-time updates
-        const unsubscribe = onWardenInsightsUpdated((updatedProjectId) => {
-            if (updatedProjectId === projectId) {
-                void fetchAllData();
+        // Trigger automatic analysis if needed on view
+        onProjectView(projectId).then((result) => {
+            if (isMounted.current && result.success) {
+                setIsAnalyzing(true);
             }
         });
 
+        // Subscribe to push notifications for real-time updates
+        const unsubscribeInsights = onWardenInsightsUpdated(
+            (updatedProjectId) => {
+                if (updatedProjectId === projectId) {
+                    if (isMounted.current) {
+                        setIsAnalyzing(false);
+                    }
+                    void fetchAllData();
+                }
+            },
+        );
+
+        const unsubscribeFailure = onWardenAnalysisFailed(
+            ({ projectId: failedProjectId, reason }) => {
+                if (failedProjectId === projectId) {
+                    if (isMounted.current) {
+                        setIsAnalyzing(false);
+                        setError(reason);
+                    }
+                }
+            },
+        );
+
         return () => {
             isMounted.current = false;
-            unsubscribe();
+            unsubscribeInsights();
+            unsubscribeFailure();
         };
     }, [projectId, fetchAllData]);
 

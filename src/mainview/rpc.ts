@@ -45,15 +45,14 @@ const rpc = Electroview.defineRPC<TrackmeBabyRPC>({
                     cb(projectId, snapshot);
                 }
             },
-            wardenInsightsUpdated: ({
-                projectId,
-                insights,
-            }: {
-                projectId: string;
-                insights: WardenInsight[];
-            }) => {
+            wardenInsightsUpdated: ({ projectId, insights }) => {
                 for (const cb of rpcEventHandlers.wardenInsightsUpdated) {
                     cb(projectId, insights);
+                }
+            },
+            wardenAnalysisFailed: ({ projectId, reason }) => {
+                for (const cb of rpcEventHandlers.wardenAnalysisFailed) {
+                    cb({ projectId, reason });
                 }
             },
         },
@@ -87,6 +86,9 @@ const rpcEventHandlers = {
     >,
     wardenInsightsUpdated: [] as Array<
         (projectId: string, insights: WardenInsight[]) => void
+    >,
+    wardenAnalysisFailed: [] as Array<
+        (payload: { projectId: string; reason: string }) => void
     >,
 };
 
@@ -240,6 +242,12 @@ export async function isAIConfigured(): Promise<boolean> {
     return requestApi.isAIConfigured({});
 }
 
+export async function onProjectView(
+    projectId: string,
+): Promise<{ success: boolean; insightCount: number; reason: string }> {
+    return requestApi.onProjectView({ projectId });
+}
+
 export async function updateWardenInsightStatus(
     insightId: string,
     status: WardenInsightStatus,
@@ -286,5 +294,15 @@ export function onWardenInsightsUpdated(
     return () => {
         const idx = rpcEventHandlers.wardenInsightsUpdated.indexOf(cb);
         if (idx >= 0) rpcEventHandlers.wardenInsightsUpdated.splice(idx, 1);
+    };
+}
+
+export function onWardenAnalysisFailed(
+    cb: (payload: { projectId: string; reason: string }) => void,
+): () => void {
+    rpcEventHandlers.wardenAnalysisFailed.push(cb);
+    return () => {
+        const idx = rpcEventHandlers.wardenAnalysisFailed.indexOf(cb);
+        if (idx >= 0) rpcEventHandlers.wardenAnalysisFailed.splice(idx, 1);
     };
 }

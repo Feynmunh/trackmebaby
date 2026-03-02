@@ -2,7 +2,6 @@ import type { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { join, normalize, sep } from "node:path";
 import type {
-    GitSnapshot,
     WardenCategory,
     WardenInsight,
     WardenSeverity,
@@ -10,7 +9,8 @@ import type {
 import {
     cleanupWardenInsights,
     getProjectById,
-    getProjectByPath,
+    hasEventsSince,
+    hasGitSnapshots,
     insertWardenInsight,
 } from "../db/queries.ts";
 import {
@@ -26,6 +26,7 @@ import {
 import type { SettingsService } from "./settings.ts";
 
 type InsightsCallback = (projectId: string, insights: WardenInsight[]) => void;
+type FailureCallback = (projectId: string, reason: string) => void;
 
 interface QueueEntry {
     projectId: string;
@@ -38,10 +39,11 @@ export class WardenService {
     private settingsService: SettingsService;
     private lastRunAt: Map<string, number> = new Map();
     private isRunning: Map<string, boolean> = new Map();
-    private lastCommitHash: Map<string, string> = new Map();
     private onInsightsGenerated?: InsightsCallback;
+    private onAnalysisFailed?: FailureCallback;
     private readonly COOLDOWN_MS = 5 * 60 * 1000;
-    private readonly MANUAL_COOLDOWN_MS = 60 * 1000;
+    private readonly MANUAL_COOLDOWN_MS = 15 * 1000; // 15 seconds for manual
+    private readonly FIRST_RUN_COOLDOWN_MS = 30 * 1000; // 30 seconds for first run
     private readonly MAX_RETRIES = 1;
     private readonly WARDEN_MAX_TOKENS = 2048;
     private readonly MAX_CONCURRENT = 2;
@@ -52,10 +54,12 @@ export class WardenService {
         db: Database,
         settingsService: SettingsService,
         onInsightsGenerated?: InsightsCallback,
+        onAnalysisFailed?: FailureCallback,
     ) {
         this.db = db;
         this.settingsService = settingsService;
         this.onInsightsGenerated = onInsightsGenerated;
+        this.onAnalysisFailed = onAnalysisFailed;
     }
 
     private getAIProvider(): AIProvider {
@@ -103,6 +107,126 @@ export class WardenService {
             }
             this.processQueue();
         });
+    }
+
+    /**
+     * Analyze project only if:
+     * - Has activity (file events OR git commits)
+     * - Cooldown has passed
+     * - New activity since last analysis (or first run)
+     *
+     * Returns reason for why analysis was/wasn't triggered.
+     */
+    async analyzeProjectIfNeeded(
+        projectId: string,
+        isManual: boolean = false,
+    ): Promise<{ success: boolean; insightCount: number; reason: string }> {
+        const apiKey = getSavedApiKey();
+        if (!apiKey) {
+            return { success: false, insightCount: 0, reason: "NO_API_KEY" };
+        }
+
+        const project = getProjectById(this.db, projectId);
+        if (!project) {
+            return {
+                success: false,
+                insightCount: 0,
+                reason: "PROJECT_NOT_FOUND",
+            };
+        }
+
+        // Check if already running or queued
+        if (this.isRunning.get(projectId) === true) {
+            return {
+                success: false,
+                insightCount: 0,
+                reason: "ALREADY_RUNNING",
+            };
+        }
+        if (this.queue.some((e) => e.projectId === projectId)) {
+            return { success: false, insightCount: 0, reason: "QUEUED" };
+        }
+
+        // Cooldown check using in-memory lastRunAt (handles failures!)
+        const lastRun = this.lastRunAt.get(projectId) ?? 0;
+        const now = Date.now();
+        const cooldown = isManual ? this.MANUAL_COOLDOWN_MS : this.COOLDOWN_MS;
+        if (now - lastRun < cooldown) {
+            return { success: false, insightCount: 0, reason: "COOLDOWN" };
+        }
+
+        // Check if project has ANY activity (file events OR git commits)
+        const hasFileActivity = project.lastActivityAt !== null;
+        const hasGitActivity = hasGitSnapshots(this.db, projectId);
+        if (!hasFileActivity && !hasGitActivity) {
+            return {
+                success: false,
+                insightCount: 0,
+                reason: "NO_ACTIVITY_EVER",
+            };
+        }
+
+        // Get last successful analysis time from insights
+        const lastInsightRow = this.db
+            .query(
+                "SELECT MAX(created_at) as last_created FROM warden_insights WHERE project_id = ?",
+            )
+            .get(projectId) as { last_created: string | null } | null;
+        const lastInsightCreated = lastInsightRow?.last_created;
+
+        // First-run case: never analyzed before
+        if (!lastInsightCreated) {
+            // First-run specific cooldown
+            if (now - lastRun < this.FIRST_RUN_COOLDOWN_MS) {
+                return {
+                    success: false,
+                    insightCount: 0,
+                    reason: "FIRST_RUN_COOLDOWN",
+                };
+            }
+            void this.analyzeProject(projectId, isManual);
+            return {
+                success: true,
+                insightCount: 0,
+                reason: "FIRST_RUN",
+            };
+        }
+
+        // Check for new activity since last analysis
+        const lastAnalyzedAt = new Date(lastInsightCreated);
+        const hasNewEvents = hasEventsSince(this.db, projectId, lastAnalyzedAt);
+        const hasNewCommits = this.hasNewCommitsSince(
+            projectId,
+            lastAnalyzedAt,
+        );
+
+        if (!hasNewEvents && !hasNewCommits) {
+            return {
+                success: false,
+                insightCount: 0,
+                reason: "NO_NEW_ACTIVITY",
+            };
+        }
+
+        // Run analysis (fire and forget, result comes via RPC message)
+        void this.analyzeProject(projectId, isManual);
+        return {
+            success: true,
+            insightCount: 0,
+            reason: "NEW_ACTIVITY",
+        };
+    }
+
+    /**
+     * Check if there are new commits since a given time.
+     */
+    private hasNewCommitsSince(projectId: string, since: Date): boolean {
+        const result = this.db
+            .query(
+                "SELECT 1 FROM git_snapshots WHERE project_id = ? AND last_commit_timestamp > ? LIMIT 1",
+            )
+            .get(projectId, since.toISOString());
+        return result !== null;
     }
 
     private processQueue(): void {
@@ -197,6 +321,11 @@ export class WardenService {
             return inserted;
         } catch (error: unknown) {
             console.error("[Warden] Analysis failed:", error);
+            const reason =
+                error instanceof Error ? error.message : "Unknown error";
+            if (this.onAnalysisFailed) {
+                this.onAnalysisFailed(projectId, reason);
+            }
             // Backoff on failure: set lastRunAt with half the normal cooldown to avoid hammering
             this.lastRunAt.set(projectId, Date.now() - this.COOLDOWN_MS / 2);
             return [];
@@ -232,45 +361,5 @@ export class WardenService {
             }
         }
         return [];
-    }
-
-    onGitStatusChange(projectPath: string, snapshot: GitSnapshot): void {
-        const project = getProjectByPath(this.db, projectPath);
-        if (!project) return;
-
-        const newHash = snapshot.lastCommitHash ?? null;
-        const prevHash = this.lastCommitHash.get(project.id) ?? null;
-        if (newHash === prevHash) return;
-
-        this.lastCommitHash.set(project.id, newHash ?? "");
-        if (!newHash) return;
-
-        void this.analyzeProject(project.id, false);
-    }
-
-    /**
-     * Run initial analysis for a set of projects with staggered delays.
-     * First project runs immediately, others are staggered by 30s.
-     */
-    scheduleInitialAnalysis(projectIds: string[]): void {
-        if (projectIds.length === 0) return;
-        const apiKey = getSavedApiKey();
-        if (!apiKey) return;
-
-        console.log(
-            `[Warden] Scheduling initial analysis for ${projectIds.length} projects`,
-        );
-
-        // First project immediately
-        void this.analyzeProject(projectIds[0], false);
-
-        // Remaining projects staggered
-        const STAGGER_MS = 30_000;
-        for (let i = 1; i < projectIds.length; i++) {
-            const id = projectIds[i];
-            setTimeout(() => {
-                void this.analyzeProject(id, false);
-            }, i * STAGGER_MS);
-        }
     }
 }

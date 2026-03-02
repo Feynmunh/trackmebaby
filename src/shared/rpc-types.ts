@@ -132,6 +132,14 @@ export type TrackmeBabyRPC = {
                 params: Record<string, never>;
                 response: boolean;
             };
+            onProjectView: {
+                params: { projectId: string };
+                response: {
+                    success: boolean;
+                    insightCount: number;
+                    reason: string;
+                };
+            };
         };
         messages: {
             log: { entry: LogEntry };
@@ -149,6 +157,10 @@ export type TrackmeBabyRPC = {
             wardenInsightsUpdated: {
                 projectId: string;
                 insights: WardenInsight[];
+            };
+            wardenAnalysisFailed: {
+                projectId: string;
+                reason: string;
             };
         };
     }>;
