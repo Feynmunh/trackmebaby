@@ -201,7 +201,6 @@ export default function CardsTab({
                     <div className="flex items-center justify-between mb-3">
                         <h1
                             className="text-[32px] font-bold text-mac-text leading-tight tracking-wide"
-                            style={{ fontFamily: '"Jura", sans-serif' }}
                         >
                             Projects
                         </h1>

@@ -5,11 +5,15 @@ import PillDock from "./PillDock.tsx";
 interface DashboardHeaderProps {
     project: Project;
     onBack: () => void;
+    activeView?: "overview" | "warden";
+    onViewChange?: (view: "overview" | "warden") => void;
 }
 
 export default function DashboardHeader({
     project,
     onBack,
+    activeView = "overview",
+    onViewChange,
 }: DashboardHeaderProps) {
     const hasWorktrees = project.worktrees && project.worktrees.length > 1;
 
@@ -53,7 +57,8 @@ export default function DashboardHeader({
                         {
                             icon: <Code2 size={15} strokeWidth={2.2} />,
                             label: "Code",
-                            isActive: true,
+                            isActive: activeView === "overview",
+                            onClick: () => onViewChange?.("overview"),
                         },
                         {
                             icon: <Database size={15} strokeWidth={2} />,
@@ -64,7 +69,8 @@ export default function DashboardHeader({
                         {
                             icon: <Bot size={15} strokeWidth={2} />,
                             label: "Warden",
-                            disabled: true,
+                            isActive: activeView === "warden",
+                            onClick: () => onViewChange?.("warden"),
                             separator: true,
                         },
                     ]}
