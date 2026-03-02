@@ -13,6 +13,8 @@ import type {
     Project,
     ProjectStats,
     Settings,
+    WardenInsight,
+    WardenInsightStatus,
 } from "./types.ts";
 
 export type TrackmeBabyRPC = {
@@ -106,6 +108,18 @@ export type TrackmeBabyRPC = {
                 params: { projectId: string };
                 response: { diff: string; error?: string };
             };
+            getWardenInsights: {
+                params: { projectId: string; status?: WardenInsightStatus };
+                response: WardenInsight[];
+            };
+            triggerWardenAnalysis: {
+                params: { projectId: string };
+                response: { success: boolean; insightCount: number };
+            };
+            updateWardenInsightStatus: {
+                params: { insightId: string; status: WardenInsightStatus };
+                response: { success: boolean };
+            };
         };
         messages: {
             log: { entry: LogEntry };
@@ -119,6 +133,10 @@ export type TrackmeBabyRPC = {
             gitStatusChanged: {
                 projectId: string;
                 snapshot: GitSnapshot;
+            };
+            wardenInsightsUpdated: {
+                projectId: string;
+                insights: WardenInsight[];
             };
         };
     }>;
