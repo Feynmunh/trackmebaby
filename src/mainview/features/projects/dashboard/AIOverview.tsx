@@ -1,4 +1,7 @@
+import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { GitSnapshot, Project } from "../../../../shared/types.ts";
 import { queryAI } from "../../../rpc.ts";
 import DiffView from "./DiffView.tsx";
@@ -90,10 +93,89 @@ export default function AIOverview({
                             <div className="h-4 bg-mac-border/40 rounded w-[60%] animate-pulse" />
                         </div>
                     ) : summary ? (
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-3">
-                            <p className="text-[15px] leading-relaxed text-mac-text/90 font-medium inline">
+                        <div className="text-[15px] leading-relaxed text-mac-text/90 font-medium">
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    p: ({ children }) => (
+                                        <p className="my-2 first:mt-0 last:mb-0">
+                                            {children}
+                                        </p>
+                                    ),
+                                    strong: ({ children }) => (
+                                        <strong className="font-semibold">
+                                            {children}
+                                        </strong>
+                                    ),
+                                    em: ({ children }) => (
+                                        <em className="italic">{children}</em>
+                                    ),
+                                    del: ({ children }) => (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100 border border-amber-200/80 dark:border-amber-500/40 text-[13px] font-mono">
+                                            {children}
+                                        </span>
+                                    ),
+                                    a: ({ children, href }) => (
+                                        <a
+                                            href={href}
+                                            className="underline decoration-2 underline-offset-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+                                            target="_blank"
+                                            rel="noreferrer"
+                                        >
+                                            {children}
+                                        </a>
+                                    ),
+                                    ul: ({ children }) => (
+                                        <ul className="list-disc pl-5 space-y-1 my-2">
+                                            {children}
+                                        </ul>
+                                    ),
+                                    ol: ({ children }) => (
+                                        <ol className="list-decimal pl-5 space-y-1 my-2">
+                                            {children}
+                                        </ol>
+                                    ),
+                                    li: ({ children }) => (
+                                        <li className="leading-relaxed">
+                                            {children}
+                                        </li>
+                                    ),
+                                    code: ({ className, children }) => {
+                                        const isBlock =
+                                            typeof className === "string" &&
+                                            className.includes("language-");
+                                        if (isBlock) {
+                                            return (
+                                                <code className="block w-full overflow-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 font-mono text-[13px] border border-black/5 dark:border-white/10">
+                                                    {children}
+                                                </code>
+                                            );
+                                        }
+                                        return (
+                                            <code className="px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10 font-mono text-[13px]">
+                                                {children}
+                                            </code>
+                                        );
+                                    },
+                                    pre: ({ children }) => (
+                                        <div className="my-3 w-full">
+                                            <pre className="block w-full overflow-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 font-mono text-[13px] border border-black/5 dark:border-white/10 m-0">
+                                                {children as ReactElement}
+                                            </pre>
+                                        </div>
+                                    ),
+                                    blockquote: ({ children }) => (
+                                        <blockquote className="border-l-4 border-black/10 dark:border-white/20 pl-3 ml-1 text-black/70 dark:text-white/70 italic">
+                                            {children}
+                                        </blockquote>
+                                    ),
+                                    hr: () => (
+                                        <hr className="my-4 border-black/10 dark:border-white/10" />
+                                    ),
+                                }}
+                            >
                                 {summary}
-                            </p>
+                            </ReactMarkdown>
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 text-sm text-mac-secondary">
