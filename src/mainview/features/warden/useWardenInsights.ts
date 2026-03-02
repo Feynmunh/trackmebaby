@@ -32,7 +32,7 @@ export function useWardenInsights(projectId: string) {
         try {
             // We fetch the insights for the specific tab as requested,
             // and the counts for the badges (more efficient than fetching all insights).
-            const [tabInsights, counts, configured] = await Promise.all([
+            const [tabInsights, nextCounts, configured] = await Promise.all([
                 getWardenInsights(projectId, activeTab),
                 getWardenInsightCountsByProject(projectId),
                 isAIConfigured(),
@@ -41,7 +41,7 @@ export function useWardenInsights(projectId: string) {
             if (isMounted.current) {
                 setInsights(tabInsights);
                 setHasApiKey(configured);
-                setCounts(counts);
+                setCounts(nextCounts);
                 setError(null);
             }
         } catch (err) {
