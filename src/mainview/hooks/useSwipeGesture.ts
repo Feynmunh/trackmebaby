@@ -1,33 +1,34 @@
 /**
- * useSwipeGesture — detects horizontal trackpad swipe gestures.
+ * useSwipeGesture — browser-style trackpad swipe navigation.
  *
- * Listens on window so that inner scrollable elements don't swallow
- * the wheel events before they reach the handler.
+ * Behaviour mirrors Chrome's back/forward swipe:
+ *   - Icon appears and follows the drag as you move fingers
+ *   - Navigation fires when fingers lift (gesture settles)
+ *   - If drag wasn't far enough, icon snaps back without navigating
  *
- * Strategy: Wheel events (macOS / Windows)
- *   Trackpads fire WheelEvents with deltaX. deltaMode is 0 (pixels).
+ * Strategy: Wheel events (macOS / Windows trackpads fire deltaX in pixel mode)
  *
  * onSwiping callback:
- *   Called continuously during a swipe with the current progress (-1 to 1)
- *   so the UI can show a live hint. Fires with 0 when swipe ends.
+ *   Called continuously with progress (-1 to 1, 0 = idle/reset)
+ * onSwipeCommit callback:
+ *   Called when user lifts fingers and threshold was met — do the navigation
  */
 
 import { useEffect, useRef } from "react";
 
 interface SwipeGestureOptions {
-    /** Minimum accumulated horizontal delta to trigger a swipe (px). Default 30 */
+    /** Minimum accumulated horizontal delta to commit navigation (px). Default 60 */
     threshold?: number;
-    /** How long to accumulate events before deciding direction (ms). Default 40 */
-    accumulateMs?: number;
-    /** How long to wait before allowing another swipe (ms). Default 350 */
+    /** ms of no wheel events before we consider fingers lifted. Default 80 */
+    settleMs?: number;
+    /** How long to wait before allowing another swipe (ms). Default 500 */
     cooldownMs?: number;
-    /** deltaX must be this many times larger than deltaY. Default 1.2 */
+    /** deltaX must be this many times larger than deltaY. Default 1.5 */
     axisRatio?: number;
-    /** Called during swipe with progress value (-1 to 1), then 0 on completion */
+    /** Called during drag with progress value (-1 to 1), then 0 on release */
     onSwiping?: (progress: number) => void;
-    /** Called when user swipes right */
+    /** Called when swipe is committed (fingers lifted, threshold met) */
     onSwipeRight?: () => void;
-    /** Called when user swipes left */
     onSwipeLeft?: () => void;
     /** Set to false to disable entirely */
     enabled?: boolean;
@@ -38,10 +39,10 @@ export function useSwipeGesture(
     options: SwipeGestureOptions = {},
 ): void {
     const {
-        threshold = 30,
-        accumulateMs = 40,
-        cooldownMs = 350,
-        axisRatio = 1.2,
+        threshold = 20,
+        settleMs = 10,
+        cooldownMs = 200,
+        axisRatio = 1.5,
         onSwipeRight,
         onSwipeLeft,
         onSwiping,
@@ -60,61 +61,74 @@ export function useSwipeGesture(
     useEffect(() => {
         if (!enabled) return;
 
-        let lastFiredAt = 0;
-
-        const tryFire = (deltaX: number) => {
-            const now = Date.now();
-            if (now - lastFiredAt < cooldownMs) return;
-            lastFiredAt = now;
-            onSwipingRef.current?.(0);
-            if (deltaX > 0) {
-                onSwipeRightRef.current?.();
-            } else {
-                onSwipeLeftRef.current?.();
-            }
-        };
-
         let accumulatedX = 0;
         let accumulatedY = 0;
-        let accumulateTimer: ReturnType<typeof setTimeout> | null = null;
+        let lastFiredAt = 0;
+        let settleTimer: ReturnType<typeof setTimeout> | null = null;
+        let isTracking = false;
+
+        const commit = () => {
+            const aX = Math.abs(accumulatedX);
+            const aY = Math.abs(accumulatedY);
+            const didCross = aX >= threshold && aX > aY * axisRatio;
+            const now = Date.now();
+            const offCooldown = now - lastFiredAt >= cooldownMs;
+
+            if (didCross && offCooldown) {
+                lastFiredAt = now;
+                const dir = accumulatedX;
+                // Reset progress first so icon fades, then navigate
+                onSwipingRef.current?.(0);
+                if (dir > 0) {
+                    onSwipeRightRef.current?.();
+                } else {
+                    onSwipeLeftRef.current?.();
+                }
+            } else {
+                // Snap back — not far enough or on cooldown
+                onSwipingRef.current?.(0);
+            }
+
+            accumulatedX = 0;
+            accumulatedY = 0;
+            isTracking = false;
+            settleTimer = null;
+        };
 
         const handleWheel = (e: WheelEvent) => {
             const dx = e.deltaX;
             const dy = e.deltaY;
 
+            // Ignore pure vertical scrolls early
+            if (Math.abs(dy) > Math.abs(dx) * axisRatio && !isTracking) return;
+
             accumulatedX += dx;
             accumulatedY += dy;
 
-            // Report live progress for UI hint
             const absX = Math.abs(accumulatedX);
             const absY = Math.abs(accumulatedY);
-            if (absX > absY * axisRatio) {
-                const progress = Math.min(accumulatedX / threshold, 1);
+
+            // Only track if horizontal dominates
+            if (absX > absY * axisRatio || isTracking) {
+                isTracking = true;
+                // Clamp to [-1, 1] and report live drag progress
+                const progress = Math.max(
+                    -1,
+                    Math.min(accumulatedX / threshold, 1),
+                );
                 onSwipingRef.current?.(progress);
             }
 
-            if (accumulateTimer !== null) clearTimeout(accumulateTimer);
-            accumulateTimer = setTimeout(() => {
-                const aX = Math.abs(accumulatedX);
-                const aY = Math.abs(accumulatedY);
-                if (aX >= threshold && aX > aY * axisRatio) {
-                    tryFire(accumulatedX);
-                } else {
-                    // Not a swipe — reset hint
-                    onSwipingRef.current?.(0);
-                }
-                accumulatedX = 0;
-                accumulatedY = 0;
-                accumulateTimer = null;
-            }, accumulateMs);
+            // Reset settle timer — fires when fingers lift
+            if (settleTimer !== null) clearTimeout(settleTimer);
+            settleTimer = setTimeout(commit, settleMs);
         };
 
-        // Listen on window so inner scrollable divs don't block the event
         window.addEventListener("wheel", handleWheel, { passive: true });
 
         return () => {
             window.removeEventListener("wheel", handleWheel);
-            if (accumulateTimer !== null) clearTimeout(accumulateTimer);
+            if (settleTimer !== null) clearTimeout(settleTimer);
         };
-    }, [enabled, threshold, accumulateMs, cooldownMs, axisRatio]);
+    }, [enabled, threshold, settleMs, cooldownMs, axisRatio]);
 }

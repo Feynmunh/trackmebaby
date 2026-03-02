@@ -1,27 +1,26 @@
 /**
- * SwipeHint — live swipe progress indicator.
+ * SwipeHint — Chrome-style drag-to-navigate indicator.
  *
- * Driven entirely by `swipeProgress` (-1 to 1):
- *   > 0  → user is swiping right  → show LEFT hint  (go back)
- *   < 0  → user is swiping left   → show RIGHT hint (go forward)
+ * The circle grows and slides in from the edge as the user drags,
+ * exactly like Chrome's back/forward swipe gesture.
+ *
+ * swipeProgress (-1 to 1):
+ *   > 0  → dragging right → left arrow appears on the left edge
+ *   < 0  → dragging left  → right arrow appears on the right edge
  *   = 0  → hidden
- *
- * Only shows an icon — no text label.
  */
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface SwipeHintProps {
-    /** Live swipe progress from useSwipeGesture (-1 to 1, 0 = idle) */
     swipeProgress?: number;
     onSwipeLeft?: () => void;
     onSwipeRight?: () => void;
-    /** Which sides are actually navigable */
     canGoLeft?: boolean;
     canGoRight?: boolean;
 }
 
-const SHOW_THRESHOLD = 0.08;
+const SHOW_THRESHOLD = 0.04;
 
 export default function SwipeHint({
     swipeProgress = 0,
@@ -30,65 +29,84 @@ export default function SwipeHint({
     canGoLeft = true,
     canGoRight = true,
 }: SwipeHintProps) {
-    const showLeft = swipeProgress < -SHOW_THRESHOLD && canGoLeft;
-    const showRight = swipeProgress > SHOW_THRESHOLD && canGoRight;
+    // Dragging right (positive progress) → show left arrow (go back)
+    const showLeft = swipeProgress > SHOW_THRESHOLD && canGoLeft;
+    // Dragging left (negative progress) → show right arrow (go forward)
+    const showRight = swipeProgress < -SHOW_THRESHOLD && canGoRight;
 
     if (!showLeft && !showRight) return null;
 
-    const rawAbs = Math.abs(swipeProgress);
-    const opacity = Math.min((rawAbs - SHOW_THRESHOLD) / 0.3, 1);
-    const translatePct = Math.max(0, (1 - rawAbs) * 20);
+    const raw = Math.abs(swipeProgress);
 
-    const innerClass =
-        "flex items-center justify-center w-10 h-10 rounded-full " +
-        "bg-mac-surface/90 backdrop-blur-2xl " +
-        "border border-mac-border/60 shadow-mac-lg";
+    // Circle grows from 24px to 56px as drag increases
+    const size = 24 + Math.min(raw, 1) * 32;
+    // Slides in from edge: starts off-screen, fully visible at progress=1
+    const inset = Math.max(0, (1 - raw) * 40);
+    // Opacity fades in quickly
+    const opacity = Math.min((raw - SHOW_THRESHOLD) / 0.2, 1);
+    // Icon scales with the circle
+    const iconSize = Math.round(10 + Math.min(raw, 1) * 10);
+
+    const circleStyle: React.CSSProperties = {
+        position: "absolute",
+        top: "50%",
+        transform: "translateY(-50%)",
+        width: size,
+        height: size,
+        borderRadius: "50%",
+        background: "rgba(30,30,30,0.85)",
+        backdropFilter: "blur(16px)",
+        border: "1px solid rgba(255,255,255,0.12)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.35)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        opacity,
+        zIndex: 100,
+        transition: "opacity 60ms linear",
+        pointerEvents: "auto",
+        cursor: "pointer",
+    };
 
     return (
         <>
-            {/* ── Left hint ───────────────────────────────────────────────── */}
             {showLeft && (
                 <button
                     onClick={onSwipeRight}
                     aria-label="Go back"
                     style={{
-                        position: "absolute",
-                        left: 0,
-                        top: "50%",
-                        transform: `translateY(-50%) translateX(${translatePct}px)`,
-                        opacity,
-                        zIndex: 100,
-                        transition:
-                            "opacity 120ms ease-out, transform 120ms ease-out",
+                        ...circleStyle,
+                        left: inset,
                     }}
-                    className="ml-10 cursor-pointer focus:outline-none"
                 >
-                    <div className={innerClass}>
-                        <ChevronLeft className="w-5 h-5 text-mac-accent" />
-                    </div>
+                    <ChevronLeft
+                        style={{
+                            width: iconSize,
+                            height: iconSize,
+                            color: "#ff6b35",
+                            strokeWidth: 3,
+                        }}
+                    />
                 </button>
             )}
 
-            {/* ── Right hint ──────────────────────────────────────────────── */}
             {showRight && (
                 <button
                     onClick={onSwipeLeft}
                     aria-label="Go forward"
                     style={{
-                        position: "absolute",
-                        right: 0,
-                        top: "50%",
-                        transform: `translateY(-50%) translateX(-${translatePct}px)`,
-                        opacity,
-                        zIndex: 100,
-                        transition:
-                            "opacity 120ms ease-out, transform 120ms ease-out",
+                        ...circleStyle,
+                        right: inset,
                     }}
-                    className="mr-10 cursor-pointer focus:outline-none"
                 >
-                    <div className={innerClass}>
-                        <ChevronRight className="w-5 h-5 text-mac-accent" />
-                    </div>
+                    <ChevronRight
+                        style={{
+                            width: iconSize,
+                            height: iconSize,
+                            color: "#ff6b35",
+                            strokeWidth: 3,
+                        }}
+                    />
                 </button>
             )}
         </>

@@ -1,6 +1,5 @@
 import { Search } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import SwipeHint from "../components/SwipeHint.tsx";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
 import ProjectsGrid from "../features/projects/components/ProjectsGrid.tsx";
@@ -66,8 +65,6 @@ export default function CardsTab({
 
     const containerRef = useRef<HTMLDivElement>(null);
 
-    const [swipeProgress, setSwipeProgress] = useState(0);
-
     const [selectingFolder, setSelectingFolder] = useState(false);
     const [search, setSearch] = useState("");
     const [aiRefreshKeys, setAiRefreshKeys] = useState<Record<string, number>>(
@@ -78,7 +75,6 @@ export default function CardsTab({
     useSwipeGesture(containerRef, {
         enabled: viewMode === "dashboard",
         onSwipeLeft: closeDashboard,
-        onSwiping: setSwipeProgress,
     });
 
     const trimmedSearch = search.trim();
@@ -218,13 +214,6 @@ export default function CardsTab({
             >
                 {projects[activeIndex] && (
                     <div className="h-full w-full relative">
-                        {/* Swipe left hint — shown when inside a project dashboard, driven by live gesture progress */}
-                        <SwipeHint
-                            swipeProgress={swipeProgress}
-                            canGoLeft={true}
-                            canGoRight={false}
-                            onSwipeRight={closeDashboard}
-                        />
                         <ProjectDashboard
                             project={projects[activeIndex]}
                             gitSnapshot={gitSnapshots[projects[activeIndex].id]}

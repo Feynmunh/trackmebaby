@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import SwipeHint from "./components/SwipeHint";
 import TabBar from "./components/TabBar";
 import AITab from "./features/ai/AITab.tsx";
 import SettingsPanel from "./features/settings/SettingsPanel.tsx";
@@ -63,7 +62,6 @@ function App() {
         "left" | "right" | null
     >(null);
     const [animKey, setAnimKey] = useState(0); // bump to re-trigger animation
-    const [swipeProgress, setSwipeProgress] = useState(0);
     const [inDashboard, setInDashboard] = useState(false);
     const appRef = useRef<HTMLDivElement>(null);
 
@@ -110,16 +108,7 @@ function App() {
         enabled: !inDashboard,
         onSwipeRight: () => navigateTab("left"),
         onSwipeLeft: () => navigateTab("right"),
-        onSwiping: setSwipeProgress,
     });
-
-    const activeSwipeableIdx = SWIPEABLE_TABS.indexOf(
-        activeTab as (typeof SWIPEABLE_TABS)[number],
-    );
-    const canSwipeLeft =
-        activeSwipeableIdx !== -1 &&
-        activeSwipeableIdx < SWIPEABLE_TABS.length - 1;
-    const canSwipeRight = activeSwipeableIdx > 0;
 
     // Slide animation class — "left" swipe means new content enters from the right
     const slideClass =
@@ -162,19 +151,8 @@ function App() {
                     settingsId="settings"
                 />
 
-                {/* Main content area — relative so SwipeHint arrows can be positioned */}
+                {/* Main content area */}
                 <div className="flex-1 overflow-y-auto relative">
-                    {/* Swipe edge hints — only shown on swipeable tabs when NOT inside a project dashboard */}
-                    {activeTab !== "settings" && !inDashboard && (
-                        <SwipeHint
-                            swipeProgress={swipeProgress}
-                            canGoLeft={canSwipeRight}
-                            canGoRight={canSwipeLeft}
-                            onSwipeRight={() => navigateTab("right")}
-                            onSwipeLeft={() => navigateTab("left")}
-                        />
-                    )}
-
                     {/* Tab content with slide animation keyed to trigger on each swipe */}
                     <div
                         key={animKey}
