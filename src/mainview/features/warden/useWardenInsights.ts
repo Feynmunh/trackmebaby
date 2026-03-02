@@ -14,6 +14,26 @@ import {
     triggerWardenAnalysis,
     updateWardenInsightStatus,
 } from "../../rpc.ts";
+
+function mapWardenReasonToMessage(reason: string): string | null {
+    switch (reason) {
+        case "NO_API_KEY":
+        case "MISSING_API_KEY":
+            return "Configure your AI API key in Settings to enable Warden.";
+        case "COOLDOWN":
+        case "FIRST_RUN_COOLDOWN":
+            return "Warden recently analyzed this project. Try again shortly.";
+        case "NO_ACTIVITY_EVER":
+        case "NO_NEW_ACTIVITY":
+            return "No new activity yet. Make a change or commit, then run Warden.";
+        case "ALREADY_RUNNING":
+        case "QUEUED":
+            return "Warden analysis is already running.";
+        default:
+            return null;
+    }
+}
+
 export function useWardenInsights(projectId: string) {
     const [insights, setInsights] = useState<WardenInsight[]>([]);
     const [counts, setCounts] = useState({ new: 0, approved: 0, liked: 0 });
@@ -79,8 +99,20 @@ export function useWardenInsights(projectId: string) {
 
         // Trigger automatic analysis if needed on view
         onProjectView(projectId).then((result) => {
-            if (isMounted.current && result.success) {
+            if (!isMounted.current) return;
+
+            if (result.success) {
                 setIsAnalyzing(true);
+                return;
+            }
+
+            if (result.reason === "NO_API_KEY") {
+                setHasApiKey(false);
+            }
+
+            const message = mapWardenReasonToMessage(result.reason || "");
+            if (message) {
+                setError(message);
             }
         });
 
@@ -208,14 +240,18 @@ export function useWardenInsights(projectId: string) {
         setError(null);
         try {
             const result = await triggerWardenAnalysis(projectId);
-            if (!result.success && result.reason === "MISSING_API_KEY") {
-                if (isMounted.current) {
+            if (!result.success && isMounted.current) {
+                if (
+                    result.reason === "NO_API_KEY" ||
+                    result.reason === "MISSING_API_KEY"
+                ) {
                     setHasApiKey(false);
                 }
-            } else if (!result.success) {
-                if (isMounted.current) {
-                    setError(result.reason || "Analysis failed");
-                }
+
+                const message = mapWardenReasonToMessage(result.reason || "");
+                setError(message ?? (result.reason || "Analysis failed"));
+                // Only stop spinner on failure — on success the push message will stop it
+                setIsAnalyzing(false);
             }
             await fetchAllData();
         } catch (err) {
@@ -229,9 +265,6 @@ export function useWardenInsights(projectId: string) {
                         ? err.message
                         : "Failed to trigger analysis",
                 );
-            }
-        } finally {
-            if (isMounted.current) {
                 setIsAnalyzing(false);
             }
         }

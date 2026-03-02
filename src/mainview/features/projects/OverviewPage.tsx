@@ -185,8 +185,7 @@ export default function OverviewPage({
                         {vitalityBars.map((row) => {
                             const pct =
                                 barMax > 0 ? (row.value / barMax) * 100 : 0;
-                            const isTop =
-                                row.value === barMax && row.value > 0;
+                            const isTop = row.value === barMax && row.value > 0;
                             return (
                                 <div
                                     key={row.key}

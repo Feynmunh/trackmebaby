@@ -66,10 +66,8 @@ export default function DashboardContent({
 
     return (
         <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 px-6 py-3">
-
             {/* ── TOP ROW: bento cells, full width stacked ── */}
             <div className="flex flex-col gap-3 shrink-0">
-
                 {/* AI Pulse cell — owns its own card border */}
                 <div>
                     <AIOverview
@@ -106,9 +104,11 @@ export default function DashboardContent({
 
             {/* ── BOTTOM ROW: stretches to fill remaining space ── */}
             <div className="grid grid-cols-2 gap-3 pb-3">
-
                 {/* Commit Timeline cell */}
-                <div ref={timelineRef} className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3">
+                <div
+                    ref={timelineRef}
+                    className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3"
+                >
                     <GitPage
                         gitSnapshot={gitSnapshot}
                         projectStats={projectStats}
@@ -119,7 +119,10 @@ export default function DashboardContent({
                 </div>
 
                 {/* Remote Environment cell */}
-                <div ref={githubRef} className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3">
+                <div
+                    ref={githubRef}
+                    className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3"
+                >
                     <GitHubPage
                         githubData={githubData}
                         githubLoading={githubLoading}

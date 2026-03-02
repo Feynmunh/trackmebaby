@@ -67,7 +67,9 @@ export default function GitHubPage({
 
                 <div className="space-y-5">
                     <section className="space-y-3">
-                        <h4 className="text-[9px] font-semibold text-mac-secondary uppercase tracking-widest">Active Issues</h4>
+                        <h4 className="text-[9px] font-semibold text-mac-secondary uppercase tracking-widest">
+                            Active Issues
+                        </h4>
                         <CommitTrendGraph
                             commits={issueTrendData}
                             legend={{
@@ -87,11 +89,19 @@ export default function GitHubPage({
                             onClick={() => setShowIssuesList((v) => !v)}
                             className="w-full flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-mac-surface/50 hover:bg-mac-hover transition-colors text-mac-secondary hover:text-mac-text"
                         >
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="opacity-70 shrink-0">
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                className="opacity-70 shrink-0"
+                            >
                                 <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
                                 <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" />
                             </svg>
-                            <span className="text-[11px] font-medium">View issues</span>
+                            <span className="text-[11px] font-medium">
+                                View issues
+                            </span>
                             {openIssues.length > 0 && (
                                 <span className="text-[10px] font-semibold bg-mac-hover text-mac-secondary px-1.5 py-0.5 rounded-full">
                                     {openIssues.length}
@@ -130,7 +140,9 @@ export default function GitHubPage({
                                 )}
                                 {openIssues.length > 3 && (
                                     <button
-                                        onClick={() => setShowAllIssues(!showAllIssues)}
+                                        onClick={() =>
+                                            setShowAllIssues(!showAllIssues)
+                                        }
                                         className="w-full py-1.5 text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:text-mac-text transition-colors mt-1"
                                     >
                                         {showAllIssues
@@ -143,7 +155,9 @@ export default function GitHubPage({
                     </section>
 
                     <section className="space-y-3 pt-3 border-t border-mac-border/30">
-                        <h4 className="text-[9px] font-semibold text-mac-secondary uppercase tracking-widest">Open Pull Requests</h4>
+                        <h4 className="text-[9px] font-semibold text-mac-secondary uppercase tracking-widest">
+                            Open Pull Requests
+                        </h4>
                         <CommitTrendGraph
                             commits={prTrendData}
                             legend={{
@@ -163,10 +177,18 @@ export default function GitHubPage({
                             onClick={() => setShowPRsList((v) => !v)}
                             className="w-full flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-mac-surface/50 hover:bg-mac-hover transition-colors text-mac-secondary hover:text-mac-text"
                         >
-                            <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" className="opacity-70 shrink-0">
+                            <svg
+                                width="12"
+                                height="12"
+                                viewBox="0 0 16 16"
+                                fill="currentColor"
+                                className="opacity-70 shrink-0"
+                            >
                                 <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
                             </svg>
-                            <span className="text-[11px] font-medium">View pull requests</span>
+                            <span className="text-[11px] font-medium">
+                                View pull requests
+                            </span>
                             {openPRs.length > 0 && (
                                 <span className="text-[10px] font-semibold bg-mac-hover text-mac-secondary px-1.5 py-0.5 rounded-full">
                                     {openPRs.length}
@@ -205,7 +227,9 @@ export default function GitHubPage({
                                 )}
                                 {openPRs.length > 3 && (
                                     <button
-                                        onClick={() => setShowAllPRs(!showAllPRs)}
+                                        onClick={() =>
+                                            setShowAllPRs(!showAllPRs)
+                                        }
                                         className="w-full py-1.5 text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:text-mac-text transition-colors mt-1"
                                     >
                                         {showAllPRs

@@ -71,20 +71,19 @@ const rpc = createRPC(
     () => mainWindow,
 );
 
-// Send push messages to the frontend webview via mainWindow.webview.rpc.send
 onWardenInsights = (projectId, insights) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (mainWindow as any)?.webview?.rpc?.send?.wardenInsightsUpdated?.({
-        projectId,
-        insights,
-    });
+    try {
+        rpc.send.wardenInsightsUpdated({ projectId, insights });
+    } catch (err) {
+        console.error("[trackmebaby] Failed to push warden insights:", err);
+    }
 };
 onWardenAnalysisFailed = (projectId, reason) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (mainWindow as any)?.webview?.rpc?.send?.wardenAnalysisFailed?.({
-        projectId,
-        reason,
-    });
+    try {
+        rpc.send.wardenAnalysisFailed({ projectId, reason });
+    } catch (err) {
+        console.error("[trackmebaby] Failed to push warden failure:", err);
+    }
 };
 
 async function getMainViewUrl(): Promise<string> {

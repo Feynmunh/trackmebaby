@@ -25,15 +25,54 @@ function AppLogo() {
             {/* Top-left filled block */}
             <rect x="2" y="2" width="14" height="14" rx="3" fill={accent} />
             {/* Top-right outlined inset block */}
-            <rect x="20" y="2" width="14" height="14" rx="3" fill="none" stroke={accent} strokeWidth="2.2" />
+            <rect
+                x="20"
+                y="2"
+                width="14"
+                height="14"
+                rx="3"
+                fill="none"
+                stroke={accent}
+                strokeWidth="2.2"
+            />
             {/* Bottom-left: 2×2 mini grid */}
             <rect x="2" y="20" width="6" height="6" rx="1.5" fill={accent} />
-            <rect x="10" y="20" width="6" height="6" rx="1.5" fill={accentFade} />
-            <rect x="2" y="28" width="6" height="6" rx="1.5" fill={accentFade} />
+            <rect
+                x="10"
+                y="20"
+                width="6"
+                height="6"
+                rx="1.5"
+                fill={accentFade}
+            />
+            <rect
+                x="2"
+                y="28"
+                width="6"
+                height="6"
+                rx="1.5"
+                fill={accentFade}
+            />
             <rect x="10" y="28" width="6" height="6" rx="1.5" fill={accent} />
             {/* Bottom-right diagonal slash mark */}
-            <line x1="21" y1="33" x2="33" y2="21" stroke={accent} strokeWidth="2.5" strokeLinecap="round" />
-            <line x1="21" y1="26" x2="27" y2="20" stroke={accentFade} strokeWidth="2.5" strokeLinecap="round" />
+            <line
+                x1="21"
+                y1="33"
+                x2="33"
+                y2="21"
+                stroke={accent}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+            />
+            <line
+                x1="21"
+                y1="26"
+                x2="27"
+                y2="20"
+                stroke={accentFade}
+                strokeWidth="2.5"
+                strokeLinecap="round"
+            />
         </svg>
     );
 }
@@ -62,7 +101,13 @@ interface NavButtonProps {
     onClick: () => void;
 }
 
-function NavButton({ buttonId, label, icon, isActive, onClick }: NavButtonProps) {
+function NavButton({
+    buttonId,
+    label,
+    icon,
+    isActive,
+    onClick,
+}: NavButtonProps) {
     return (
         <div className="relative group w-full flex items-center justify-center">
             <button

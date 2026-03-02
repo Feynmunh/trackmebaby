@@ -63,7 +63,8 @@
     /* Liquid glass body background */
     .dark body,
     .dark #root {
-        background: radial-gradient(
+        background:
+            radial-gradient(
                 ellipse 80% 50% at 50% -10%,
                 rgba(161, 159, 159, 0.08) 0%,
                 transparent 70%
@@ -136,7 +137,9 @@
 
 .dock-item {
     color: rgba(255, 255, 255, 1);
-    transition: background 150ms ease, transform 120ms ease;
+    transition:
+        background 150ms ease,
+        transform 120ms ease;
 }
 
 .dock-item-active {
@@ -177,7 +180,7 @@
 
 /* Subtle inset highlight on glass cards */
 .dark .bg-mac-surface {
-    background: var(--mac-surface) !important;
+    background: var(--mac-surface);
     backdrop-filter: blur(16px) saturate(1.4);
     -webkit-backdrop-filter: blur(16px) saturate(1.4);
     box-shadow:

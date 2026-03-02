@@ -13,6 +13,13 @@ declare module "electrobun/bun" {
           }
         : Record<string, never>;
 
+    /** Outgoing push-message senders: one method per webview message */
+    export type RPCMessageSenders<TSchema> = TSchema extends {
+        webview: { messages: infer M };
+    }
+        ? { [K in keyof M]: (payload: M[K]) => void }
+        : Record<string, never>;
+
     export interface BrowserViewRPC<TSchema> {
         maxRequestTime?: number;
         handlers: {
@@ -21,11 +28,13 @@ declare module "electrobun/bun" {
                 ? { [K in keyof M]: (params: M[K]) => void }
                 : Record<string, never>;
         };
+        /** Send push messages to the webview */
+        send: RPCMessageSenders<TSchema>;
     }
 
     export interface BrowserViewStatic {
         defineRPC<TSchema>(
-            schema: BrowserViewRPC<TSchema>,
+            schema: Omit<BrowserViewRPC<TSchema>, "send">,
         ): BrowserViewRPC<TSchema>;
     }
 
