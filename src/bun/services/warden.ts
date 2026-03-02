@@ -7,7 +7,12 @@ import type {
     WardenInsight,
     WardenSeverity,
 } from "../../shared/types.ts";
-import { cleanupWardenInsights, getProjectById, getProjectByPath, insertWardenInsight } from "../db/queries.ts";
+import {
+    cleanupWardenInsights,
+    getProjectById,
+    getProjectByPath,
+    insertWardenInsight,
+} from "../db/queries.ts";
 import {
     type AIProvider,
     createAIProvider,
@@ -105,7 +110,7 @@ export class WardenService {
         ) {
             const entry = this.queue.shift()!;
             this.activeCount++;
-            void this.executeAnalysis(entry.projectId, entry.isManual)
+            void this.executeAnalysis(entry.projectId)
                 .then((insights) => entry.resolve(insights))
                 .finally(() => {
                     this.activeCount--;
@@ -114,10 +119,7 @@ export class WardenService {
         }
     }
 
-    private async executeAnalysis(
-        projectId: string,
-        isManual: boolean,
-    ): Promise<WardenInsight[]> {
+    private async executeAnalysis(projectId: string): Promise<WardenInsight[]> {
         if (this.isRunning.get(projectId) === true) {
             return [];
         }
@@ -131,12 +133,14 @@ export class WardenService {
 
             const project = getProjectById(this.db, projectId);
             const projectRoot = project?.path ?? null;
-            const context = await assembleWardenContext(this.db, projectId, projectRoot);
-            // Query AI with retry on JSON parse failure
-            let parsedInsights = await this.queryWithRetry(
-                provider,
-                context,
+            const context = await assembleWardenContext(
+                this.db,
+                projectId,
+                projectRoot,
             );
+
+            // Query AI with retry on JSON parse failure
+            const parsedInsights = await this.queryWithRetry(provider, context);
 
             // Validate affectedFiles: strip paths that don't exist on disk
             for (const insight of parsedInsights) {
@@ -186,10 +190,7 @@ export class WardenService {
         }
     }
 
-    private async queryWithRetry(
-        provider: AIProvider,
-        context: string,
-    ) {
+    private async queryWithRetry(provider: AIProvider, context: string) {
         for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
             const aiText = await provider.query(
                 context,
@@ -210,7 +211,9 @@ export class WardenService {
 
             // Parse returned empty (malformed JSON) — retry once
             if (attempt < this.MAX_RETRIES) {
-                console.warn(`[Warden] Parse failed, retrying (attempt ${attempt + 1})...`);
+                console.warn(
+                    `[Warden] Parse failed, retrying (attempt ${attempt + 1})...`,
+                );
             }
         }
         return [];
@@ -239,7 +242,9 @@ export class WardenService {
         const apiKey = getSavedApiKey();
         if (!apiKey) return;
 
-        console.log(`[Warden] Scheduling initial analysis for ${projectIds.length} projects`);
+        console.log(
+            `[Warden] Scheduling initial analysis for ${projectIds.length} projects`,
+        );
 
         // First project immediately
         void this.analyzeProject(projectIds[0], false);

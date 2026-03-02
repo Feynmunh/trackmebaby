@@ -50,7 +50,11 @@ export function useWardenInsights(projectId: string) {
                 err,
             );
             if (isMounted.current) {
-                setError(err instanceof Error ? err.message : "Failed to fetch insights");
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to fetch insights",
+                );
             }
         }
     }, [projectId, activeTab]);
@@ -107,7 +111,11 @@ export function useWardenInsights(projectId: string) {
                     `[useWardenInsights] Failed to approve insight ${insightId}:`,
                     err,
                 );
-                setError(err instanceof Error ? err.message : "Failed to approve insight");
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to approve insight",
+                );
                 void fetchAllData();
             }
         },
@@ -128,7 +136,11 @@ export function useWardenInsights(projectId: string) {
                     `[useWardenInsights] Failed to dismiss insight ${insightId}:`,
                     err,
                 );
-                setError(err instanceof Error ? err.message : "Failed to dismiss insight");
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to dismiss insight",
+                );
                 void fetchAllData();
             }
         },
@@ -155,7 +167,11 @@ export function useWardenInsights(projectId: string) {
                     `[useWardenInsights] Failed to like insight ${insightId}:`,
                     err,
                 );
-                setError(err instanceof Error ? err.message : "Failed to like insight");
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to like insight",
+                );
                 void fetchAllData();
             }
         },
@@ -183,7 +199,11 @@ export function useWardenInsights(projectId: string) {
                 err,
             );
             if (isMounted.current) {
-                setError(err instanceof Error ? err.message : "Failed to trigger analysis");
+                setError(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to trigger analysis",
+                );
             }
         } finally {
             if (isMounted.current) {
@@ -193,9 +213,11 @@ export function useWardenInsights(projectId: string) {
     }, [projectId, fetchAllData]);
 
     const totalPages = Math.ceil(insights.length / PAGE_SIZE);
-    const displayedInsights = insights.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+    const displayedInsights = insights.slice(
+        page * PAGE_SIZE,
+        (page + 1) * PAGE_SIZE,
+    );
 
-    return {
     return {
         insights: displayedInsights,
         allInsights: insights,

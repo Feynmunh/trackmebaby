@@ -64,9 +64,6 @@ export default function InsightCard({
                         role="img"
                         aria-label={`Severity: ${insight.severity}`}
                     />
-                        className={`w-2.5 h-2.5 rounded-full shadow-sm ${SEVERITY_COLORS[insight.severity]}`}
-                        title={`Severity: ${insight.severity}`}
-                    />
                 </div>
 
                 {/* Content */}
@@ -98,9 +95,6 @@ export default function InsightCard({
                                     aria-controls={`affected-files-${insight.id}`}
                                     className="text-xs text-mac-text-secondary hover:text-mac-text transition-colors flex items-center gap-1.5 focus:outline-none"
                                 >
-                                    onClick={() => setIsExpanded(!isExpanded)}
-                                    className="text-xs text-mac-text-secondary hover:text-mac-text transition-colors flex items-center gap-1.5 focus:outline-none"
-                                >
                                     <span
                                         className={`inline-block transition-transform duration-200 ${isExpanded ? "rotate-90" : ""}`}
                                     >
@@ -115,16 +109,10 @@ export default function InsightCard({
                                 </button>
 
                                 {isExpanded && (
-                                    <ul id={`affected-files-${insight.id}`} role="list" className="mt-2 space-y-1 font-mono text-xs text-mac-text-secondary bg-mac-surface/60 border border-mac-border/50 rounded-lg p-2 max-h-32 overflow-y-auto">
-                                        {insight.affectedFiles.map(
-                                            (file, idx) => (
-                                                <li
-                                                    key={idx}
-                                                    role="listitem"
-                                                    className="truncate"
-                                                    title={file}
-                                                >
-                                    <ul className="mt-2 space-y-1 font-mono text-xs text-mac-text-secondary bg-mac-surface/60 border border-mac-border/50 rounded-lg p-2 max-h-32 overflow-y-auto">
+                                    <ul
+                                        id={`affected-files-${insight.id}`}
+                                        className="mt-2 space-y-1 font-mono text-xs text-mac-text-secondary bg-mac-surface/60 border border-mac-border/50 rounded-lg p-2 max-h-32 overflow-y-auto"
+                                    >
                                         {insight.affectedFiles.map(
                                             (file, idx) => (
                                                 <li
@@ -151,9 +139,6 @@ export default function InsightCard({
                         aria-label="Approve insight"
                         className="px-2.5 py-1 text-xs font-medium text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded transition-colors"
                     >
-                        onClick={() => onApprove(insight.id)}
-                        className="px-2.5 py-1 text-xs font-medium text-green-400 hover:text-green-300 hover:bg-green-400/10 rounded transition-colors"
-                    >
                         ✔ Approve
                     </button>
                 )}
@@ -163,9 +148,6 @@ export default function InsightCard({
                         aria-label="Dismiss insight"
                         className="px-2.5 py-1 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded transition-colors"
                     >
-                        onClick={handleDismiss}
-                        className="px-2.5 py-1 text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded transition-colors"
-                    >
                         ✖ Dismiss
                     </button>
                 )}
@@ -173,9 +155,6 @@ export default function InsightCard({
                     <button
                         onClick={() => onLike(insight.id)}
                         aria-label="Like insight"
-                        className="px-2.5 py-1 text-xs font-medium text-pink-400 hover:text-pink-300 hover:bg-pink-400/10 rounded transition-colors ml-auto"
-                    >
-                        onClick={() => onLike(insight.id)}
                         className="px-2.5 py-1 text-xs font-medium text-pink-400 hover:text-pink-300 hover:bg-pink-400/10 rounded transition-colors ml-auto"
                     >
                         ❤️ Like

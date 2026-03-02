@@ -71,19 +71,16 @@ const rpc = createRPC(
 );
 
 onWardenInsights = (projectId, insights) => {
-    (
-        rpc as unknown as {
-            webview: {
-                wardenInsightsUpdated: (payload: {
-                    projectId: string;
-                    insights: WardenInsight[];
-                }) => void;
-            };
-        }
-    ).webview.wardenInsightsUpdated({
-        projectId,
-        insights,
-    });
+    const rpcAny = rpc as any;
+    if (
+        rpcAny.webview &&
+        typeof rpcAny.webview.wardenInsightsUpdated === "function"
+    ) {
+        rpcAny.webview.wardenInsightsUpdated({
+            projectId,
+            insights,
+        });
+    }
 };
 
 async function getMainViewUrl(): Promise<string> {

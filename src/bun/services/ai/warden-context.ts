@@ -54,11 +54,11 @@ export async function assembleWardenContext(
     //   5. Commits (history — lowest priority, most verbose)
     const prioritized: string[] = [header];
     const budgetSections = [
-        insights,  // highest priority — dedup + memory
-        files,     // grounding
+        insights, // highest priority — dedup + memory
+        files, // grounding
         uncommitted,
         activity,
-        commits,   // lowest priority — can be truncated
+        commits, // lowest priority — can be truncated
     ];
 
     let remaining = MAX_CONTEXT_CHARS - header.length - 10; // reserve for separators
@@ -183,21 +183,21 @@ function buildExistingInsightsSection(
     // Active insights the AI should not regenerate
     const newRows = db
         .query(
-            "SELECT title FROM warden_insights WHERE project_id = ? AND status = 'new'"
+            "SELECT title FROM warden_insights WHERE project_id = ? AND status = 'new'",
         )
         .all(projectId) as { title: string }[];
 
     // Dismissed insights — user rejected these, never regenerate similar ones
     const dismissedRows = db
         .query(
-            "SELECT title FROM warden_insights WHERE project_id = ? AND status = 'dismissed' ORDER BY resolved_at DESC LIMIT 20"
+            "SELECT title FROM warden_insights WHERE project_id = ? AND status = 'dismissed' ORDER BY resolved_at DESC LIMIT 20",
         )
         .all(projectId) as { title: string }[];
 
     // Approved/liked insights — user valued these, generate more like them
     const valuedRows = db
         .query(
-            "SELECT title, category FROM warden_insights WHERE project_id = ? AND status IN ('approved', 'liked') ORDER BY resolved_at DESC LIMIT 15"
+            "SELECT title, category FROM warden_insights WHERE project_id = ? AND status IN ('approved', 'liked') ORDER BY resolved_at DESC LIMIT 15",
         )
         .all(projectId) as { title: string; category: string }[];
 
@@ -223,7 +223,9 @@ function buildExistingInsightsSection(
     }
 
     const valuedTitles = [
-        ...new Set(valuedRows.map((r) => `${r.title} [${r.category}]`).filter(Boolean)),
+        ...new Set(
+            valuedRows.map((r) => `${r.title} [${r.category}]`).filter(Boolean),
+        ),
     ];
     if (valuedTitles.length > 0) {
         sections.push(
@@ -274,9 +276,7 @@ function buildProjectFilesSection(projectPath: string): string | null {
                 } else if (stat.isFile()) {
                     files.push(relative(projectPath, full));
                 }
-            } catch {
-                continue;
-            }
+            } catch {}
         }
     }
 

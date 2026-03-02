@@ -33,6 +33,11 @@ export default {
         copy: {
             "dist/index.html": "views/mainview/index.html",
             "dist/assets": "views/mainview/assets",
+            "node_modules/@parcel/watcher-wasm/watcher.wasm": "app/bun/watcher.wasm",
+        },
+        copy: {
+            "dist/index.html": "views/mainview/index.html",
+            "dist/assets": "views/mainview/assets",
         },
         ...ELECTROBUN_STATIC_BUILD,
     },

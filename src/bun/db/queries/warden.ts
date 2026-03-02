@@ -126,7 +126,9 @@ export function updateWardenInsightStatus(
     // Use transaction to prevent TOCTOU race between SELECT and UPDATE
     const tx = db.transaction(() => {
         const current = db
-            .query("SELECT status, resolved_at FROM warden_insights WHERE id = ?")
+            .query(
+                "SELECT status, resolved_at FROM warden_insights WHERE id = ?",
+            )
             .get(insightId) as {
             status: string;
             resolved_at: string | null;
@@ -199,7 +201,7 @@ export function cleanupWardenInsights(
 
     const dismissResult = db
         .query(
-            "DELETE FROM warden_insights WHERE project_id = ? AND status = 'dismissed' AND resolved_at < ?"
+            "DELETE FROM warden_insights WHERE project_id = ? AND status = 'dismissed' AND resolved_at < ?",
         )
         .run(projectId, cutoffIso);
     archivedDismissed = dismissResult.changes as number;
@@ -211,7 +213,7 @@ export function cleanupWardenInsights(
                 `SELECT id FROM warden_insights
                  WHERE project_id = ? AND status = ?
                  ORDER BY created_at DESC
-                 LIMIT -1 OFFSET ?`
+                 LIMIT -1 OFFSET ?`,
             )
             .all(projectId, status, maxPerStatus) as { id: string }[];
 

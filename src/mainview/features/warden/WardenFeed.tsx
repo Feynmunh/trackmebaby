@@ -31,16 +31,6 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
         dismissInsight,
         likeInsight,
         triggerAnalysis,
-        counts,
-        isLoading,
-        isAnalyzing,
-        hasApiKey,
-        activeTab,
-        setActiveTab,
-        approveInsight,
-        dismissInsight,
-        likeInsight,
-        triggerAnalysis,
     } = useWardenInsights(projectId);
 
     return (
@@ -99,7 +89,16 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
             {error && (
                 <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
                     <div className="flex items-center gap-2 text-red-500">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-4 h-4"
+                        >
                             <circle cx="12" cy="12" r="10" />
                             <line x1="12" y1="8" x2="12" y2="12" />
                             <line x1="12" y1="16" x2="12.01" y2="16" />
@@ -111,7 +110,16 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                         className="text-red-500/60 hover:text-red-500 transition-colors"
                         aria-label="Dismiss error"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+                        <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="w-3.5 h-3.5"
+                        >
                             <line x1="18" y1="6" x2="6" y2="18" />
                             <line x1="6" y1="6" x2="18" y2="18" />
                         </svg>
@@ -120,7 +128,10 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
             )}
 
             {/* Tab Bar */}
-            <div className="flex items-center gap-4 mb-4 border-b border-mac-border/50" role="tablist">
+            <div
+                className="flex items-center gap-4 mb-4 border-b border-mac-border/50"
+                role="tablist"
+            >
                 {TABS.map((tab) => {
                     const isActive = activeTab === tab.id;
                     const count = counts[tab.id as keyof typeof counts];
@@ -133,15 +144,16 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                             id={`warden-tab-${tab.id}`}
                             onKeyDown={(e) => {
                                 if (e.key === "ArrowRight") {
-                                    const nextIndex = (TABS.indexOf(tab) + 1) % TABS.length;
+                                    const nextIndex =
+                                        (TABS.indexOf(tab) + 1) % TABS.length;
                                     setActiveTab(TABS[nextIndex].id);
                                 } else if (e.key === "ArrowLeft") {
-                                    const prevIndex = (TABS.indexOf(tab) - 1 + TABS.length) % TABS.length;
+                                    const prevIndex =
+                                        (TABS.indexOf(tab) - 1 + TABS.length) %
+                                        TABS.length;
                                     setActiveTab(TABS[prevIndex].id);
                                 }
                             }}
-                            onClick={() => setActiveTab(tab.id)}
-                            key={tab.id}
                             onClick={() => setActiveTab(tab.id)}
                             className={`pb-2 px-1 text-[13px] font-medium transition-colors ${
                                 isActive
@@ -156,7 +168,13 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
             </div>
 
             {/* Content Area */}
-            <div className="flex flex-col gap-3" id="warden-tabpanel" role="tabpanel" aria-labelledby={`warden-tab-${activeTab}`} aria-live="polite">
+            <div
+                className="flex flex-col gap-3"
+                id="warden-tabpanel"
+                role="tabpanel"
+                aria-labelledby={`warden-tab-${activeTab}`}
+                aria-live="polite"
+            >
                 {!hasApiKey ? (
                     <div className="bg-mac-surface/40 border border-mac-border rounded-xl shadow-mac-sm p-8 flex flex-col items-center justify-center text-center">
                         <p className="text-mac-secondary text-sm">
@@ -235,14 +253,20 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                         </span>
                         <div className="flex items-center gap-2">
                             <button
-                                onClick={() => setPage(p => Math.max(0, p - 1))}
+                                onClick={() =>
+                                    setPage((p) => Math.max(0, p - 1))
+                                }
                                 disabled={page === 0}
                                 className="px-3 py-1.5 text-[11px] font-semibold bg-mac-surface/40 border border-mac-border rounded-lg text-mac-text hover:bg-mac-hover disabled:opacity-30 transition-colors shadow-sm"
                             >
                                 Previous
                             </button>
                             <button
-                                onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                                onClick={() =>
+                                    setPage((p) =>
+                                        Math.min(totalPages - 1, p + 1),
+                                    )
+                                }
                                 disabled={page === totalPages - 1}
                                 className="px-3 py-1.5 text-[11px] font-semibold bg-mac-surface/40 border border-mac-border rounded-lg text-mac-text hover:bg-mac-hover disabled:opacity-30 transition-colors shadow-sm"
                             >
