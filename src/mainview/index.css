@@ -158,24 +158,42 @@
     }
 }
 
+/* ─── Swipe commit pop burst ─────────────────────────────────────────────── */
+@keyframes swipe-pop-burst {
+    0% {
+        transform: translateY(-50%) scale(0.4);
+        opacity: 0.9;
+    }
+    60% {
+        transform: translateY(-50%) scale(1.6);
+        opacity: 0.3;
+    }
+    100% {
+        transform: translateY(-50%) scale(2.2);
+        opacity: 0;
+    }
+}
+
 /* ─── Tab slide transitions ───────────────────────────────────────────────── */
 /*
- * Modern iOS/macOS-style swipe: content slides + scales slightly + blurs in.
- * Duration 200ms with a custom spring-approximation curve for snappiness.
- * The outgoing view is handled via the sibling selector so both animate together.
+ * iOS/macOS-style swipe: new tab slides in from the edge and springs to rest.
+ * 280ms spring curve (overshoot → settle) for a physical, satisfying feel.
  */
 
 .tab-slide-enter-from-right {
-    animation: tab-from-right 50ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    animation: tab-from-right 280ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 .tab-slide-enter-from-left {
-    animation: tab-from-left 50ms cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+    animation: tab-from-left 280ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
 }
 
 @keyframes tab-from-right {
     0% {
         opacity: 0;
-        transform: translateX(12px) scale(0.99);
+        transform: translateX(60px) scale(0.97);
+    }
+    60% {
+        opacity: 1;
     }
     100% {
         opacity: 1;
@@ -186,7 +204,10 @@
 @keyframes tab-from-left {
     0% {
         opacity: 0;
-        transform: translateX(-12px) scale(0.99);
+        transform: translateX(-60px) scale(0.97);
+    }
+    60% {
+        opacity: 1;
     }
     100% {
         opacity: 1;

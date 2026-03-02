@@ -1,10 +1,14 @@
 import { useEffect, useRef, useState } from "react";
+import { SwipeIndicator } from "./components/SwipeIndicator.tsx";
 import TabBar from "./components/TabBar";
 import AITab from "./features/ai/AITab.tsx";
 import SettingsPanel from "./features/settings/SettingsPanel.tsx";
 import { useSwipeGesture } from "./hooks/useSwipeGesture.ts";
 import { getPlatform } from "./rpc";
 import CardsTab from "./tabs/CardsTab";
+
+/** Max pixel drag offset applied to the content during live swipe */
+const DRAG_MAX_PX = 80;
 
 type TabId = "cards" | "ai" | "settings";
 
@@ -63,6 +67,12 @@ function App() {
     >(null);
     const [animKey, setAnimKey] = useState(0); // bump to re-trigger animation
     const [inDashboard, setInDashboard] = useState(false);
+    // Live drag progress: -1 (full left) to 1 (full right), 0 = idle
+    const [swipeProgress, setSwipeProgress] = useState(0);
+    // "snapping-back" = fingers lifted without committing — spring back to 0
+    const [snapBack, setSnapBack] = useState(false);
+    // true for one render-cycle after a swipe commits — triggers the pop burst
+    const [swipeCommitted, setSwipeCommitted] = useState(false);
     const appRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -106,8 +116,30 @@ function App() {
     // Disabled when the user is inside a project dashboard (CardsTab handles its own swipe there)
     useSwipeGesture(appRef, {
         enabled: !inDashboard,
-        onSwipeRight: () => navigateTab("left"),
-        onSwipeLeft: () => navigateTab("right"),
+        onSwiping: (progress) => {
+            if (progress === 0) {
+                // Fingers lifted — if we were mid-drag, snap back
+                setSnapBack(true);
+                setSwipeProgress(0);
+                // Clear snap-back flag after spring animation finishes
+                setTimeout(() => setSnapBack(false), 350);
+            } else {
+                setSnapBack(false);
+                setSwipeProgress(progress);
+            }
+        },
+        onSwipeRight: () => {
+            setSwipeProgress(0);
+            setSwipeCommitted(true);
+            setTimeout(() => setSwipeCommitted(false), 400);
+            navigateTab("left");
+        },
+        onSwipeLeft: () => {
+            setSwipeProgress(0);
+            setSwipeCommitted(true);
+            setTimeout(() => setSwipeCommitted(false), 400);
+            navigateTab("right");
+        },
     });
 
     // Slide animation class — "left" swipe means new content enters from the right
@@ -153,10 +185,42 @@ function App() {
 
                 {/* Main content area */}
                 <div className="flex-1 overflow-y-auto relative">
+                    {/* Swipe edge indicator — arrow + glow that tracks drag progress */}
+                    {!inDashboard && (
+                        <SwipeIndicator
+                            progress={swipeProgress}
+                            committed={swipeCommitted}
+                            canGoLeft={
+                                SWIPEABLE_TABS.indexOf(
+                                    activeTab as (typeof SWIPEABLE_TABS)[number],
+                                ) > 0
+                            }
+                            canGoRight={
+                                SWIPEABLE_TABS.indexOf(
+                                    activeTab as (typeof SWIPEABLE_TABS)[number],
+                                ) <
+                                SWIPEABLE_TABS.length - 1
+                            }
+                        />
+                    )}
                     {/* Tab content with slide animation keyed to trigger on each swipe */}
                     <div
                         key={animKey}
                         className={`h-full w-full ${slideClass}`}
+                        style={{
+                            // Live rubber-band drag: translate with diminishing returns
+                            transform: snapBack
+                                ? undefined
+                                : swipeProgress !== 0
+                                  ? `translateX(${swipeProgress * DRAG_MAX_PX}px) scale(${1 - Math.abs(swipeProgress) * 0.015})`
+                                  : undefined,
+                            // Spring back when fingers lift without committing
+                            transition: snapBack
+                                ? "transform 350ms cubic-bezier(0.34, 1.56, 0.64, 1)"
+                                : swipeProgress !== 0
+                                  ? "none"
+                                  : undefined,
+                        }}
                     >
                         {activeTab === "cards" && (
                             <CardsTab

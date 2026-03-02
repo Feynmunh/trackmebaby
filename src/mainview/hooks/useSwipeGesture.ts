@@ -25,7 +25,7 @@ interface SwipeGestureOptions {
     cooldownMs?: number;
     /** deltaX must be this many times larger than deltaY. Default 1.5 */
     axisRatio?: number;
-    /** Called during drag with progress value (-1 to 1), then 0 on release */
+    /** Called during drag with progress value (-1 to 1), then 0 on snap-back (no commit) */
     onSwiping?: (progress: number) => void;
     /** Called when swipe is committed (fingers lifted, threshold met) */
     onSwipeRight?: () => void;
@@ -77,8 +77,8 @@ export function useSwipeGesture(
             if (didCross && offCooldown) {
                 lastFiredAt = now;
                 const dir = accumulatedX;
-                // Reset progress first so icon fades, then navigate
-                onSwipingRef.current?.(0);
+                // Navigation committed — caller resets progress via onSwipeRight/Left
+                // Do NOT call onSwiping(0) here so the caller can distinguish commit vs snap-back
                 if (dir > 0) {
                     onSwipeRightRef.current?.();
                 } else {
