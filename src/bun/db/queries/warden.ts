@@ -30,9 +30,9 @@ function mapWardenInsight(row: WardenInsightRow): WardenInsight {
         category: row.category as WardenCategory,
         title: row.title,
         description: row.description,
-        affectedFiles: safeJsonParse<string[]>(
+        affectedFiles: safeJsonParse<string[] | null>(
             row.affected_files,
-            [],
+            null,
             "[DB] Failed to parse affected_files:",
         ),
         createdAt: row.created_at,
@@ -117,12 +117,28 @@ export function getWardenInsight(
         .get(insightId) as WardenInsightRow | null;
     return row ? mapWardenInsight(row) : null;
 }
+
 export function updateWardenInsightStatus(
     db: Database,
     insightId: string,
     newStatus: WardenInsightStatus,
 ): boolean {
-    const resolvedAt = nowIso();
+    const current = db
+        .query("SELECT status, resolved_at FROM warden_insights WHERE id = ?")
+        .get(insightId) as {
+        status: string;
+        resolved_at: string | null;
+    } | null;
+
+    if (!current) return false;
+
+    let resolvedAt: string | null = current.resolved_at;
+    if (newStatus === "new") {
+        resolvedAt = null;
+    } else if (current.status === "new" && !resolvedAt) {
+        resolvedAt = nowIso();
+    }
+
     const result = db
         .query(
             "UPDATE warden_insights SET status = ?, resolved_at = ? WHERE id = ?",

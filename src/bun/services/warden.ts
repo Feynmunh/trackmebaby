@@ -5,43 +5,60 @@ import type {
     WardenInsight,
     WardenSeverity,
 } from "../../shared/types.ts";
+import { getProjectByPath, insertWardenInsight } from "../db/queries.ts";
 import {
-    getProjectByPath,
-    getSetting,
-    insertWardenInsight,
-} from "../db/queries.ts";
+    type AIProvider,
+    createAIProvider,
+    getSavedApiKey,
+} from "./ai/index.ts";
 import { assembleWardenContext } from "./ai/warden-context.ts";
 import {
     parseWardenResponse,
     WARDEN_SYSTEM_PROMPT,
 } from "./ai/warden-prompt.ts";
+import type { SettingsService } from "./settings.ts";
 
 type InsightsCallback = (projectId: string, insights: WardenInsight[]) => void;
 
 export class WardenService {
     private db: Database;
+    private settingsService: SettingsService;
     private lastRunAt: Map<string, number> = new Map();
     private isRunning: Map<string, boolean> = new Map();
     private lastCommitHash: Map<string, string> = new Map();
     private onInsightsGenerated?: InsightsCallback;
     private readonly COOLDOWN_MS = 5 * 60 * 1000;
 
-    constructor(db: Database, onInsightsGenerated?: InsightsCallback) {
+    constructor(
+        db: Database,
+        settingsService: SettingsService,
+        onInsightsGenerated?: InsightsCallback,
+    ) {
         this.db = db;
+        this.settingsService = settingsService;
         this.onInsightsGenerated = onInsightsGenerated;
+    }
+
+    private getAIProvider(): AIProvider {
+        const settings = this.settingsService.getAll();
+        return createAIProvider({
+            provider: settings.aiProvider,
+            apiKey: getSavedApiKey(),
+            model: settings.aiModel,
+        });
     }
 
     async analyzeProject(
         projectId: string,
-        projectPath: string,
         isManual: boolean = false,
     ): Promise<WardenInsight[]> {
-        void projectPath;
-        const apiKey = getSetting(this.db, "aiApiKey");
+        const apiKey = getSavedApiKey();
         if (!apiKey) {
             console.log("[Warden] No API key configured, skipping analysis");
             return [];
         }
+
+        const provider = this.getAIProvider();
 
         const lastRun = this.lastRunAt.get(projectId) ?? 0;
         if (!isManual && Date.now() - lastRun < this.COOLDOWN_MS) {
@@ -56,29 +73,23 @@ export class WardenService {
 
         try {
             const context = await assembleWardenContext(this.db, projectId);
-            const response = await fetch(
-                "https://api.groq.com/openai/v1/chat/completions",
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${apiKey}`,
-                    },
-                    body: JSON.stringify({
-                        model: "llama-3.3-70b-versatile",
-                        messages: [
-                            { role: "system", content: WARDEN_SYSTEM_PROMPT },
-                            { role: "user", content: context },
-                        ],
-                        temperature: 0.3,
-                        max_tokens: 2048,
-                        response_format: { type: "json_object" },
-                    }),
-                },
+            const aiText = await provider.query(
+                context,
+                "Analyze this project activity for potential issues.",
+                WARDEN_SYSTEM_PROMPT,
             );
-            const data = await response.json();
-            const aiText = data.choices?.[0]?.message?.content ?? "";
+
+            // AIProvider implementations currently return a user-friendly error string
+            // if response.ok is false. parseWardenResponse will return [] for those.
             const parsedInsights = parseWardenResponse(aiText);
+
+            if (
+                parsedInsights.length === 0 &&
+                aiText.includes("AI query failed")
+            ) {
+                throw new Error(aiText);
+            }
+
             const inserted: WardenInsight[] = [];
 
             for (const parsedInsight of parsedInsights) {
@@ -98,13 +109,15 @@ export class WardenService {
                 this.onInsightsGenerated(projectId, inserted);
             }
 
+            this.lastRunAt.set(projectId, Date.now());
             return inserted;
         } catch (error: unknown) {
             console.error("[Warden] Analysis failed:", error);
+            // Backoff on failure: set lastRunAt with half the normal cooldown to avoid hammering
+            this.lastRunAt.set(projectId, Date.now() - this.COOLDOWN_MS / 2);
             return [];
         } finally {
             this.isRunning.set(projectId, false);
-            this.lastRunAt.set(projectId, Date.now());
         }
     }
 
@@ -119,6 +132,6 @@ export class WardenService {
         this.lastCommitHash.set(project.id, newHash ?? "");
         if (!newHash) return;
 
-        void this.analyzeProject(project.id, projectPath, false);
+        void this.analyzeProject(project.id, false);
     }
 }

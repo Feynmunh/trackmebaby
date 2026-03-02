@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
     WardenInsight,
     WardenInsightStatus,
 } from "../../../shared/types.ts";
 
 import {
+    getWardenInsightCountsByProject,
     getWardenInsights,
+    isAIConfigured,
     onWardenInsightsUpdated,
     triggerWardenAnalysis,
     updateWardenInsightStatus,
@@ -16,26 +18,28 @@ export function useWardenInsights(projectId: string) {
     const [counts, setCounts] = useState({ new: 0, approved: 0, liked: 0 });
     const [isLoading, setIsLoading] = useState(true);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    const [hasApiKey, setHasApiKey] = useState(true);
     const [activeTab, setActiveTab] = useState<"new" | "approved" | "liked">(
         "new",
     );
 
+    const isMounted = useRef(false);
+
     const fetchAllData = useCallback(async () => {
         try {
             // We fetch the insights for the specific tab as requested,
-            // and all insights to calculate counts for the badges.
-            const [tabInsights, allInsights] = await Promise.all([
+            // and the counts for the badges (more efficient than fetching all insights).
+            const [tabInsights, counts, configured] = await Promise.all([
                 getWardenInsights(projectId, activeTab),
-                getWardenInsights(projectId),
+                getWardenInsightCountsByProject(projectId),
+                isAIConfigured(),
             ]);
 
-            setInsights(tabInsights);
-            setCounts({
-                new: allInsights.filter((i) => i.status === "new").length,
-                approved: allInsights.filter((i) => i.status === "approved")
-                    .length,
-                liked: allInsights.filter((i) => i.status === "liked").length,
-            });
+            if (isMounted.current) {
+                setInsights(tabInsights);
+                setHasApiKey(configured);
+                setCounts(counts);
+            }
         } catch (err) {
             console.error(
                 `[useWardenInsights] Error fetching insights for ${projectId}:`,
@@ -45,12 +49,12 @@ export function useWardenInsights(projectId: string) {
     }, [projectId, activeTab]);
 
     useEffect(() => {
-        let isMounted = true;
+        isMounted.current = true;
 
         const load = async () => {
             setIsLoading(true);
             await fetchAllData();
-            if (isMounted) {
+            if (isMounted.current) {
                 setIsLoading(false);
             }
         };
@@ -65,7 +69,7 @@ export function useWardenInsights(projectId: string) {
         });
 
         return () => {
-            isMounted = false;
+            isMounted.current = false;
             unsubscribe();
         };
     }, [projectId, fetchAllData]);
@@ -142,7 +146,12 @@ export function useWardenInsights(projectId: string) {
     const triggerAnalysis = useCallback(async () => {
         setIsAnalyzing(true);
         try {
-            await triggerWardenAnalysis(projectId);
+            const result = await triggerWardenAnalysis(projectId);
+            if (!result.success && result.reason === "MISSING_API_KEY") {
+                if (isMounted.current) {
+                    setHasApiKey(false);
+                }
+            }
             await fetchAllData();
         } catch (err) {
             console.error(
@@ -150,7 +159,9 @@ export function useWardenInsights(projectId: string) {
                 err,
             );
         } finally {
-            setIsAnalyzing(false);
+            if (isMounted.current) {
+                setIsAnalyzing(false);
+            }
         }
     }, [projectId, fetchAllData]);
 
@@ -159,6 +170,7 @@ export function useWardenInsights(projectId: string) {
         counts,
         isLoading,
         isAnalyzing,
+        hasApiKey,
         activeTab,
         setActiveTab,
         approveInsight,

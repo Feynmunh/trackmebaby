@@ -6,7 +6,11 @@
 import type { Database } from "bun:sqlite";
 import { BrowserView, type BrowserWindow } from "electrobun/bun";
 import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
-import { type AIProvider, createAIProvider } from "../services/ai/index.ts";
+import {
+    type AIProvider,
+    createAIProvider,
+    getSavedApiKey,
+} from "../services/ai/index.ts";
 import type { GitTrackerService } from "../services/git-tracker.ts";
 import { GitHubService } from "../services/github.ts";
 import type { ProjectScanner } from "../services/project-scanner.ts";
@@ -48,9 +52,6 @@ export function createRPC(
     }
 
     // Simple API key storage (env var or file-based)
-    function getSavedApiKey(): string {
-        return process.env.GROQ_API_KEY || process.env.AI_API_KEY || "";
-    }
 
     // GitHub service
     const githubService = new GitHubService(db);

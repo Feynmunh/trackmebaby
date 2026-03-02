@@ -1,8 +1,8 @@
 import type { Database } from "bun:sqlite";
 import {
-    getAllRecentEvents,
     getGitSnapshots,
     getLatestGitSnapshot,
+    getRecentEvents,
 } from "../../db/queries.ts";
 
 const MAX_CONTEXT_CHARS = 16000;
@@ -111,9 +111,7 @@ function buildFileActivitySection(
 ): string | null {
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    const events = getAllRecentEvents(db, sevenDaysAgo).filter(
-        (event) => event.projectId === projectId,
-    );
+    const events = getRecentEvents(db, projectId, sevenDaysAgo, 500);
     if (events.length === 0) return null;
 
     const creates = events.filter(

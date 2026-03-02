@@ -41,7 +41,6 @@ describe("Schema", () => {
         expect(names).toContain("settings");
         expect(names).toContain("schema_version");
         expect(names).toContain("warden_insights");
-        expect(names).toContain("schema_version");
     });
 
     test("sets schema version", () => {

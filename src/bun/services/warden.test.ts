@@ -11,6 +11,7 @@ import {
 import type { GitSnapshot } from "../../shared/types.ts";
 import { upsertProject } from "../db/queries.ts";
 import { runMigrations } from "../db/schema.ts";
+import { SettingsService } from "./settings.ts";
 
 let db: Database;
 let projectId: string;
@@ -23,6 +24,7 @@ let mockInsertWardenInsight: ReturnType<typeof mock>;
 let mockFetch: ReturnType<typeof mock>;
 
 let WardenService: typeof import("./warden.ts").WardenService;
+let settingsService: SettingsService;
 
 const VALID_RESPONSE = JSON.stringify({
     insights: [
@@ -40,10 +42,19 @@ const INVALID_RESPONSE = "not json";
 
 const buildFetchResponse = (content: string): Response => {
     return {
+        ok: true,
         json: () =>
             Promise.resolve({
                 choices: [{ message: { content } }],
             }),
+    } as unknown as Response;
+};
+
+const buildErrorResponse = (status: number): Response => {
+    return {
+        ok: false,
+        status,
+        text: () => Promise.resolve("AI query failed"),
     } as unknown as Response;
 };
 
@@ -90,9 +101,13 @@ beforeEach(async () => {
     const project = upsertProject(db, "/test/path", "test-project");
     projectId = project.id;
 
+    settingsService = new SettingsService(db);
+
     getSettingValue = "test-key";
     originalFetch = globalThis.fetch;
     originalNow = Date.now;
+    process.env.GROQ_API_KEY = "test-key";
+    mockFetch = createMockFetch(VALID_RESPONSE);
     mockFetch = createMockFetch(VALID_RESPONSE);
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
@@ -105,6 +120,8 @@ afterEach(() => {
     mockInsertWardenInsight?.mockRestore?.();
 
     mock.restore();
+    delete process.env.GROQ_API_KEY;
+    globalThis.fetch = originalFetch;
     globalThis.fetch = originalFetch;
     Date.now = originalNow;
     db.close();
@@ -112,18 +129,10 @@ afterEach(() => {
 
 describe("WardenService", () => {
     test("skips analysis within cooldown window", async () => {
-        const service = new WardenService(db);
+        const service = new WardenService(db, settingsService);
 
-        const first = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
-        const second = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
+        const first = await service.analyzeProject(projectId, false);
+        const second = await service.analyzeProject(projectId, false);
 
         expect(first.length).toBe(1);
         expect(second.length).toBe(0);
@@ -134,58 +143,58 @@ describe("WardenService", () => {
         let now = 1_000_000;
         Date.now = mock(() => now);
 
-        const service = new WardenService(db);
-        await service.analyzeProject(projectId, "/test/path", false);
+        const service = new WardenService(db, settingsService);
+        await service.analyzeProject(projectId, false);
 
         now += 6 * 60 * 1000;
-        const second = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
+        const second = await service.analyzeProject(projectId, false);
 
         expect(second.length).toBe(1);
         expect(mockFetch.mock.calls.length).toBe(2);
     });
 
     test("manual trigger bypasses cooldown", async () => {
-        const service = new WardenService(db);
+        const service = new WardenService(db, settingsService);
 
-        await service.analyzeProject(projectId, "/test/path", false);
-        const second = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            true,
-        );
+        await service.analyzeProject(projectId, false);
+        const second = await service.analyzeProject(projectId, true);
 
         expect(second.length).toBe(1);
         expect(mockFetch.mock.calls.length).toBe(2);
     });
 
     test("skips analysis when API key is missing", async () => {
-        getSettingValue = null;
-        const service = new WardenService(db);
+        const originalGroq = process.env.GROQ_API_KEY;
+        const originalAi = process.env.AI_API_KEY;
+        delete process.env.GROQ_API_KEY;
+        delete process.env.AI_API_KEY;
 
-        const result = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
+        const service = new WardenService(db, settingsService);
+        const result = await service.analyzeProject(projectId, false);
+
+        process.env.GROQ_API_KEY = originalGroq;
+        process.env.AI_API_KEY = originalAi;
 
         expect(result.length).toBe(0);
     });
 
     test("does not call fetch when API key is missing", async () => {
-        getSettingValue = null;
-        const service = new WardenService(db);
+        const originalGroq = process.env.GROQ_API_KEY;
+        const originalAi = process.env.AI_API_KEY;
+        delete process.env.GROQ_API_KEY;
+        delete process.env.AI_API_KEY;
 
-        await service.analyzeProject(projectId, "/test/path", false);
+        const service = new WardenService(db, settingsService);
+        await service.analyzeProject(projectId, false);
+
+        process.env.GROQ_API_KEY = originalGroq;
+        process.env.AI_API_KEY = originalAi;
 
         expect(mockFetch.mock.calls.length).toBe(0);
     });
 
     test("triggers analysis when commit hash changes", async () => {
-        const service = new WardenService(db);
+        const service = new WardenService(db, settingsService);
         const analyzeSpy = spyOn(service, "analyzeProject").mockImplementation(
             async () => [],
         );
@@ -210,7 +219,7 @@ describe("WardenService", () => {
     });
 
     test("does not trigger analysis when commit hash is unchanged", async () => {
-        const service = new WardenService(db);
+        const service = new WardenService(db, settingsService);
         const analyzeSpy = spyOn(service, "analyzeProject").mockImplementation(
             async () => [],
         );
@@ -242,12 +251,8 @@ describe("WardenService", () => {
             },
         );
 
-        const service = new WardenService(db);
-        const result = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
+        const service = new WardenService(db, settingsService);
+        const result = await service.analyzeProject(projectId, false);
 
         expect(result.length).toBe(1);
         expect(mockInsertWardenInsight.mock.calls.length).toBe(1);
@@ -262,12 +267,8 @@ describe("WardenService", () => {
             },
         );
 
-        const service = new WardenService(db);
-        const result = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
+        const service = new WardenService(db, settingsService);
+        const result = await service.analyzeProject(projectId, false);
 
         expect(result.length).toBe(0);
         expect(mockInsertWardenInsight.mock.calls.length).toBe(0);
@@ -286,17 +287,9 @@ describe("WardenService", () => {
             },
         );
 
-        const service = new WardenService(db);
-        const firstPromise = service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
-        const second = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            false,
-        );
+        const service = new WardenService(db, settingsService);
+        const firstPromise = service.analyzeProject(projectId, false);
+        const second = await service.analyzeProject(projectId, false);
 
         expect(second.length).toBe(0);
 
@@ -305,11 +298,23 @@ describe("WardenService", () => {
 
         expect(first.length).toBe(1);
 
-        const third = await service.analyzeProject(
-            projectId,
-            "/test/path",
-            true,
-        );
+        const third = await service.analyzeProject(projectId, true);
         expect(third.length).toBe(1);
+    });
+
+    test("sets partial cooldown on failure to avoid hammering", async () => {
+        mockFetch.mockImplementation(() =>
+            Promise.resolve(buildErrorResponse(500)),
+        );
+
+        const service = new WardenService(db, settingsService);
+
+        // First attempt fails
+        await service.analyzeProject(projectId, false);
+        expect(mockFetch.mock.calls.length).toBe(1);
+
+        // Second attempt within partial cooldown window should be skipped
+        await service.analyzeProject(projectId, false);
+        expect(mockFetch.mock.calls.length).toBe(1);
     });
 });

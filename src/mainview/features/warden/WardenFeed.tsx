@@ -19,6 +19,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
         counts,
         isLoading,
         isAnalyzing,
+        hasApiKey,
         activeTab,
         setActiveTab,
         approveInsight,
@@ -26,9 +27,6 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
         likeInsight,
         triggerAnalysis,
     } = useWardenInsights(projectId);
-
-    // TODO: In the future, determine if API key is present
-    const hasApiKey = true;
 
     return (
         <div className="mb-12">

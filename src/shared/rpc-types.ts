@@ -112,13 +112,25 @@ export type TrackmeBabyRPC = {
                 params: { projectId: string; status?: WardenInsightStatus };
                 response: WardenInsight[];
             };
+            getWardenInsightCountsByProject: {
+                params: { projectId: string };
+                response: { new: number; approved: number; liked: number };
+            };
             triggerWardenAnalysis: {
                 params: { projectId: string };
-                response: { success: boolean; insightCount: number };
+                response: {
+                    success: boolean;
+                    insightCount: number;
+                    reason?: string;
+                };
             };
             updateWardenInsightStatus: {
                 params: { insightId: string; status: WardenInsightStatus };
                 response: { success: boolean };
+            };
+            isAIConfigured: {
+                params: Record<string, never>;
+                response: boolean;
             };
         };
         messages: {

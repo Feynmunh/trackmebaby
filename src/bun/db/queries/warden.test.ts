@@ -68,7 +68,7 @@ describe("Warden Queries", () => {
             const retrieved = getWardenInsight(db, insight.id);
             expect(retrieved).toBeTruthy();
             // Note: mapWardenInsight returns [] for null affected_files in DB
-            expect(retrieved?.affectedFiles).toEqual([]);
+            expect(retrieved?.affectedFiles).toBeNull();
         });
     });
 

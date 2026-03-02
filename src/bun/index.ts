@@ -41,9 +41,13 @@ const gitTracker = new GitTrackerService(db, settingsService.getPollInterval());
 let onWardenInsights:
     | ((projectId: string, insights: WardenInsight[]) => void)
     | undefined;
-const wardenService = new WardenService(db, (projectId, insights) => {
-    onWardenInsights?.(projectId, insights);
-});
+const wardenService = new WardenService(
+    db,
+    settingsService,
+    (projectId, insights) => {
+        onWardenInsights?.(projectId, insights);
+    },
+);
 
 // Hook Warden into git-tracker for auto-analysis on commits
 gitTracker.onStatusChange((projectPath, snapshot) => {
@@ -67,8 +71,16 @@ const rpc = createRPC(
 );
 
 onWardenInsights = (projectId, insights) => {
-    // @ts-expect-error - rpc.webview is defined in TrackmeBabyRPC but TS can't see it through the generic
-    rpc.webview.wardenInsightsUpdated({
+    (
+        rpc as unknown as {
+            webview: {
+                wardenInsightsUpdated: (payload: {
+                    projectId: string;
+                    insights: WardenInsight[];
+                }) => void;
+            };
+        }
+    ).webview.wardenInsightsUpdated({
         projectId,
         insights,
     });

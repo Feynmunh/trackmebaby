@@ -52,10 +52,6 @@ const rpc = Electroview.defineRPC<TrackmeBabyRPC>({
                 projectId: string;
                 insights: WardenInsight[];
             }) => {
-                console.log(
-                    `[RPC] Warden insights updated for ${projectId}:`,
-                    insights.length,
-                );
                 for (const cb of rpcEventHandlers.wardenInsightsUpdated) {
                     cb(projectId, insights);
                 }
@@ -228,10 +224,20 @@ export async function getWardenInsights(
     return requestApi.getWardenInsights({ projectId, status });
 }
 
+export async function getWardenInsightCountsByProject(
+    projectId: string,
+): Promise<{ new: number; approved: number; liked: number }> {
+    return requestApi.getWardenInsightCountsByProject({ projectId });
+}
+
 export async function triggerWardenAnalysis(
     projectId: string,
-): Promise<{ success: boolean; insightCount: number }> {
+): Promise<{ success: boolean; insightCount: number; reason?: string }> {
     return requestApi.triggerWardenAnalysis({ projectId });
+}
+
+export async function isAIConfigured(): Promise<boolean> {
+    return requestApi.isAIConfigured({});
 }
 
 export async function updateWardenInsightStatus(
