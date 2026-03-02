@@ -71,29 +71,20 @@ const rpc = createRPC(
     () => mainWindow,
 );
 
-interface RpcWithWardenInsights {
-    webview?: {
-        wardenInsightsUpdated?: (payload: {
-            projectId: string;
-            insights: WardenInsight[];
-        }) => void;
-        wardenAnalysisFailed?: (payload: {
-            projectId: string;
-            reason: string;
-        }) => void;
-    };
-}
+// Send push messages to the frontend webview via mainWindow.webview.rpc.send
 onWardenInsights = (projectId, insights) => {
-    const webview = (rpc as RpcWithWardenInsights).webview;
-    if (webview && typeof webview.wardenInsightsUpdated === "function") {
-        webview.wardenInsightsUpdated({ projectId, insights });
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (mainWindow as any)?.webview?.rpc?.send?.wardenInsightsUpdated?.({
+        projectId,
+        insights,
+    });
 };
 onWardenAnalysisFailed = (projectId, reason) => {
-    const webview = (rpc as RpcWithWardenInsights).webview;
-    if (webview && typeof webview.wardenAnalysisFailed === "function") {
-        webview.wardenAnalysisFailed({ projectId, reason });
-    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (mainWindow as any)?.webview?.rpc?.send?.wardenAnalysisFailed?.({
+        projectId,
+        reason,
+    });
 };
 
 async function getMainViewUrl(): Promise<string> {
