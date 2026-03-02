@@ -1,32 +1,26 @@
-/**
- * trackmebaby — Main entry point
- *
- * Starts as a background daemon with system tray.
- * Tray click opens the dashboard window.
- * Closing the window returns to tray-only mode.
- */
-
 import { mkdirSync } from "node:fs";
 // --- Initialize core services ---
 import { join } from "node:path";
-/**
- * trackmebaby — Main entry point
- *
- * Starts as a background daemon with system tray.
- * Tray click opens the dashboard window.
- * Closing the window returns to tray-only mode.
- */
 import Electrobun, {
     BrowserWindow,
     Tray,
     Updater,
     Utils,
 } from "electrobun/bun";
+/**
+ * trackmebaby — Main entry point
+ *
+ * Starts as a background daemon with system tray.
+ * Tray click opens the dashboard window.
+ * Closing the window returns to tray-only mode.
+ */
+import type { WardenInsight } from "../shared/types.ts";
 import { closeDatabase, getDatabase } from "./db/database.ts";
 import { createRPC } from "./rpc/bridge.ts";
 import { GitTrackerService } from "./services/git-tracker.ts";
 import { ProjectScanner } from "./services/project-scanner.ts";
 import { SettingsService } from "./services/settings.ts";
+import { WardenService } from "./services/warden.ts";
 import { WatcherService } from "./services/watcher.ts";
 
 // Use Electrobun's userData path for the database
@@ -44,6 +38,17 @@ const settingsService = new SettingsService(db);
 const scanner = new ProjectScanner(db);
 const watcher = new WatcherService(db, settingsService.getWatchDebounce());
 const gitTracker = new GitTrackerService(db, settingsService.getPollInterval());
+let onWardenInsights:
+    | ((projectId: string, insights: WardenInsight[]) => void)
+    | undefined;
+const wardenService = new WardenService(db, (projectId, insights) => {
+    onWardenInsights?.(projectId, insights);
+});
+
+// Hook Warden into git-tracker for auto-analysis on commits
+gitTracker.onStatusChange((projectPath, snapshot) => {
+    wardenService.onGitStatusChange(projectPath, snapshot);
+});
 
 // --- Window Management ---
 const DEV_SERVER_PORT = 5173;
@@ -57,8 +62,17 @@ const rpc = createRPC(
     settingsService,
     scanner,
     gitTracker,
+    wardenService,
     () => mainWindow,
 );
+
+onWardenInsights = (projectId, insights) => {
+    // @ts-expect-error - rpc.webview is defined in TrackmeBabyRPC but TS can't see it through the generic
+    rpc.webview.wardenInsightsUpdated({
+        projectId,
+        insights,
+    });
+};
 
 async function getMainViewUrl(): Promise<string> {
     const channel = await Updater.localInfo.channel();
