@@ -20,6 +20,7 @@ const theme = {
                 "sans-serif",
             ],
             playfair: ['"Playfair Display"', "serif"],
+            jura: ['"Jura"', "sans-serif"],
         },
         borderRadius: {
             mac: "10px",

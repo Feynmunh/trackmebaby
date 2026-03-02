@@ -17,10 +17,10 @@ const tabs = [
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={1.8}
+                strokeWidth={1.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[20px] h-[20px]"
+                className="w-[22px] h-[22px]"
             >
                 <rect x="3" y="3" width="7" height="7" rx="2" />
                 <rect x="14" y="3" width="7" height="7" rx="2" />
@@ -38,10 +38,10 @@ const tabs = [
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={1.8}
+                strokeWidth={1.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[20px] h-[20px]"
+                className="w-[22px] h-[22px]"
             >
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>

@@ -199,7 +199,10 @@ export default function CardsTab({
             >
                 <div className="max-w-6xl mx-auto mb-5">
                     <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-[32px] font-bold text-mac-text leading-tight">
+                        <h1
+                            className="text-[32px] font-bold text-mac-text leading-tight tracking-wide"
+                            style={{ fontFamily: '"Jura", sans-serif' }}
+                        >
                             Projects
                         </h1>
                         <div className="text-xs font-medium text-mac-secondary border border-mac-border bg-transparent px-3 py-1.5 rounded-full">
