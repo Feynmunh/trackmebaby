@@ -2,6 +2,7 @@
  * Groq AI Provider — OpenAI-compatible API
  * Uses native fetch(), no SDK dependencies
  * Default model: llama-3.3-70b-versatile
+ * WQ
  */
 
 import { toErrorData, toErrorMessage } from "../../../shared/error.ts";
@@ -65,6 +66,9 @@ export class GroqProvider implements AIProvider {
                     ],
                     temperature: 0.3,
                     max_tokens: options?.maxTokens ?? 1024,
+                    response_format: options?.jsonMode
+                        ? { type: "json_object" }
+                        : undefined,
                 }),
             });
 

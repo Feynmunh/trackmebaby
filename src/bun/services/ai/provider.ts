@@ -5,6 +5,7 @@
 
 export interface AIQueryOptions {
     maxTokens?: number;
+    jsonMode?: boolean;
 }
 
 export interface AIProvider {

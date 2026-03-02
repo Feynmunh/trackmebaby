@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
-import { join } from "node:path";
+import { join, normalize, sep } from "node:path";
 import type {
     GitSnapshot,
     WardenCategory,
@@ -41,6 +41,7 @@ export class WardenService {
     private lastCommitHash: Map<string, string> = new Map();
     private onInsightsGenerated?: InsightsCallback;
     private readonly COOLDOWN_MS = 5 * 60 * 1000;
+    private readonly MANUAL_COOLDOWN_MS = 60 * 1000;
     private readonly MAX_RETRIES = 1;
     private readonly WARDEN_MAX_TOKENS = 2048;
     private readonly MAX_CONCURRENT = 2;
@@ -77,7 +78,8 @@ export class WardenService {
         }
 
         const lastRun = this.lastRunAt.get(projectId) ?? 0;
-        if (!isManual && Date.now() - lastRun < this.COOLDOWN_MS) {
+        const cooldown = isManual ? this.MANUAL_COOLDOWN_MS : this.COOLDOWN_MS;
+        if (Date.now() - lastRun < cooldown) {
             return [];
         }
 
@@ -142,14 +144,27 @@ export class WardenService {
             // Query AI with retry on JSON parse failure
             const parsedInsights = await this.queryWithRetry(provider, context);
 
-            // Validate affectedFiles: strip paths that don't exist on disk
+            // Validate affectedFiles: strip paths that don't exist on disk or are outside projectRoot
             for (const insight of parsedInsights) {
                 if (insight.affectedFiles && projectRoot) {
                     insight.affectedFiles = insight.affectedFiles.filter(
                         (filePath) => {
-                            const abs = filePath.startsWith("/")
-                                ? filePath
-                                : join(projectRoot, filePath);
+                            // 1. Reject absolute paths and null/empty
+                            if (
+                                !filePath ||
+                                filePath.startsWith("/") ||
+                                filePath.includes(":\\")
+                            ) {
+                                return false;
+                            }
+
+                            // 2. Resolve and normalize, then check for path traversal (stay within projectRoot)
+                            const abs = normalize(join(projectRoot, filePath));
+                            if (!abs.startsWith(projectRoot + sep)) {
+                                return false;
+                            }
+
+                            // 3. Verify existence on disk
                             return existsSync(abs);
                         },
                     );
@@ -196,7 +211,7 @@ export class WardenService {
                 context,
                 "Analyze this project activity for potential issues.",
                 WARDEN_SYSTEM_PROMPT,
-                { maxTokens: this.WARDEN_MAX_TOKENS },
+                { maxTokens: this.WARDEN_MAX_TOKENS, jsonMode: true },
             );
 
             // Check for API-level error

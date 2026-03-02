@@ -1,6 +1,6 @@
 import type { Database } from "bun:sqlite";
 import { readdirSync, statSync } from "node:fs";
-import { join, relative } from "node:path";
+import { join, relative, sep } from "node:path";
 import {
     getGitSnapshots,
     getLatestGitSnapshot,
@@ -274,7 +274,9 @@ function buildProjectFilesSection(projectPath: string): string | null {
                 if (stat.isDirectory()) {
                     walk(full, depth + 1);
                 } else if (stat.isFile()) {
-                    files.push(relative(projectPath, full));
+                    files.push(
+                        relative(projectPath, full).split(sep).join("/"),
+                    );
                 }
             } catch {}
         }
