@@ -237,7 +237,6 @@ export function useProjectData(): UseProjectDataResult {
             setViewMode("dashboard");
             fetchStatsForProject(projectId, true);
             refreshActiveProject(projectId);
-
         },
         [fetchStatsForProject, projects, refreshActiveProject],
     );

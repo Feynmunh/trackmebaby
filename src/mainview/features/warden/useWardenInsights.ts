@@ -11,11 +11,9 @@ import {
     onProjectView,
     onWardenAnalysisFailed,
     onWardenInsightsUpdated,
-    onWardenAnalysisFailed,
-    onProjectView,
+    triggerWardenAnalysis,
     updateWardenInsightStatus,
 } from "../../rpc.ts";
-
 export function useWardenInsights(projectId: string) {
     const [insights, setInsights] = useState<WardenInsight[]>([]);
     const [counts, setCounts] = useState({ new: 0, approved: 0, liked: 0 });
