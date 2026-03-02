@@ -34,4 +34,5 @@ export function createAIProvider(config: AIProviderConfig): AIProvider {
     }
 }
 
+export { getSavedApiKey } from "./config.ts";
 export type { AIProvider } from "./provider.ts";

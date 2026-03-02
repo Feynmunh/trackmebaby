@@ -14,6 +14,8 @@ import type {
     Project,
     ProjectStats,
     Settings,
+    WardenInsight,
+    WardenInsightStatus,
 } from "../shared/types.ts";
 
 // Initialize RPC
@@ -41,6 +43,16 @@ const rpc = Electroview.defineRPC<TrackmeBabyRPC>({
             }) => {
                 for (const cb of rpcEventHandlers.gitStatusChanged) {
                     cb(projectId, snapshot);
+                }
+            },
+            wardenInsightsUpdated: ({ projectId, insights }) => {
+                for (const cb of rpcEventHandlers.wardenInsightsUpdated) {
+                    cb(projectId, insights);
+                }
+            },
+            wardenAnalysisFailed: ({ projectId, reason }) => {
+                for (const cb of rpcEventHandlers.wardenAnalysisFailed) {
+                    cb({ projectId, reason });
                 }
             },
         },
@@ -71,6 +83,12 @@ const rpcEventHandlers = {
     activityEvent: [] as Array<(event: ActivityEvent) => void>,
     gitStatusChanged: [] as Array<
         (projectId: string, snapshot: GitSnapshot) => void
+    >,
+    wardenInsightsUpdated: [] as Array<
+        (projectId: string, insights: WardenInsight[]) => void
+    >,
+    wardenAnalysisFailed: [] as Array<
+        (payload: { projectId: string; reason: string }) => void
     >,
 };
 
@@ -199,6 +217,44 @@ export async function getGitDiff(
     return requestApi.getGitDiff({ projectId });
 }
 
+// --- Warden (AI Activity Guard) ---
+
+export async function getWardenInsights(
+    projectId: string,
+    status?: WardenInsightStatus,
+): Promise<WardenInsight[]> {
+    return requestApi.getWardenInsights({ projectId, status });
+}
+
+export async function getWardenInsightCountsByProject(
+    projectId: string,
+): Promise<{ new: number; approved: number; liked: number }> {
+    return requestApi.getWardenInsightCountsByProject({ projectId });
+}
+
+export async function triggerWardenAnalysis(
+    projectId: string,
+): Promise<{ success: boolean; insightCount: number; reason?: string }> {
+    return requestApi.triggerWardenAnalysis({ projectId });
+}
+
+export async function isAIConfigured(): Promise<boolean> {
+    return requestApi.isAIConfigured({});
+}
+
+export async function onProjectView(
+    projectId: string,
+): Promise<{ success: boolean; insightCount: number; reason: string }> {
+    return requestApi.onProjectView({ projectId });
+}
+
+export async function updateWardenInsightStatus(
+    insightId: string,
+    status: WardenInsightStatus,
+): Promise<{ success: boolean }> {
+    return requestApi.updateWardenInsightStatus({ insightId, status });
+}
+
 // --- Push Message Subscriptions ---
 
 export function onProjectsUpdated(
@@ -228,5 +284,25 @@ export function onGitStatusChanged(
     return () => {
         const idx = rpcEventHandlers.gitStatusChanged.indexOf(cb);
         if (idx >= 0) rpcEventHandlers.gitStatusChanged.splice(idx, 1);
+    };
+}
+
+export function onWardenInsightsUpdated(
+    cb: (projectId: string, insights: WardenInsight[]) => void,
+): () => void {
+    rpcEventHandlers.wardenInsightsUpdated.push(cb);
+    return () => {
+        const idx = rpcEventHandlers.wardenInsightsUpdated.indexOf(cb);
+        if (idx >= 0) rpcEventHandlers.wardenInsightsUpdated.splice(idx, 1);
+    };
+}
+
+export function onWardenAnalysisFailed(
+    cb: (payload: { projectId: string; reason: string }) => void,
+): () => void {
+    rpcEventHandlers.wardenAnalysisFailed.push(cb);
+    return () => {
+        const idx = rpcEventHandlers.wardenAnalysisFailed.indexOf(cb);
+        if (idx >= 0) rpcEventHandlers.wardenAnalysisFailed.splice(idx, 1);
     };
 }

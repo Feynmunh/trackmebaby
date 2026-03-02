@@ -6,7 +6,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
@@ -34,6 +34,9 @@ export function runMigrations(db: Database): void {
     }
     if (version < 3) {
         applyMigration3(db);
+    }
+    if (version < 4) {
+        applyMigration4(db);
     }
     if (version < SCHEMA_VERSION) {
         db.exec(
@@ -113,5 +116,26 @@ function applyMigration3(db: Database): void {
       github_updated_at TEXT,
       FOREIGN KEY (project_id) REFERENCES projects(id)
     )
+  `);
+}
+
+function applyMigration4(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS warden_insights (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'new',
+      severity TEXT NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      affected_files TEXT,
+      created_at TEXT NOT NULL,
+      resolved_at TEXT
+    )
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_warden_insights_project_status
+      ON warden_insights(project_id, status)
   `);
 }

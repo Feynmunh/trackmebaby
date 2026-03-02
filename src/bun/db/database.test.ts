@@ -40,13 +40,14 @@ describe("Schema", () => {
         expect(names).toContain("git_snapshots");
         expect(names).toContain("settings");
         expect(names).toContain("schema_version");
+        expect(names).toContain("warden_insights");
     });
 
     test("sets schema version", () => {
         const row = db
             .query("SELECT MAX(version) as v FROM schema_version")
             .get() as { v: number };
-        expect(row.v).toBe(3);
+        expect(row.v).toBe(4);
     });
 });
 

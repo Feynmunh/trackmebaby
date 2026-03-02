@@ -23,6 +23,9 @@ let rpcApi: {
         until: string,
     ) => Promise<ActivitySummary[]>;
     scanProjects: (basePath: string) => Promise<Project[]>;
+    onProjectView: (
+        projectId: string,
+    ) => Promise<{ success: boolean; insightCount: number; reason: string }>;
 } | null = null;
 
 async function loadRpcApi(): Promise<void> {

@@ -13,6 +13,8 @@ import type {
     Project,
     ProjectStats,
     Settings,
+    WardenInsight,
+    WardenInsightStatus,
 } from "./types.ts";
 
 export type TrackmeBabyRPC = {
@@ -106,6 +108,38 @@ export type TrackmeBabyRPC = {
                 params: { projectId: string };
                 response: { diff: string; error?: string };
             };
+            getWardenInsights: {
+                params: { projectId: string; status?: WardenInsightStatus };
+                response: WardenInsight[];
+            };
+            getWardenInsightCountsByProject: {
+                params: { projectId: string };
+                response: { new: number; approved: number; liked: number };
+            };
+            triggerWardenAnalysis: {
+                params: { projectId: string };
+                response: {
+                    success: boolean;
+                    insightCount: number;
+                    reason?: string;
+                };
+            };
+            updateWardenInsightStatus: {
+                params: { insightId: string; status: WardenInsightStatus };
+                response: { success: boolean };
+            };
+            isAIConfigured: {
+                params: Record<string, never>;
+                response: boolean;
+            };
+            onProjectView: {
+                params: { projectId: string };
+                response: {
+                    success: boolean;
+                    insightCount: number;
+                    reason: string;
+                };
+            };
         };
         messages: {
             log: { entry: LogEntry };
@@ -119,6 +153,14 @@ export type TrackmeBabyRPC = {
             gitStatusChanged: {
                 projectId: string;
                 snapshot: GitSnapshot;
+            };
+            wardenInsightsUpdated: {
+                projectId: string;
+                insights: WardenInsight[];
+            };
+            wardenAnalysisFailed: {
+                projectId: string;
+                reason: string;
             };
         };
     }>;

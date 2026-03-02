@@ -131,3 +131,29 @@ export interface AIQueryOptions {
     filePath?: string;
     fileType?: string;
 }
+export type WardenSeverity = "critical" | "warning" | "info";
+
+export type WardenCategory =
+    | "security"
+    | "tech_debt"
+    | "project_health"
+    | "suggestion"
+    | "testing_gap"
+    | "deprecation"
+    | "dependency"
+    | "refactoring";
+
+export type WardenInsightStatus = "new" | "approved" | "dismissed" | "liked";
+
+export interface WardenInsight {
+    id: string;
+    projectId: string;
+    status: WardenInsightStatus;
+    severity: WardenSeverity;
+    category: WardenCategory;
+    title: string;
+    description: string;
+    affectedFiles: string[] | null;
+    createdAt: string;
+    resolvedAt: string | null;
+}

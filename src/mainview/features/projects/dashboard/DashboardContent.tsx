@@ -9,6 +9,7 @@ import type {
 } from "../../../../shared/types.ts";
 import GitPage from "../../git/GitPage.tsx";
 import GitHubPage from "../../github/GitHubPage.tsx";
+import WardenFeed from "../../warden/WardenFeed.tsx";
 import OverviewPage from "../OverviewPage.tsx";
 import AIOverview from "./AIOverview.tsx";
 
@@ -56,8 +57,24 @@ export default function DashboardContent({
     return (
         <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 px-6 py-3">
 
+<<<<<<< HEAD
             {/* ── TOP ROW: bento cells, full width stacked ── */}
             <div className="flex flex-col gap-3 shrink-0">
+=======
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                    <div className="lg:col-span-8 order-2 lg:order-1 space-y-12">
+                        <WardenFeed projectId={project.id} />
+
+                        <section ref={timelineRef} className="scroll-mt-12">
+                            <GitPage
+                                gitSnapshot={gitSnapshot}
+                                projectStats={projectStats}
+                                statsLoading={statsLoading}
+                                isWidget={true}
+                                section="timeline"
+                            />
+                        </section>
+>>>>>>> feat/warden-agent
 
                 {/* AI Pulse cell — owns its own card border */}
                 <div>
