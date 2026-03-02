@@ -219,9 +219,10 @@ export function cleanupWardenInsights(
 
         if (overflow.length > 0) {
             const ids = overflow.map((r) => r.id);
-            for (const id of ids) {
-                db.query("DELETE FROM warden_insights WHERE id = ?").run(id);
-            }
+            const placeholders = ids.map(() => "?").join(",");
+            db.query(
+                `DELETE FROM warden_insights WHERE id IN (${placeholders})`,
+            ).run(...ids);
             capped += overflow.length;
         }
     }

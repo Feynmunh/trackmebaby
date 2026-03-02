@@ -70,17 +70,17 @@ const rpc = createRPC(
     () => mainWindow,
 );
 
+interface RpcWithWardenInsights {
+    webview?: {
+        wardenInsightsUpdated?: (payload: {
+            projectId: string;
+            insights: WardenInsight[];
+        }) => void;
+    };
+}
+
 onWardenInsights = (projectId, insights) => {
-    const webview = (
-        rpc as unknown as {
-            webview: {
-                wardenInsightsUpdated: (payload: {
-                    projectId: string;
-                    insights: WardenInsight[];
-                }) => void;
-            };
-        }
-    ).webview;
+    const webview = (rpc as RpcWithWardenInsights).webview;
 
     if (webview && typeof webview.wardenInsightsUpdated === "function") {
         webview.wardenInsightsUpdated({
