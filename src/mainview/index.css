@@ -174,6 +174,57 @@
     }
 }
 
+/* ─── Arrow trail wave — cascading pulse across 3 arrows ─────────────────── */
+/*
+ * Each arrow cycles: dim → bright → dim in a staggered loop.
+ * Also nudges slightly in the swipe direction for a motion-trail feel.
+ * animation-delay on each arrow creates the cascading wave.
+ */
+@keyframes arrow-wave-right {
+    0%,
+    100% {
+        opacity: 0.15;
+        transform: translateX(0px);
+    }
+    50% {
+        opacity: 1;
+        transform: translateX(5px);
+    }
+}
+@keyframes arrow-wave-left {
+    0%,
+    100% {
+        opacity: 0.15;
+        transform: translateX(0px);
+    }
+    50% {
+        opacity: 1;
+        transform: translateX(-5px);
+    }
+}
+
+/* On commit: all arrows shoot in the swipe direction and vanish */
+@keyframes arrow-shoot-right {
+    0% {
+        opacity: 1;
+        transform: translateX(0px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(28px);
+    }
+}
+@keyframes arrow-shoot-left {
+    0% {
+        opacity: 1;
+        transform: translateX(0px);
+    }
+    100% {
+        opacity: 0;
+        transform: translateX(-28px);
+    }
+}
+
 /* ─── Tab slide transitions ───────────────────────────────────────────────── */
 /*
  * iOS/macOS-style swipe: new tab slides in from the edge and springs to rest.
