@@ -71,28 +71,18 @@ const rpc = createRPC(
     () => mainWindow,
 );
 
-interface RpcWithWardenInsights {
-    webview?: {
-        wardenInsightsUpdated?: (payload: {
-            projectId: string;
-            insights: WardenInsight[];
-        }) => void;
-        wardenAnalysisFailed?: (payload: {
-            projectId: string;
-            reason: string;
-        }) => void;
-    };
-}
 onWardenInsights = (projectId, insights) => {
-    const webview = (rpc as RpcWithWardenInsights).webview;
-    if (webview && typeof webview.wardenInsightsUpdated === "function") {
-        webview.wardenInsightsUpdated({ projectId, insights });
+    try {
+        rpc.send.wardenInsightsUpdated({ projectId, insights });
+    } catch (err) {
+        console.error("[trackmebaby] Failed to push warden insights:", err);
     }
 };
 onWardenAnalysisFailed = (projectId, reason) => {
-    const webview = (rpc as RpcWithWardenInsights).webview;
-    if (webview && typeof webview.wardenAnalysisFailed === "function") {
-        webview.wardenAnalysisFailed({ projectId, reason });
+    try {
+        rpc.send.wardenAnalysisFailed({ projectId, reason });
+    } catch (err) {
+        console.error("[trackmebaby] Failed to push warden failure:", err);
     }
 };
 

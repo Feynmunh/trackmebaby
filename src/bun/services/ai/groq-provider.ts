@@ -74,11 +74,14 @@ export class GroqProvider implements AIProvider {
 
             if (!response.ok) {
                 const errorBody = await response.text();
-                logger.error("api error", {
-                    status: response.status,
-                    errorBody,
-                });
-                return `AI query failed (${response.status}). Please check your API key and try again.`;
+                logger.error("api error", { status: response.status, errorBody });
+                if (response.status === 429) {
+                    return "Rate limit reached. Please wait a moment and try again.";
+                }
+                if (response.status === 401 || response.status === 403) {
+                    return "Invalid API key. Please check your GROQ_API_KEY.";
+                }
+                return `AI query failed (${response.status}).`;
             }
 
             const data = (await response.json()) as {

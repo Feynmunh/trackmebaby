@@ -313,7 +313,7 @@ export class WardenService {
                 inserted.push(insight);
             }
 
-            if (this.onInsightsGenerated && inserted.length > 0) {
+            if (this.onInsightsGenerated) {
                 this.onInsightsGenerated(projectId, inserted);
             }
 
@@ -344,7 +344,12 @@ export class WardenService {
             );
 
             // Check for API-level error
-            if (aiText.includes("AI query failed")) {
+            if (
+                aiText.includes("AI query failed") ||
+                aiText.includes("Rate limit reached") ||
+                aiText.includes("Invalid API key") ||
+                aiText.startsWith("Please add your GROQ_API_KEY")
+            ) {
                 throw new Error(aiText);
             }
 
