@@ -14,6 +14,8 @@ import type {
     Project,
     ProjectStats,
     Settings,
+    WardenInsight,
+    WardenInsightStatus,
 } from "../shared/types.ts";
 
 // Initialize RPC
@@ -41,6 +43,21 @@ const rpc = Electroview.defineRPC<TrackmeBabyRPC>({
             }) => {
                 for (const cb of rpcEventHandlers.gitStatusChanged) {
                     cb(projectId, snapshot);
+                }
+            },
+            wardenInsightsUpdated: ({
+                projectId,
+                insights,
+            }: {
+                projectId: string;
+                insights: WardenInsight[];
+            }) => {
+                console.log(
+                    `[RPC] Warden insights updated for ${projectId}:`,
+                    insights.length,
+                );
+                for (const cb of rpcEventHandlers.wardenInsightsUpdated) {
+                    cb(projectId, insights);
                 }
             },
         },
@@ -71,6 +88,9 @@ const rpcEventHandlers = {
     activityEvent: [] as Array<(event: ActivityEvent) => void>,
     gitStatusChanged: [] as Array<
         (projectId: string, snapshot: GitSnapshot) => void
+    >,
+    wardenInsightsUpdated: [] as Array<
+        (projectId: string, insights: WardenInsight[]) => void
     >,
 };
 
@@ -199,6 +219,28 @@ export async function getGitDiff(
     return requestApi.getGitDiff({ projectId });
 }
 
+// --- Warden (AI Activity Guard) ---
+
+export async function getWardenInsights(
+    projectId: string,
+    status?: WardenInsightStatus,
+): Promise<WardenInsight[]> {
+    return requestApi.getWardenInsights({ projectId, status });
+}
+
+export async function triggerWardenAnalysis(
+    projectId: string,
+): Promise<{ success: boolean; insightCount: number }> {
+    return requestApi.triggerWardenAnalysis({ projectId });
+}
+
+export async function updateWardenInsightStatus(
+    insightId: string,
+    status: WardenInsightStatus,
+): Promise<{ success: boolean }> {
+    return requestApi.updateWardenInsightStatus({ insightId, status });
+}
+
 // --- Push Message Subscriptions ---
 
 export function onProjectsUpdated(
@@ -228,5 +270,15 @@ export function onGitStatusChanged(
     return () => {
         const idx = rpcEventHandlers.gitStatusChanged.indexOf(cb);
         if (idx >= 0) rpcEventHandlers.gitStatusChanged.splice(idx, 1);
+    };
+}
+
+export function onWardenInsightsUpdated(
+    cb: (projectId: string, insights: WardenInsight[]) => void,
+): () => void {
+    rpcEventHandlers.wardenInsightsUpdated.push(cb);
+    return () => {
+        const idx = rpcEventHandlers.wardenInsightsUpdated.indexOf(cb);
+        if (idx >= 0) rpcEventHandlers.wardenInsightsUpdated.splice(idx, 1);
     };
 }
