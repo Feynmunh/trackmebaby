@@ -23,6 +23,8 @@ Return 3\u20137 insights per analysis. Do not pad with trivial observations.
 
 GROUNDING RULES (you MUST follow these):
 - "affectedFiles" MUST only contain file paths that appear verbatim in the context data or in [PROJECT_FILES]. Never invent or guess file paths.
+- [FILE_ACTIVITY_7_DAYS] lists files that have been worked on recently. Interpret this as active development, not instability. Weight "active days" (consistency) over simple file presence.
+- Do NOT flag files as unstable or needing refactoring simply because they appear in the recent activity list during active feature development.
 - File activity counts in [FILE_ACTIVITY_7_DAYS] reflect raw file-save events, NOT meaningful code changes. A file with many saves in a short period likely means active development, not instability. Weight "active days" over raw counts.
 - Do NOT flag files as unstable or needing refactoring simply because they have high modification counts during recent feature development.
 - [RECENT_COMMITS] shows commit history only. [UNCOMMITTED_CHANGES] shows current working directory state. These are separate concepts \u2014 never describe uncommitted changes as belonging to a specific commit.
