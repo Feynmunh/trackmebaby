@@ -111,7 +111,10 @@ export default function ResourceDetailModal({
     // Close when clicking the backdrop
     const handleBackdropClick = useCallback(
         (e: React.MouseEvent) => {
-            if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+            if (
+                panelRef.current &&
+                !panelRef.current.contains(e.target as Node)
+            ) {
                 onClose();
             }
         },
@@ -166,16 +169,11 @@ export default function ResourceDetailModal({
                             className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${config.bg}`}
                         >
                             <TypeIcon size={11} className={config.color} />
-                            <span className={config.color}>
-                                {config.label}
-                            </span>
+                            <span className={config.color}>{config.label}</span>
                         </span>
                         {resource.isPinned && (
                             <span className="inline-flex items-center gap-1 text-[10px] text-app-accent font-semibold">
-                                <Pin
-                                    size={10}
-                                    className="fill-app-accent"
-                                />
+                                <Pin size={10} className="fill-app-accent" />
                                 Pinned
                             </span>
                         )}
@@ -256,7 +254,6 @@ export default function ResourceDetailModal({
                             onChange={(e) => setEditTitle(e.target.value)}
                             className="w-full bg-app-surface-elevated/50 border border-app-border rounded-xl px-4 py-2.5 text-[15px] font-bold text-app-text-main placeholder:text-app-text-muted/50 outline-none focus:border-app-accent/50"
                             placeholder="Title"
-                            autoFocus
                         />
                     ) : (
                         <h2 className="text-[17px] font-bold text-app-text-main leading-snug">

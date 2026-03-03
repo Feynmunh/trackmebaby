@@ -12,7 +12,10 @@ import {
     Target,
 } from "lucide-react";
 import { useState } from "react";
-import type { VaultResource, VaultResourceType } from "../../../shared/types.ts";
+import type {
+    VaultResource,
+    VaultResourceType,
+} from "../../../shared/types.ts";
 import AddResourceForm from "./AddResourceForm.tsx";
 import ResourceCard from "./ResourceCard.tsx";
 import ResourceDetailModal from "./ResourceDetailModal.tsx";
@@ -51,7 +54,8 @@ export default function VaultPage({ projectId }: VaultPageProps) {
         resources,
     } = useVault(projectId);
 
-    const [selectedResource, setSelectedResource] = useState<VaultResource | null>(null);
+    const [selectedResource, setSelectedResource] =
+        useState<VaultResource | null>(null);
 
     return (
         <div className="mb-12 space-y-4">

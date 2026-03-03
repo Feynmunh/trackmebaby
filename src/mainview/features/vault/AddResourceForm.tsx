@@ -441,7 +441,9 @@ export default function AddResourceForm({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => void handlePasteButtonClick()}
+                                    onClick={() =>
+                                        void handlePasteButtonClick()
+                                    }
                                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
                                 >
                                     <ClipboardPaste size={12} />
