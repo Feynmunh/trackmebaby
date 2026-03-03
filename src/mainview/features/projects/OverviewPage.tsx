@@ -99,6 +99,24 @@ export default function OverviewPage({
         const cv = projectStats?.totalCommits ?? 0;
         const iv = githubData?.openIssues ?? 0;
         const pv = githubData?.openPRs ?? 0;
+        const uv = githubData?.contributorCount ?? 0;
+
+        // Calculate Repo Age in days
+        let ageDays = 0;
+        if (projectStats?.repoAgeFirstCommit) {
+            const first = new Date(projectStats.repoAgeFirstCommit);
+            const now = new Date();
+            ageDays = Math.max(
+                0,
+                Math.floor(
+                    (now.getTime() - first.getTime()) / (1000 * 60 * 60 * 24),
+                ),
+            );
+        }
+
+        const formatAge = (days: number) => {
+            return `${days}d`;
+        };
 
         return [
             {
@@ -108,7 +126,7 @@ export default function OverviewPage({
                 displayVal: statsLoading ? null : String(bv || "-"),
                 loading: statsLoading,
                 onClick: () => setShowingBranches(!showingBranches),
-                stripe: "rgba(229,81,14,0.9)",
+                stripe: "rgba(249,115,22,1)", // Orange
                 needsAuth: false,
             },
             {
@@ -118,7 +136,7 @@ export default function OverviewPage({
                 displayVal: statsLoading ? null : String(cv || "-"),
                 loading: statsLoading,
                 onClick: onCommitsClick,
-                stripe: "rgba(229,81,14,0.55)",
+                stripe: "rgba(249,115,22,0.6)", // Orange muted
                 needsAuth: false,
             },
             {
@@ -132,7 +150,7 @@ export default function OverviewPage({
                       : String(iv || "-"),
                 loading: githubLoading,
                 onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
-                stripe: "rgba(160,160,160,0.6)",
+                stripe: "rgba(160,160,160,0.7)",
                 needsAuth: !isGitHubAuthenticated,
             },
             {
@@ -146,13 +164,37 @@ export default function OverviewPage({
                       : String(pv || "-"),
                 loading: githubLoading,
                 onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
-                stripe: "rgba(120,120,120,0.4)",
+                stripe: "rgba(120,120,120,0.5)",
+                needsAuth: !isGitHubAuthenticated,
+            },
+            {
+                key: "age",
+                label: "Repo Age",
+                value: ageDays,
+                displayVal: statsLoading ? null : formatAge(ageDays),
+                loading: statsLoading,
+                stripe: "rgba(56,189,248,0.8)", // Sky blue
+                needsAuth: false,
+            },
+            {
+                key: "contributors",
+                label: "Contributors",
+                value: uv,
+                displayVal: githubLoading
+                    ? null
+                    : !isGitHubAuthenticated
+                      ? "—"
+                      : String(uv ?? "-"),
+                loading: githubLoading,
+                onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
+                stripe: "rgba(168,85,247,0.8)", // Purple
                 needsAuth: !isGitHubAuthenticated,
             },
         ];
     }, [
         githubData?.openIssues,
         githubData?.openPRs,
+        githubData?.contributorCount,
         githubLoading,
         isGitHubAuthenticated,
         onCommitsClick,
@@ -160,6 +202,7 @@ export default function OverviewPage({
         onGitHubSignIn,
         projectStats?.branchCount,
         projectStats?.totalCommits,
+        projectStats?.repoAgeFirstCommit,
         showingBranches,
         statsLoading,
     ]);
@@ -181,49 +224,63 @@ export default function OverviewPage({
                 </div>
 
                 <div className="relative overflow-visible">
-                    <div className="space-y-1">
+                    <div className="space-y-3 mt-2">
                         {vitalityBars.map((row) => {
                             const pct =
                                 barMax > 0 ? (row.value / barMax) * 100 : 0;
-                            const isTop = row.value === barMax && row.value > 0;
                             return (
                                 <div
                                     key={row.key}
-                                    className="group flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-app-hover transition-colors -mx-2 cursor-pointer"
+                                    className="group flex items-center gap-4 py-0.5"
                                     onClick={row.onClick}
+                                    style={{
+                                        cursor: row.onClick
+                                            ? "pointer"
+                                            : "default",
+                                    }}
                                 >
-                                    <div className="flex items-center gap-1.5 w-[72px] justify-end shrink-0">
-                                        <span
-                                            className="w-1.5 h-1.5 rounded-full shrink-0 opacity-80"
-                                            style={{ background: row.stripe }}
-                                        />
-                                        <span className="text-right text-[10px] font-semibold uppercase tracking-widest text-app-text-muted group-hover:text-app-text-main transition-colors leading-none">
+                                    <div className="flex items-center w-24 justify-start shrink-0">
+                                        <span className="text-left text-[9px] font-bold uppercase tracking-[0.18em] text-app-text-muted group-hover:text-app-text-main transition-colors leading-none opacity-70">
                                             {row.label}
                                         </span>
                                     </div>
-                                    <div className="flex-1 h-[8px] rounded-full overflow-hidden bg-app-bg">
+                                    <div className="flex-1 relative h-[3px] items-center">
                                         {row.loading ? (
-                                            <div className="h-full w-1/3 bg-app-border/40 rounded-full animate-pulse" />
+                                            <div className="absolute inset-0 bg-app-border/10 rounded-full animate-pulse" />
                                         ) : row.needsAuth ? (
-                                            <div className="h-full flex items-center px-2">
-                                                <span className="text-[9px] text-app-text-muted/40 italic">
-                                                    sign in
-                                                </span>
+                                            <div className="absolute inset-0 flex items-center">
+                                                <div className="w-full h-[1px] bg-app-border/20 border-t border-dashed border-app-text-muted/20" />
                                             </div>
                                         ) : (
-                                            <div
-                                                className="h-full rounded-full transition-all duration-700"
-                                                style={{
-                                                    width: `${Math.max(pct, row.value > 0 ? 3 : 0)}%`,
-                                                    background: `linear-gradient(90deg, ${row.stripe} 0%, ${row.stripe}99 100%)`,
-                                                    boxShadow: isTop
-                                                        ? `0 0 8px ${row.stripe}70`
-                                                        : undefined,
-                                                }}
-                                            />
+                                            <>
+                                                {/* Track */}
+                                                <div className="absolute inset-0 bg-app-text-muted/5 rounded-full" />
+
+                                                {/* Laser Bar */}
+                                                <div
+                                                    className="absolute inset-y-0 left-0 rounded-full transition-all duration-1000 ease-out"
+                                                    style={{
+                                                        width: `${Math.max(pct, row.value > 0 ? 1 : 0)}%`,
+                                                        backgroundColor:
+                                                            row.stripe,
+                                                        boxShadow: `0 0 10px ${row.stripe}40`,
+                                                    }}
+                                                >
+                                                    {/* Glow Head */}
+                                                    {row.value > 0 && (
+                                                        <div
+                                                            className="absolute right-0 top-1/2 -translate-y-1/2 w-[6px] h-[6px] rounded-full blur-[2px]"
+                                                            style={{
+                                                                backgroundColor:
+                                                                    row.stripe,
+                                                            }}
+                                                        />
+                                                    )}
+                                                </div>
+                                            </>
                                         )}
                                     </div>
-                                    <span className="text-[11px] font-bold text-app-text-main w-7 text-right shrink-0 tabular-nums">
+                                    <span className="text-[12px] font-black text-app-text-main/90 w-8 text-right shrink-0 tabular-nums tracking-tight">
                                         {row.loading ? (
                                             <span className="text-app-text-muted/50 animate-pulse">
                                                 ·

@@ -11,7 +11,7 @@ interface GitHubPageProps {
     githubLoading?: boolean;
     isGitHubAuthenticated?: boolean;
     isWidget?: boolean;
-    section?: "environment" | "all";
+    section?: "environment" | "all" | "issues" | "prs";
 }
 
 const formatGitHubTime = (dateStr: string | null): string =>
@@ -29,7 +29,10 @@ export default function GitHubPage({
     const [showIssuesList, setShowIssuesList] = useState(false);
     const [showPRsList, setShowPRsList] = useState(false);
 
-    if (isWidget && section === "environment") {
+    if (
+        isWidget &&
+        (section === "environment" || section === "issues" || section === "prs")
+    ) {
         if (!isGitHubAuthenticated || !githubData) return null;
 
         const allIssues = [...githubData.issues].sort(
@@ -48,14 +51,199 @@ export default function GitHubPage({
         const issueTrendData = buildTrend(allIssues, (item) =>
             "closedAt" in item ? item.closedAt : null,
         );
-        const prTrendData = buildTrend(allPRs, (item) =>
-            "mergedAt" in item ? item.mergedAt : item.closedAt,
-        );
+        const prTrendData = buildTrend(allPRs, (item) => item.closedAt);
 
         const visibleIssues = showAllIssues
             ? openIssues
             : openIssues.slice(0, 3);
         const visiblePRs = showAllPRs ? openPRs : openPRs.slice(0, 3);
+
+        const renderIssues = () => (
+            <section className="space-y-3">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[10px] font-semibold text-app-text-muted uppercase tracking-[0.2em]">
+                        Issues
+                    </h3>
+                </div>
+                <CommitTrendGraph
+                    commits={[...issueTrendData].reverse()}
+                    legend={{
+                        primaryLabel: "Total",
+                        secondaryLabel: "Closed",
+                        primaryColor: "#f59e0b",
+                        secondaryColor: "#10b981",
+                        primaryValuePrefix: "",
+                        secondaryValuePrefix: "",
+                    }}
+                    getPointLabel={(point) =>
+                        `Issues: ${point.insertions} total, ${point.deletions} closed`
+                    }
+                />
+                <button
+                    type="button"
+                    onClick={() => setShowIssuesList((v) => !v)}
+                    className="w-full flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-app-surface/50 hover:bg-app-hover transition-colors text-app-text-muted hover:text-app-text-main"
+                >
+                    <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                        className="opacity-70 shrink-0"
+                    >
+                        <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
+                        <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" />
+                    </svg>
+                    <span className="text-[11px] font-medium">View issues</span>
+                    {openIssues.length > 0 && (
+                        <span className="text-[10px] font-semibold bg-app-hover text-app-text-muted px-1.5 py-0.5 rounded-full">
+                            {openIssues.length}
+                        </span>
+                    )}
+                    <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`ml-auto opacity-50 transition-transform duration-200 ${showIssuesList ? "rotate-180" : ""}`}
+                    >
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                {showIssuesList && (
+                    <div className="space-y-3">
+                        {openIssues.length === 0 ? (
+                            <p className="text-[11px] text-app-text-muted italic px-1">
+                                No open issues
+                            </p>
+                        ) : (
+                            visibleIssues.map((item) => (
+                                <GitHubItemCard
+                                    key={`issue-${item.number}`}
+                                    item={item}
+                                    type="issue"
+                                    variant="compact"
+                                    formatTime={formatGitHubTime}
+                                />
+                            ))
+                        )}
+                        {openIssues.length > 3 && (
+                            <button
+                                onClick={() => setShowAllIssues(!showAllIssues)}
+                                className="w-full py-1.5 text-app-text-muted text-[10px] font-semibold uppercase tracking-widest hover:text-app-text-main transition-colors mt-1"
+                            >
+                                {showAllIssues
+                                    ? "Show Less"
+                                    : `Show ${openIssues.length - 3} More Issues`}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </section>
+        );
+
+        const renderPRs = () => (
+            <section className="space-y-3">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-[10px] font-semibold text-app-text-muted uppercase tracking-[0.2em]">
+                        Pull Requests
+                    </h3>
+                </div>
+                <CommitTrendGraph
+                    commits={[...prTrendData].reverse()}
+                    legend={{
+                        primaryLabel: "Total",
+                        secondaryLabel: "Closed",
+                        primaryColor: "#a855f7",
+                        secondaryColor: "#10b981",
+                        primaryValuePrefix: "",
+                        secondaryValuePrefix: "",
+                    }}
+                    getPointLabel={(point) =>
+                        `PRs: ${point.insertions} total, ${point.deletions} closed`
+                    }
+                />
+                <button
+                    type="button"
+                    onClick={() => setShowPRsList((v) => !v)}
+                    className="w-full flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-app-surface/50 hover:bg-app-hover transition-colors text-app-text-muted hover:text-app-text-main"
+                >
+                    <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 16 16"
+                        fill="currentColor"
+                        className="opacity-70 shrink-0"
+                    >
+                        <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
+                    </svg>
+                    <span className="text-[11px] font-medium">
+                        View pull requests
+                    </span>
+                    {openPRs.length > 0 && (
+                        <span className="text-[10px] font-semibold bg-app-hover text-app-text-muted px-1.5 py-0.5 rounded-full">
+                            {openPRs.length}
+                        </span>
+                    )}
+                    <svg
+                        width="10"
+                        height="10"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`ml-auto opacity-50 transition-transform duration-200 ${showPRsList ? "rotate-180" : ""}`}
+                    >
+                        <polyline points="6 9 12 15 18 9" />
+                    </svg>
+                </button>
+                {showPRsList && (
+                    <div className="space-y-3">
+                        {openPRs.length === 0 ? (
+                            <p className="text-[11px] text-app-text-muted italic px-1">
+                                No active PRs
+                            </p>
+                        ) : (
+                            visiblePRs.map((item) => (
+                                <GitHubItemCard
+                                    key={`pr-${item.number}`}
+                                    item={item}
+                                    type="pr"
+                                    variant="compact"
+                                    formatTime={formatGitHubTime}
+                                />
+                            ))
+                        )}
+                        {openPRs.length > 3 && (
+                            <button
+                                onClick={() => setShowAllPRs(!showAllPRs)}
+                                className="w-full py-1.5 text-app-text-muted text-[10px] font-semibold uppercase tracking-widest hover:text-app-text-main transition-colors mt-1"
+                            >
+                                {showAllPRs
+                                    ? "Show Less"
+                                    : `Show ${openPRs.length - 3} More PRs`}
+                            </button>
+                        )}
+                    </div>
+                )}
+            </section>
+        );
+
+        if (section === "issues") {
+            return (
+                <div className="flex flex-col min-h-0">{renderIssues()}</div>
+            );
+        }
+
+        if (section === "prs") {
+            return <div className="flex flex-col min-h-0">{renderPRs()}</div>;
+        }
 
         return (
             <div className="flex flex-col min-h-0">
@@ -66,180 +254,10 @@ export default function GitHubPage({
                 </div>
 
                 <div className="space-y-5">
-                    <section className="space-y-3">
-                        <h4 className="text-[9px] font-semibold text-app-text-muted uppercase tracking-widest">
-                            Active Issues
-                        </h4>
-                        <CommitTrendGraph
-                            commits={issueTrendData}
-                            legend={{
-                                primaryLabel: "Total",
-                                secondaryLabel: "Closed",
-                                primaryColor: "#f59e0b",
-                                secondaryColor: "#10b981",
-                                primaryValuePrefix: "",
-                                secondaryValuePrefix: "",
-                            }}
-                            getPointLabel={(point) =>
-                                `Issues: ${point.insertions} total, ${point.deletions} closed`
-                            }
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowIssuesList((v) => !v)}
-                            className="w-full flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-app-surface/50 hover:bg-app-hover transition-colors text-app-text-muted hover:text-app-text-main"
-                        >
-                            <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 16 16"
-                                fill="currentColor"
-                                className="opacity-70 shrink-0"
-                            >
-                                <path d="M8 9.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" />
-                                <path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Z" />
-                            </svg>
-                            <span className="text-[11px] font-medium">
-                                View issues
-                            </span>
-                            {openIssues.length > 0 && (
-                                <span className="text-[10px] font-semibold bg-app-hover text-app-text-muted px-1.5 py-0.5 rounded-full">
-                                    {openIssues.length}
-                                </span>
-                            )}
-                            <svg
-                                width="10"
-                                height="10"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className={`ml-auto opacity-50 transition-transform duration-200 ${showIssuesList ? "rotate-180" : ""}`}
-                            >
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </button>
-                        {showIssuesList && (
-                            <div className="space-y-3">
-                                {openIssues.length === 0 ? (
-                                    <p className="text-[11px] text-app-text-muted italic px-1">
-                                        No open issues
-                                    </p>
-                                ) : (
-                                    visibleIssues.map((item) => (
-                                        <GitHubItemCard
-                                            key={`issue-${item.number}`}
-                                            item={item}
-                                            type="issue"
-                                            variant="compact"
-                                            formatTime={formatGitHubTime}
-                                        />
-                                    ))
-                                )}
-                                {openIssues.length > 3 && (
-                                    <button
-                                        onClick={() =>
-                                            setShowAllIssues(!showAllIssues)
-                                        }
-                                        className="w-full py-1.5 text-app-text-muted text-[10px] font-semibold uppercase tracking-widest hover:text-app-text-main transition-colors mt-1"
-                                    >
-                                        {showAllIssues
-                                            ? "Show Less"
-                                            : `Show ${openIssues.length - 3} More Issues`}
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </section>
-
-                    <section className="space-y-3 pt-3 border-t border-app-border/30">
-                        <h4 className="text-[9px] font-semibold text-app-text-muted uppercase tracking-widest">
-                            Open Pull Requests
-                        </h4>
-                        <CommitTrendGraph
-                            commits={prTrendData}
-                            legend={{
-                                primaryLabel: "Total",
-                                secondaryLabel: "Merged",
-                                primaryColor: "#a855f7",
-                                secondaryColor: "#10b981",
-                                primaryValuePrefix: "",
-                                secondaryValuePrefix: "",
-                            }}
-                            getPointLabel={(point) =>
-                                `PRs: ${point.insertions} total, ${point.deletions} merged`
-                            }
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPRsList((v) => !v)}
-                            className="w-full flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-app-surface/50 hover:bg-app-hover transition-colors text-app-text-muted hover:text-app-text-main"
-                        >
-                            <svg
-                                width="12"
-                                height="12"
-                                viewBox="0 0 16 16"
-                                fill="currentColor"
-                                className="opacity-70 shrink-0"
-                            >
-                                <path d="M1.5 3.25a2.25 2.25 0 1 1 3 2.122v5.256a2.251 2.251 0 1 1-1.5 0V5.372A2.25 2.25 0 0 1 1.5 3.25Zm5.677-.177L9.573.677A.25.25 0 0 1 10 .854V2.5h1A2.5 2.5 0 0 1 13.5 5v5.628a2.251 2.251 0 1 1-1.5 0V5a1 1 0 0 0-1-1h-1v1.646a.25.25 0 0 1-.427.177L7.177 3.427a.25.25 0 0 1 0-.354ZM3.75 2.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm0 9.5a.75.75 0 1 0 0 1.5.75.75 0 0 0 0-1.5Zm8.25.75a.75.75 0 1 0 1.5 0 .75.75 0 0 0-1.5 0Z" />
-                            </svg>
-                            <span className="text-[11px] font-medium">
-                                View pull requests
-                            </span>
-                            {openPRs.length > 0 && (
-                                <span className="text-[10px] font-semibold bg-app-hover text-app-text-muted px-1.5 py-0.5 rounded-full">
-                                    {openPRs.length}
-                                </span>
-                            )}
-                            <svg
-                                width="10"
-                                height="10"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="2"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                className={`ml-auto opacity-50 transition-transform duration-200 ${showPRsList ? "rotate-180" : ""}`}
-                            >
-                                <polyline points="6 9 12 15 18 9" />
-                            </svg>
-                        </button>
-                        {showPRsList && (
-                            <div className="space-y-3">
-                                {openPRs.length === 0 ? (
-                                    <p className="text-[11px] text-app-text-muted italic px-1">
-                                        No active PRs
-                                    </p>
-                                ) : (
-                                    visiblePRs.map((item) => (
-                                        <GitHubItemCard
-                                            key={`pr-${item.number}`}
-                                            item={item}
-                                            type="pr"
-                                            variant="compact"
-                                            formatTime={formatGitHubTime}
-                                        />
-                                    ))
-                                )}
-                                {openPRs.length > 3 && (
-                                    <button
-                                        onClick={() =>
-                                            setShowAllPRs(!showAllPRs)
-                                        }
-                                        className="w-full py-1.5 text-app-text-muted text-[10px] font-semibold uppercase tracking-widest hover:text-app-text-main transition-colors mt-1"
-                                    >
-                                        {showAllPRs
-                                            ? "Show Less"
-                                            : `Show ${openPRs.length - 3} More PRs`}
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </section>
+                    {renderIssues()}
+                    <div className="pt-3 border-t border-app-border/30">
+                        {renderPRs()}
+                    </div>
                 </div>
             </div>
         );

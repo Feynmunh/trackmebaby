@@ -168,7 +168,7 @@ export default function DiffView({
     const diffUnsafeCSS = useMemo(() => getDiffUnsafeCSS(), []);
 
     return (
-        <div className="bg-app-surface/40 backdrop-blur-xl border border-app-border rounded-3xl overflow-hidden shadow-app-lg flex flex-col max-h-[80vh] max-w-4xl relative">
+        <div className="bg-app-surface/40 backdrop-blur-xl border border-app-border rounded-2xl w-full overflow-hidden shadow-app-lg flex flex-col max-h-[80vh] relative">
             <div className="px-8 py-5 border-b border-app-border flex items-center justify-between bg-app-surface/20 shrink-0">
                 <div className="flex items-center gap-3">
                     <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-app-surface-elevated border border-app-border">

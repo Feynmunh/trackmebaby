@@ -35,7 +35,7 @@ export function CommitTrendGraph({
 
     if (commits.length < 2) return null;
 
-    const data = [...commits].reverse().slice(-20);
+    const data = [...commits].reverse();
     const width = 600;
     const height = 140;
     const paddingTop = 16;

@@ -143,7 +143,7 @@ export default function AIOverview({
     return (
         <div>
             <div
-                className={`rounded-2xl border border-app-border bg-app-surface/30 px-4 pt-3 relative overflow-hidden transition-all duration-300 ${
+                className={`rounded-2xl border-2 border-orange-500/70 bg-app-surface/30 px-4 pt-3 relative overflow-hidden transition-all duration-300 ${
                     hasUncommitted && gitSnapshot ? "pb-10" : "pb-3"
                 }`}
             >
@@ -211,11 +211,6 @@ export default function AIOverview({
                                     ),
                                     em: ({ children }) => (
                                         <em className="italic">{children}</em>
-                                    ),
-                                    del: ({ children }) => (
-                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 dark:bg-amber-900/30 dark:text-amber-100 border border-amber-200/80 dark:border-amber-500/40 text-[13px] font-mono">
-                                            {children}
-                                        </span>
                                     ),
                                     a: ({ children, href }) => (
                                         <a

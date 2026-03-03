@@ -17,6 +17,7 @@ import {
 import { runGit } from "./git-command.ts";
 import type { GitHubSearchItem } from "./github/api.ts";
 import {
+    fetchGitHubContributorCount,
     fetchGitHubIssuesAndPRs,
     fetchGitHubUser,
     parseGitHubRemoteUrl,
@@ -226,8 +227,13 @@ export class GitHubService {
 
             const cachedIssues = cache?.data?.issues ?? null;
             const cachedPRs = cache?.data?.pullRequests ?? null;
+            const cachedContributorCount = cache?.data?.contributorCount ?? 0;
 
-            if (issuesStatus === 304 && prsStatus === 304) {
+            if (
+                issuesStatus === 304 &&
+                prsStatus === 304 &&
+                cachedContributorCount > 0
+            ) {
                 return cache?.data ?? null;
             }
 
@@ -304,9 +310,24 @@ export class GitHubService {
                 mergedAt: i.pull_request?.merged_at ?? null,
             });
 
-            const data = {
+            // Fetch contributor count if not 304 or if cache is missing it
+            let contributorCount = cache?.data?.contributorCount ?? 0;
+            if (
+                issuesStatus !== 304 ||
+                prsStatus !== 304 ||
+                !contributorCount
+            ) {
+                contributorCount = await fetchGitHubContributorCount(
+                    token,
+                    remote.owner,
+                    remote.repo,
+                );
+            }
+
+            const data: GitHubData = {
                 openIssues,
                 openPRs,
+                contributorCount,
                 repoUrl: `https://github.com/${remote.owner}/${remote.repo}`,
                 issues: issueItems.map(mapIssue),
                 pullRequests: prItems.map(mapPr),

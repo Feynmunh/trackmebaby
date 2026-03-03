@@ -90,7 +90,7 @@ export default function GitPage({
                         View commits
                     </span>
                     {allCommits.length > 0 && (
-                        <span className="text-[10px] font-bold bg-app-accent/10 text-app-accent/80 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] font-semibold bg-app-hover text-app-text-muted px-1.5 py-0.5 rounded-full">
                             {allCommits.length}
                         </span>
                     )}

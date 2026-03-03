@@ -12,8 +12,8 @@ export async function getRecentCommits(
 ): Promise<ParsedCommit[]> {
     const format = `${COMMIT_MARKER}%H|%s|%aI|%an`;
     const lines = await runGitLines(
-        ["log", "-25", "-m", `--format=${format}`, "--numstat"],
-        { projectPath, label: "GitTracker", timeoutMs: 8000 },
+        ["log", "-m", `--format=${format}`, "--numstat"],
+        { projectPath, label: "GitTracker", timeoutMs: 15000 },
     );
 
     return parseGitLog(lines.join("\n"));
