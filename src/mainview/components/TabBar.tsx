@@ -115,10 +115,10 @@ function NavButton({
                 onClick={onClick}
                 className={[
                     "relative flex items-center justify-center w-12 h-12 rounded-2xl",
-                    "transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+                    "transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-app-accent/40",
                     isActive
-                        ? "bg-white/[0.13] text-white"
-                        : "text-white/30 hover:text-white/80 hover:bg-white/[0.07] active:scale-95",
+                        ? "bg-app-surface text-app-text-main shadow-sm"
+                        : "text-app-text-muted hover:text-app-text-main hover:bg-app-surface/50 active:scale-95",
                 ].join(" ")}
             >
                 {icon}
@@ -130,7 +130,7 @@ function NavButton({
                 className={[
                     "pointer-events-none absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2 z-50",
                     "px-2.5 py-1 rounded-lg text-[11px] font-medium whitespace-nowrap",
-                    "bg-[#1c1c1c] border border-white/[0.08] text-white/90 shadow-xl",
+                    "bg-app-surface-elevated border border-app-border text-app-text-main shadow-xl",
                     "opacity-0 group-hover:opacity-100 -translate-x-1 group-hover:translate-x-0",
                     "transition-all duration-150 ease-out",
                 ].join(" ")}
@@ -148,10 +148,7 @@ export default function TabBar<TTab extends string>({
     settingsId,
 }: TabBarProps<TTab>) {
     return (
-        <nav
-            className="flex flex-col w-[72px] h-full items-center py-5 gap-0 select-none shrink-0"
-            style={{ background: "#0d0d0d" }}
-        >
+        <nav className="flex flex-col w-[72px] h-full items-center py-5 gap-0 select-none shrink-0 bg-app-surface-elevated border-r border-app-border">
             {/* Logo mark */}
             <div className="flex items-center justify-center w-12 h-12 mb-8 shrink-0">
                 <AppLogo />

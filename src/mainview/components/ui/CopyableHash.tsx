@@ -19,7 +19,7 @@ export default function CopyableHash({ hash }: CopyableHashProps) {
         <Tooltip content={copied ? "Copied!" : "Click to copy"}>
             <button
                 onClick={copy}
-                className="text-xs text-mac-secondary font-mono bg-mac-bg px-2.5 py-1 rounded-lg border border-mac-border/50 hover:border-mac-accent/40 hover:text-mac-accent transition-all block"
+                className="text-xs text-app-text-muted font-mono bg-app-bg px-2.5 py-1 rounded-lg border border-app-border/50 hover:border-app-accent/40 hover:text-app-accent transition-all block"
             >
                 {hash.slice(0, 7)}
             </button>

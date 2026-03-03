@@ -11,7 +11,7 @@ export default function WorktreeSection({ worktrees }: WorktreeSectionProps) {
     }
 
     return (
-        <div className="bg-mac-surface/20 px-12 py-4 shrink-0">
+        <div className="bg-app-surface/20 px-12 py-4 shrink-0">
             <div className="flex gap-3 overflow-x-auto custom-scrollbar pb-1">
                 {worktrees.map((worktree) => (
                     <WorktreeCard key={worktree.path} worktree={worktree} />

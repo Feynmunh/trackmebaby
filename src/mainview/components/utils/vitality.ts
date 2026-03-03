@@ -32,7 +32,7 @@ export function getVitalityStatus(
     }
     return {
         label: "Dormant",
-        colorClass: "text-mac-secondary",
-        bgClass: "bg-mac-border/40",
+        colorClass: "text-app-text-muted",
+        bgClass: "bg-app-border",
     };
 }

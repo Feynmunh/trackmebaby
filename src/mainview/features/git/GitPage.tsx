@@ -36,7 +36,7 @@ export default function GitPage({
         return (
             <div className="flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em]">
+                    <h3 className="text-[10px] font-semibold text-app-text-muted uppercase tracking-[0.2em]">
                         Commit Timeline
                     </h3>
                 </div>
@@ -76,7 +76,7 @@ export default function GitPage({
                 <button
                     type="button"
                     onClick={() => setShowCommitsList((v) => !v)}
-                    className="w-full shrink-0 flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-mac-surface/50 hover:bg-mac-hover transition-colors text-mac-secondary hover:text-mac-text"
+                    className="w-full shrink-0 flex items-center gap-2 mt-2 mb-1 px-2 py-1.5 rounded-lg bg-app-surface/50 hover:bg-app-hover transition-colors text-app-text-muted hover:text-app-text-main"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -90,7 +90,7 @@ export default function GitPage({
                         View commits
                     </span>
                     {allCommits.length > 0 && (
-                        <span className="text-[10px] font-bold bg-mac-accent/10 text-mac-accent/80 px-1.5 py-0.5 rounded-full">
+                        <span className="text-[10px] font-bold bg-app-accent/10 text-app-accent/80 px-1.5 py-0.5 rounded-full">
                             {allCommits.length}
                         </span>
                     )}
@@ -114,15 +114,15 @@ export default function GitPage({
                             [1, 2, 3].map((i) => (
                                 <div
                                     key={i}
-                                    className="py-3 border-b border-mac-border/30 animate-pulse px-1"
+                                    className="py-3 border-b border-app-border/30 animate-pulse px-1"
                                 >
-                                    <div className="h-3 bg-mac-border rounded w-3/4 mb-2" />
-                                    <div className="h-2 bg-mac-border rounded w-1/3" />
+                                    <div className="h-3 bg-app-border rounded w-3/4 mb-2" />
+                                    <div className="h-2 bg-app-border rounded w-1/3" />
                                 </div>
                             ))
                         ) : commits.length === 0 ? (
                             <div className="py-6 text-center">
-                                <p className="text-[10px] font-semibold text-mac-secondary uppercase tracking-widest">
+                                <p className="text-[10px] font-semibold text-app-text-muted uppercase tracking-widest">
                                     No recent activity
                                 </p>
                             </div>
@@ -131,7 +131,7 @@ export default function GitPage({
                                 <div
                                     key={commit.hash}
                                     id={`commit-${commit.hash}`}
-                                    className="py-3 border-b border-mac-border/30 hover:bg-mac-hover/20 transition-colors cursor-default scroll-mt-4 px-1 last:border-b-0"
+                                    className="py-3 border-b border-app-border/30 hover:bg-app-hover/20 transition-colors cursor-default scroll-mt-4 px-1 last:border-b-0"
                                 >
                                     <div className="flex items-start gap-3">
                                         <div className="w-5 h-5 rounded flex items-center justify-center shrink-0 mt-0.5">
@@ -139,17 +139,17 @@ export default function GitPage({
                                                 xmlns="http://www.w3.org/2000/svg"
                                                 viewBox="0 0 16 16"
                                                 fill="currentColor"
-                                                className="w-3.5 h-3.5 text-mac-secondary"
+                                                className="w-3.5 h-3.5 text-app-text-muted"
                                             >
                                                 <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                                             </svg>
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="flex items-center justify-between mb-1">
-                                                <p className="text-[13px] text-mac-text font-semibold leading-snug truncate pr-4">
+                                                <p className="text-[13px] text-app-text-main font-semibold leading-snug truncate pr-4">
                                                     {commit.message}
                                                 </p>
-                                                <span className="text-[10px] text-mac-secondary font-mono whitespace-nowrap">
+                                                <span className="text-[10px] text-app-text-muted font-mono whitespace-nowrap">
                                                     {formatCommitTime(
                                                         commit.timestamp,
                                                     )}
@@ -157,7 +157,7 @@ export default function GitPage({
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-[11px] text-mac-secondary truncate max-w-[120px]">
+                                                    <span className="text-[11px] text-app-text-muted truncate max-w-[120px]">
                                                         {commit.author}
                                                     </span>
                                                 </div>
@@ -202,7 +202,7 @@ export default function GitPage({
                                 onClick={() =>
                                     setShowAllCommits(!showAllCommits)
                                 }
-                                className="w-full py-1.5 text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:text-mac-text transition-colors mt-1"
+                                className="w-full py-1.5 text-app-text-muted text-[10px] font-semibold uppercase tracking-widest hover:text-app-text-main transition-colors mt-1"
                             >
                                 {showAllCommits
                                     ? "Show Less"
@@ -219,21 +219,21 @@ export default function GitPage({
         if (isWidget) return null;
         return (
             <div className="flex flex-col items-center justify-center h-full px-8 select-none">
-                <div className="w-16 h-16 rounded-2xl bg-mac-surface flex items-center justify-center mb-6 shadow-mac border border-mac-border">
+                <div className="w-16 h-16 rounded-2xl bg-app-surface flex items-center justify-center mb-6 shadow-app-sm border border-app-border">
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
                         strokeWidth={2}
-                        className="w-8 h-8 text-mac-secondary"
+                        className="w-8 h-8 text-app-text-muted"
                     >
                         <circle cx="12" cy="12" r="3" />
                         <line x1="12" y1="3" x2="12" y2="9" />
                         <line x1="12" y1="15" x2="12" y2="21" />
                     </svg>
                 </div>
-                <p className="text-mac-secondary text-sm font-medium">
+                <p className="text-app-text-muted text-sm font-medium">
                     No git documentation found in this project
                 </p>
             </div>
@@ -262,11 +262,11 @@ export default function GitPage({
         return (
             <section className="flex flex-col min-h-0">
                 <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-[10px] font-semibold text-mac-secondary uppercase tracking-[0.2em]">
+                    <h3 className="text-[10px] font-semibold text-app-text-muted uppercase tracking-[0.2em]">
                         Local Environment
                     </h3>
                     {gitSnapshot.uncommittedCount > 0 && (
-                        <div className="px-2 py-0.5 rounded border border-mac-border bg-transparent text-orange-400 text-[9px] font-semibold uppercase tracking-widest">
+                        <div className="px-2 py-0.5 rounded border border-app-border bg-transparent text-orange-400 text-[9px] font-semibold uppercase tracking-widest">
                             {gitSnapshot.uncommittedCount} Unsaved
                         </div>
                     )}
@@ -282,7 +282,7 @@ export default function GitPage({
                                 return (
                                     <div
                                         key={i}
-                                        className="group bg-transparent rounded-xl p-4 border border-mac-border hover:border-mac-accent/20 transition-colors cursor-default"
+                                        className="group bg-transparent rounded-xl p-4 border border-app-border hover:border-app-accent/20 transition-colors cursor-default"
                                     >
                                         <div className="flex items-start gap-4">
                                             <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0 border border-orange-500/20">
@@ -303,15 +303,15 @@ export default function GitPage({
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center justify-between gap-3 mb-1">
-                                                    <p className="text-[13px] font-semibold text-mac-text leading-snug truncate">
+                                                    <p className="text-[13px] font-semibold text-app-text-main leading-snug truncate">
                                                         {file.split("/").pop()}
                                                     </p>
-                                                    <span className="text-[10px] text-mac-secondary font-mono opacity-60 whitespace-nowrap">
+                                                    <span className="text-[10px] text-app-text-muted font-mono opacity-60 whitespace-nowrap">
                                                         {fileTimeAgo(file)}
                                                     </span>
                                                 </div>
                                                 <div className="flex items-center justify-between">
-                                                    <span className="text-[10px] text-mac-secondary font-medium tracking-tight truncate">
+                                                    <span className="text-[10px] text-app-text-muted font-medium tracking-tight truncate">
                                                         {file}
                                                     </span>
                                                     {info && (
@@ -347,7 +347,7 @@ export default function GitPage({
                                     onClick={() =>
                                         setShowAllFiles(!showAllFiles)
                                     }
-                                    className="w-full py-2.5 rounded-xl border border-mac-border bg-transparent text-mac-secondary text-[10px] font-semibold uppercase tracking-widest hover:border-mac-accent/20 transition-colors mt-2"
+                                    className="w-full py-2.5 rounded-xl border border-app-border bg-transparent text-app-text-muted text-[10px] font-semibold uppercase tracking-widest hover:border-app-accent/20 transition-colors mt-2"
                                 >
                                     {showAllFiles
                                         ? "Show Less"
@@ -356,7 +356,7 @@ export default function GitPage({
                             )}
                         </>
                     ) : (
-                        <div className="bg-transparent rounded-xl p-6 border border-mac-border text-center">
+                        <div className="bg-transparent rounded-xl p-6 border border-app-border text-center">
                             <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-500 mb-3 mx-auto border border-orange-500/20">
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
@@ -373,10 +373,10 @@ export default function GitPage({
                                     />
                                 </svg>
                             </div>
-                            <h4 className="text-[13px] font-semibold text-mac-text mb-1">
+                            <h4 className="text-[13px] font-semibold text-app-text-main mb-1">
                                 Workspace Clean
                             </h4>
-                            <p className="text-[11px] text-mac-secondary max-w-[140px] mx-auto">
+                            <p className="text-[11px] text-app-text-muted max-w-[140px] mx-auto">
                                 Synchronized with {gitSnapshot.branch}.
                             </p>
                         </div>
@@ -388,20 +388,20 @@ export default function GitPage({
 
     return (
         <div className="flex flex-col h-full px-24 py-12 select-none">
-            <header className="flex items-end justify-between mb-12 border-b border-mac-border pb-8">
+            <header className="flex items-end justify-between mb-12 border-b border-app-border pb-8">
                 <div>
-                    <h2 className="text-sm font-bold text-mac-secondary uppercase tracking-[0.2em] mb-4">
+                    <h2 className="text-sm font-bold text-app-text-muted uppercase tracking-[0.2em] mb-4">
                         Repository State
                     </h2>
                     <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-mac-accent/10 flex items-center justify-center">
+                        <div className="w-10 h-10 rounded-xl bg-app-accent/10 flex items-center justify-center">
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
                                 viewBox="0 0 24 24"
                                 fill="none"
                                 stroke="currentColor"
                                 strokeWidth={2}
-                                className="w-5 h-5 text-mac-accent"
+                                className="w-5 h-5 text-app-accent"
                             >
                                 <path
                                     strokeLinecap="round"
@@ -411,10 +411,10 @@ export default function GitPage({
                             </svg>
                         </div>
                         <div>
-                            <h3 className="text-2xl font-black text-mac-text leading-tight">
+                            <h3 className="text-2xl font-black text-app-text-main leading-tight">
                                 {gitSnapshot.branch}
                             </h3>
-                            <p className="text-xs text-mac-secondary font-mono tracking-wider opacity-80">
+                            <p className="text-xs text-app-text-muted font-mono tracking-wider opacity-80">
                                 HEAD: {gitSnapshot.lastCommitHash?.slice(0, 7)}
                             </p>
                         </div>
@@ -422,17 +422,17 @@ export default function GitPage({
                 </div>
 
                 {projectStats?.diffSummary && (
-                    <div className="flex items-center gap-4 bg-mac-surface/50 rounded-2xl p-4 border border-mac-border/30">
+                    <div className="flex items-center gap-4 bg-app-surface/50 rounded-2xl p-4 border border-app-border/30">
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]" />
-                            <span className="text-sm font-bold text-mac-text">
+                            <span className="text-sm font-bold text-app-text-main">
                                 +{projectStats.diffSummary.insertions}
                             </span>
                         </div>
-                        <div className="w-px h-8 bg-mac-border/30" />
+                        <div className="w-px h-8 bg-app-border/30" />
                         <div className="flex items-center gap-2">
                             <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]" />
-                            <span className="text-sm font-bold text-mac-text">
+                            <span className="text-sm font-bold text-app-text-main">
                                 -{projectStats.diffSummary.deletions}
                             </span>
                         </div>
@@ -443,7 +443,7 @@ export default function GitPage({
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 overflow-hidden h-full">
                 <div className="lg:col-span-7 flex flex-col min-h-0">
                     <div className="flex items-center justify-between mb-6">
-                        <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest">
+                        <h3 className="text-xs font-bold text-app-text-muted uppercase tracking-widest">
                             Commit Timeline
                         </h3>
                     </div>
@@ -463,13 +463,13 @@ export default function GitPage({
                                     });
                                     el.classList.add(
                                         "ring-2",
-                                        "ring-mac-accent/60",
+                                        "ring-app-accent/60",
                                     );
                                     setTimeout(
                                         () =>
                                             el.classList.remove(
                                                 "ring-2",
-                                                "ring-mac-accent/60",
+                                                "ring-app-accent/60",
                                             ),
                                         2000,
                                     );
@@ -488,25 +488,25 @@ export default function GitPage({
                             <div
                                 key={commit.hash}
                                 id={`commit-${commit.hash}`}
-                                className="group bg-mac-surface/40 hover:bg-mac-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-mac-border hover:border-mac-accent/40 shadow-mac transition-all cursor-default scroll-mt-4"
+                                className="group bg-app-surface/40 hover:bg-app-surface/60 backdrop-blur-sm rounded-2xl p-6 border border-app-border hover:border-app-accent/40 shadow-app-sm transition-all cursor-default scroll-mt-4"
                             >
                                 <div className="flex items-start gap-4">
-                                    <div className="w-10 h-10 rounded-xl bg-mac-bg flex items-center justify-center shrink-0 border border-mac-border/20 group-hover:border-mac-accent/20 transition-colors">
+                                    <div className="w-10 h-10 rounded-xl bg-app-bg flex items-center justify-center shrink-0 border border-app-border/20 group-hover:border-app-accent/20 transition-colors">
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
                                             viewBox="0 0 16 16"
                                             fill="currentColor"
-                                            className="w-5 h-5 text-mac-secondary group-hover:text-mac-accent transition-colors"
+                                            className="w-5 h-5 text-app-text-muted group-hover:text-app-accent transition-colors"
                                         >
                                             <path d="M10.5 7.75a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zm1.43.75a4.002 4.002 0 01-7.86 0H.75a.75.75 0 110-1.5h3.32a4.001 4.001 0 017.86 0h4.32a.75.75 0 110 1.5h-4.32z" />
                                         </svg>
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-start justify-between mb-3">
-                                            <p className="text-sm text-mac-text font-bold leading-snug">
+                                            <p className="text-sm text-app-text-main font-bold leading-snug">
                                                 {commit.message}
                                             </p>
-                                            <span className="text-[10px] text-mac-secondary font-mono bg-mac-bg/50 px-2 py-1 rounded-lg border border-mac-border/20 whitespace-nowrap ml-4">
+                                            <span className="text-[10px] text-app-text-muted font-mono bg-app-bg/50 px-2 py-1 rounded-lg border border-app-border/20 whitespace-nowrap ml-4">
                                                 {formatCommitTime(
                                                     commit.timestamp,
                                                 )}
@@ -514,7 +514,7 @@ export default function GitPage({
                                         </div>
                                         <div className="flex items-center justify-between">
                                             <div className="flex items-center gap-3">
-                                                <span className="text-xs text-mac-secondary font-medium tracking-tight">
+                                                <span className="text-xs text-app-text-muted font-medium tracking-tight">
                                                     {commit.author}
                                                 </span>
                                             </div>
@@ -522,7 +522,7 @@ export default function GitPage({
                                             <div className="flex items-center gap-4">
                                                 {(commit.insertions > 0 ||
                                                     commit.deletions > 0) && (
-                                                    <div className="flex items-center gap-3 bg-mac-bg/30 px-3 py-1 rounded-full border border-mac-border/10">
+                                                    <div className="flex items-center gap-3 bg-app-bg/30 px-3 py-1 rounded-full border border-app-border/10">
                                                         {commit.insertions >
                                                             0 && (
                                                             <div className="flex items-center gap-1">
@@ -563,7 +563,7 @@ export default function GitPage({
                                 onClick={() =>
                                     setShowAllCommits(!showAllCommits)
                                 }
-                                className="w-full py-4 rounded-2xl border border-mac-border/30 bg-mac-surface/30 text-mac-secondary text-xs font-bold uppercase tracking-widest hover:bg-mac-surface/50 transition-colors"
+                                className="w-full py-4 rounded-2xl border border-app-border/30 bg-app-surface/30 text-app-text-muted text-xs font-bold uppercase tracking-widest hover:bg-app-surface/50 transition-colors"
                             >
                                 {showAllCommits
                                     ? "Show Less"
@@ -575,16 +575,16 @@ export default function GitPage({
 
                 <div className="lg:col-span-5 flex flex-col gap-10 min-h-0">
                     <section className="flex flex-col min-h-0">
-                        <h3 className="text-xs font-bold text-mac-secondary uppercase tracking-widest mb-6">
+                        <h3 className="text-xs font-bold text-app-text-muted uppercase tracking-widest mb-6">
                             Local Environment
                         </h3>
-                        <div className="bg-mac-surface/40 backdrop-blur rounded-3xl p-8 border border-mac-border shadow-mac">
+                        <div className="bg-app-surface/40 backdrop-blur rounded-3xl p-8 border border-app-border shadow-app-sm">
                             {gitSnapshot.uncommittedCount > 0 ? (
                                 <>
                                     <div className="flex items-center justify-between mb-6">
                                         <div className="flex items-center gap-3">
                                             <div className="w-3 h-3 rounded-full bg-amber-500 animate-pulse shadow-[0_0_8px_rgba(245,158,11,0.5)]" />
-                                            <span className="text-sm font-bold text-mac-text">
+                                            <span className="text-sm font-bold text-app-text-main">
                                                 {gitSnapshot.uncommittedCount}{" "}
                                                 Modded Files
                                             </span>
@@ -603,7 +603,7 @@ export default function GitPage({
                                         ).map((file, i) => (
                                             <div
                                                 key={i}
-                                                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-mac-bg/50 text-xs text-mac-secondary border border-mac-border/20"
+                                                className="flex items-center gap-3 px-3 py-2 rounded-xl bg-app-bg/50 text-xs text-app-text-muted border border-app-border/20"
                                             >
                                                 <svg
                                                     xmlns="http://www.w3.org/2000/svg"
@@ -631,7 +631,7 @@ export default function GitPage({
                                             onClick={() =>
                                                 setShowAllFiles(!showAllFiles)
                                             }
-                                            className="w-full mt-6 py-3 text-[10px] font-black text-mac-secondary uppercase tracking-widest hover:text-mac-accent transition-colors border-t border-mac-border/20 pt-6"
+                                            className="w-full mt-6 py-3 text-[10px] font-black text-app-text-muted uppercase tracking-widest hover:text-app-accent transition-colors border-t border-app-border/20 pt-6"
                                         >
                                             {showAllFiles
                                                 ? "Show Less"
@@ -657,10 +657,10 @@ export default function GitPage({
                                             />
                                         </svg>
                                     </div>
-                                    <h4 className="text-sm font-bold text-mac-text mb-1">
+                                    <h4 className="text-sm font-bold text-app-text-main mb-1">
                                         Workspace Synchronized
                                     </h4>
-                                    <p className="text-xs text-mac-secondary leading-relaxed max-w-[180px]">
+                                    <p className="text-xs text-app-text-muted leading-relaxed max-w-[180px]">
                                         All local changes have been committed or
                                         stashed.
                                     </p>

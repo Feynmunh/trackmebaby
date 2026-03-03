@@ -1,14 +1,21 @@
 const theme = {
     extend: {
         colors: {
-            "mac-bg": "var(--mac-bg)",
-            "mac-surface": "var(--mac-surface)",
-            "mac-sidebar": "var(--mac-sidebar)",
-            "mac-border": "var(--mac-border)",
-            "mac-text": "var(--mac-text)",
-            "mac-secondary": "var(--mac-secondary)",
-            "mac-accent": "var(--mac-accent)",
-            "mac-hover": "var(--mac-hover)",
+            app: {
+                bg: "hsl(var(--app-bg) / <alpha-value>)",
+                surface: "hsl(var(--app-surface) / <alpha-value>)",
+                "surface-elevated":
+                    "hsl(var(--app-surface-elevated) / <alpha-value>)",
+                border: "hsl(var(--app-border) / <alpha-value>)",
+                "text-main": "hsl(var(--app-text-main) / <alpha-value>)",
+                "text-muted": "hsl(var(--app-text-muted) / <alpha-value>)",
+                accent: "hsl(var(--app-accent) / <alpha-value>)",
+                hover: "hsl(var(--app-hover) / <alpha-value>)",
+                success: "hsl(var(--app-success) / <alpha-value>)",
+                warning: "hsl(var(--app-warning) / <alpha-value>)",
+                error: "hsl(var(--app-error) / <alpha-value>)",
+                info: "hsl(var(--app-info) / <alpha-value>)",
+            },
         },
         fontFamily: {
             sans: [
@@ -23,13 +30,13 @@ const theme = {
             jura: ['"Jura"', "sans-serif"],
         },
         borderRadius: {
-            mac: "10px",
-            "mac-lg": "12px",
+            app: "10px",
+            "app-lg": "12px",
         },
         boxShadow: {
-            mac: "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
-            "mac-md": "0 4px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
-            "mac-lg": "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+            "app-sm": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
+            "app-md": "0 4px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
+            "app-lg": "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
         },
     },
 };

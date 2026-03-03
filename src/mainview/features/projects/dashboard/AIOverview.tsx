@@ -72,21 +72,21 @@ export default function AIOverview({
         return (
             <div className="flex flex-col">
                 <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-[9px] font-bold text-mac-secondary uppercase tracking-[0.2em]">
+                    <h3 className="text-[9px] font-bold text-app-text-muted uppercase tracking-[0.2em]">
                         Project Pulse
                     </h3>
                     {loading && (
                         <div className="flex gap-1">
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "0ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "150ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "300ms" }}
                             />
                         </div>
@@ -95,15 +95,15 @@ export default function AIOverview({
                 <div>
                     {loading ? (
                         <div className="space-y-1.5">
-                            <div className="h-3 bg-mac-border/40 rounded w-[90%] animate-pulse" />
-                            <div className="h-3 bg-mac-border/40 rounded w-[65%] animate-pulse" />
+                            <div className="h-3 bg-app-border/40 rounded w-[90%] animate-pulse" />
+                            <div className="h-3 bg-app-border/40 rounded w-[65%] animate-pulse" />
                         </div>
                     ) : summary ? (
-                        <p className="text-[12px] leading-relaxed text-mac-text/90 font-medium line-clamp-3">
+                        <p className="text-[12px] leading-relaxed text-app-text-main/90 font-medium line-clamp-3">
                             {summary}
                         </p>
                     ) : (
-                        <p className="text-[11px] text-mac-secondary italic">
+                        <p className="text-[11px] text-app-text-muted italic">
                             {summaryError ?? "AI summary unavailable."}
                         </p>
                     )}
@@ -115,7 +115,7 @@ export default function AIOverview({
                             className={`p-0 text-[10px] font-semibold tracking-tight leading-none text-left transition-colors group ${
                                 showDiffs
                                     ? "text-orange-500"
-                                    : "text-mac-secondary hover:text-orange-500"
+                                    : "text-app-text-muted hover:text-orange-500"
                             }`}
                         >
                             <span className="underline underline-offset-4 decoration-current/30 group-hover:decoration-orange-500/50">
@@ -143,33 +143,33 @@ export default function AIOverview({
     return (
         <div>
             <div
-                className={`rounded-2xl border border-mac-border bg-mac-surface/30 px-4 pt-3 relative overflow-hidden transition-all duration-300 ${
+                className={`rounded-2xl border border-app-border bg-app-surface/30 px-4 pt-3 relative overflow-hidden transition-all duration-300 ${
                     hasUncommitted && gitSnapshot ? "pb-10" : "pb-3"
                 }`}
             >
                 <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-[10px] font-bold text-mac-secondary uppercase tracking-[0.2em]">
+                    <h3 className="text-[10px] font-bold text-app-text-muted uppercase tracking-[0.2em]">
                         Project Pulse
                     </h3>
                     {loading && (
                         <div className="flex gap-1">
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "0ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "150ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "300ms" }}
                             />
                         </div>
                     )}
                     <div className="ml-auto flex items-center gap-2">
                         {statsLastUpdated && (
-                            <span className="text-[10px] text-mac-secondary uppercase tracking-widest">
+                            <span className="text-[10px] text-app-text-muted uppercase tracking-widest">
                                 {timeAgo(statsLastUpdated, {
                                     emptyLabel: "never",
                                     justNowLabel: "just now",
@@ -180,7 +180,7 @@ export default function AIOverview({
                         {onRefreshStats && (
                             <button
                                 onClick={onRefreshStats}
-                                className="px-2 py-0.5 rounded border border-mac-border bg-transparent text-[9px] font-bold uppercase tracking-widest text-mac-secondary hover:text-orange-400 hover:border-orange-500/30 transition-colors"
+                                className="px-2 py-0.5 rounded border border-app-border bg-transparent text-[9px] font-bold uppercase tracking-widest text-app-text-muted hover:text-orange-400 hover:border-orange-500/30 transition-colors"
                             >
                                 Refresh
                             </button>
@@ -191,11 +191,11 @@ export default function AIOverview({
                 <div className="flex flex-col gap-1">
                     {loading ? (
                         <div className="space-y-2 mt-2">
-                            <div className="h-4 bg-mac-border/40 rounded w-[90%] animate-pulse" />
-                            <div className="h-4 bg-mac-border/40 rounded w-[60%] animate-pulse" />
+                            <div className="h-4 bg-app-border/40 rounded w-[90%] animate-pulse" />
+                            <div className="h-4 bg-app-border/40 rounded w-[60%] animate-pulse" />
                         </div>
                     ) : summary ? (
-                        <div className="text-[15px] leading-relaxed text-mac-text/90 font-medium">
+                        <div className="text-[15px] leading-relaxed text-app-text-main/90 font-medium">
                             <ReactMarkdown
                                 remarkPlugins={[remarkGfm]}
                                 components={{
@@ -248,31 +248,31 @@ export default function AIOverview({
                                             className.includes("language-");
                                         if (isBlock) {
                                             return (
-                                                <code className="block w-full overflow-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 font-mono text-[13px] border border-black/5 dark:border-white/10">
+                                                <code className="block w-full overflow-auto rounded-lg bg-app-surface-elevated p-3 font-mono text-[13px] border border-app-border">
                                                     {children}
                                                 </code>
                                             );
                                         }
                                         return (
-                                            <code className="px-1.5 py-0.5 rounded-md bg-black/5 dark:bg-white/10 font-mono text-[13px]">
+                                            <code className="px-1.5 py-0.5 rounded-md bg-app-surface-elevated font-mono text-[13px]">
                                                 {children}
                                             </code>
                                         );
                                     },
                                     pre: ({ children }) => (
                                         <div className="my-3 w-full">
-                                            <pre className="block w-full overflow-auto rounded-lg bg-black/5 dark:bg-white/10 p-3 font-mono text-[13px] border border-black/5 dark:border-white/10 m-0">
+                                            <pre className="block w-full overflow-auto rounded-lg bg-app-surface-elevated p-3 font-mono text-[13px] border border-app-border m-0">
                                                 {children as ReactElement}
                                             </pre>
                                         </div>
                                     ),
                                     blockquote: ({ children }) => (
-                                        <blockquote className="border-l-4 border-black/10 dark:border-white/20 pl-3 ml-1 text-black/70 dark:text-white/70 italic">
+                                        <blockquote className="border-l-4 border-app-border pl-3 ml-1 text-app-text-muted italic">
                                             {children}
                                         </blockquote>
                                     ),
                                     hr: () => (
-                                        <hr className="my-4 border-black/10 dark:border-white/10" />
+                                        <hr className="my-4 border-app-border" />
                                     ),
                                 }}
                             >
@@ -280,7 +280,7 @@ export default function AIOverview({
                             </ReactMarkdown>
                         </div>
                     ) : (
-                        <div className="flex items-center gap-2 text-sm text-mac-secondary">
+                        <div className="flex items-center gap-2 text-sm text-app-text-muted">
                             {summaryError ?? "AI summary is unavailable."}
                         </div>
                     )}
@@ -296,7 +296,7 @@ export default function AIOverview({
                                 ${
                                     showDiffs
                                         ? "text-orange-500"
-                                        : "text-mac-secondary hover:text-orange-500"
+                                        : "text-app-text-muted hover:text-orange-500"
                                 }
                             `}
                         >
