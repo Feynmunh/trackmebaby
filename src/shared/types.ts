@@ -118,6 +118,7 @@ export interface GitHubEtag {
 export interface GitHubData {
     openIssues: number;
     openPRs: number;
+    contributorCount: number;
     repoUrl: string | null;
     issues: GitHubIssue[];
     pullRequests: GitHubPR[];
@@ -131,6 +132,40 @@ export interface AIQueryOptions {
     filePath?: string;
     fileType?: string;
 }
+// ─── Resource Vault ──────────────────────────────────────────────────────────
+
+export type VaultResourceType =
+    | "link"
+    | "note"
+    | "milestone"
+    | "idea"
+    | "decision"
+    | "image";
+
+export interface LinkPreview {
+    title: string | null;
+    description: string | null;
+    image: string | null;
+    favicon: string | null;
+    siteName: string | null;
+}
+
+export interface VaultResource {
+    id: string;
+    projectId: string;
+    type: VaultResourceType;
+    title: string;
+    content: string;
+    url: string | null;
+    linkPreview: LinkPreview | null;
+    isPinned: boolean;
+    tags: string[];
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ─── Warden ─────────────────────────────────────────────────────────────────
+
 export type WardenSeverity = "critical" | "warning" | "info";
 
 export type WardenCategory =

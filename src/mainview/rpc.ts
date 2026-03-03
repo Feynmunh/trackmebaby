@@ -11,9 +11,12 @@ import type {
     AIQueryOptions,
     GitHubData,
     GitSnapshot,
+    LinkPreview,
     Project,
     ProjectStats,
     Settings,
+    VaultResource,
+    VaultResourceType,
     WardenInsight,
     WardenInsightStatus,
 } from "../shared/types.ts";
@@ -259,6 +262,54 @@ export async function deleteProject(
     projectId: string,
 ): Promise<{ success: boolean }> {
     return requestApi.deleteProject({ projectId });
+}
+
+// --- Resource Vault ---
+
+export async function getVaultResources(
+    projectId: string,
+    type?: VaultResourceType,
+): Promise<VaultResource[]> {
+    return requestApi.getVaultResources({ projectId, type });
+}
+
+export async function addVaultResource(params: {
+    projectId: string;
+    type: VaultResourceType;
+    title: string;
+    content: string;
+    url?: string;
+    tags?: string[];
+}): Promise<VaultResource> {
+    return requestApi.addVaultResource(params);
+}
+
+export async function updateVaultResource(params: {
+    id: string;
+    title?: string;
+    content?: string;
+    type?: VaultResourceType;
+    tags?: string[];
+}): Promise<{ success: boolean }> {
+    return requestApi.updateVaultResource(params);
+}
+
+export async function deleteVaultResource(
+    id: string,
+): Promise<{ success: boolean }> {
+    return requestApi.deleteVaultResource({ id });
+}
+
+export async function toggleVaultResourcePin(
+    id: string,
+): Promise<{ success: boolean; isPinned: boolean }> {
+    return requestApi.toggleVaultResourcePin({ id });
+}
+
+export async function fetchLinkPreview(
+    url: string,
+): Promise<LinkPreview | null> {
+    return requestApi.fetchLinkPreview({ url });
 }
 
 // --- Push Message Subscriptions ---
