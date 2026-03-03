@@ -148,28 +148,168 @@ export default function ResourceCard({
         );
     }
 
-    // ─── Display mode ────────────────────────────────────────────────────
+    // ─── Compact link card ──────────────────────────────────────────────
+    const siteName =
+        resource.linkPreview?.siteName ||
+        resource.linkPreview?.title ||
+        domain ||
+        resource.title;
+
+    if (resource.type === "link") {
+        return (
+            <div className="group rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-200 overflow-hidden">
+                {/* Compact row: favicon + site name + actions */}
+                <div
+                    className="flex items-center gap-3 px-4 py-3 cursor-pointer"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                >
+                    {/* Favicon or fallback icon */}
+                    <div className="shrink-0 w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
+                        {resource.linkPreview?.favicon ? (
+                            <img
+                                src={resource.linkPreview.favicon}
+                                alt=""
+                                className="w-4 h-4 rounded-sm"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = "none";
+                                    (e.target as HTMLImageElement).parentElement!.innerHTML =
+                                        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-400"><path d="M10 14a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-.5.5"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-4 4a3.5 3.5 0 0 0 5 5l.5-.5"/></svg>';
+                                }}
+                            />
+                        ) : (
+                            <Link2 size={14} className="text-blue-400" />
+                        )}
+                    </div>
+
+                    {/* Site name */}
+                    <div className="flex-1 min-w-0">
+                        <h4 className="text-[13px] font-semibold text-app-text-main truncate">
+                            {siteName}
+                        </h4>
+                        {domain && siteName !== domain && (
+                            <span className="text-[10px] text-blue-400/60">
+                                {domain}
+                            </span>
+                        )}
+                    </div>
+
+                    {/* Pin indicator */}
+                    {resource.isPinned && (
+                        <Pin size={11} className="text-app-accent fill-app-accent shrink-0" />
+                    )}
+
+                    {/* Preview button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenLink();
+                        }}
+                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
+                        title="Open in browser"
+                    >
+                        <ExternalLink size={10} />
+                        Preview
+                    </button>
+                </div>
+
+                {/* ── Expanded details (shown on click) ── */}
+                {isExpanded && (
+                    <div className="px-4 pb-3 space-y-2 border-t border-app-border/20 pt-3">
+                        {/* OG preview image */}
+                        {resource.linkPreview?.image && (
+                            <div className="relative w-full h-28 rounded-xl overflow-hidden bg-app-surface-elevated/30">
+                                <img
+                                    src={resource.linkPreview.image}
+                                    alt=""
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = "none";
+                                    }}
+                                />
+                            </div>
+                        )}
+
+                        {/* Full URL */}
+                        <div className="flex items-center gap-2 bg-app-surface-elevated/30 rounded-lg px-3 py-2">
+                            <Link2 size={11} className="text-app-text-muted/50 shrink-0" />
+                            <span className="text-[11px] text-blue-400/80 truncate select-all">
+                                {resource.url}
+                            </span>
+                        </div>
+
+                        {/* Description */}
+                        {(resource.linkPreview?.description || resource.content) && (
+                            <p className="text-[12px] text-app-text-muted leading-relaxed">
+                                {resource.linkPreview?.description || resource.content}
+                            </p>
+                        )}
+
+                        {/* Tags */}
+                        {resource.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                {resource.tags.map((tag) => (
+                                    <span
+                                        key={tag}
+                                        className="text-[10px] px-1.5 py-0.5 rounded-md bg-app-surface-elevated/50 text-app-text-muted border border-app-border/50"
+                                    >
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Actions row */}
+                        <div className="flex items-center justify-between pt-1">
+                            <span className="text-[10px] text-app-text-muted/50">
+                                {timeAgo(resource.createdAt)}
+                            </span>
+                            <div
+                                className="flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <button
+                                    onClick={() => onTogglePin(resource.id)}
+                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
+                                    title={resource.isPinned ? "Unpin" : "Pin to top"}
+                                >
+                                    {resource.isPinned ? (
+                                        <PinOff size={12} className="text-app-accent" />
+                                    ) : (
+                                        <Pin size={12} className="text-app-text-muted" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setEditTitle(resource.title);
+                                        setEditContent(resource.content);
+                                        setIsEditing(true);
+                                    }}
+                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
+                                    title="Edit"
+                                >
+                                    <Pencil size={12} className="text-app-text-muted" />
+                                </button>
+                                <button
+                                    onClick={() => onDelete(resource.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                                    title="Delete"
+                                >
+                                    <Trash2 size={12} className="text-app-text-muted hover:text-red-400" />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ─── Standard card (note, milestone, idea, decision) ─────────────────
     return (
         <div
             className="group rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-200 overflow-hidden cursor-pointer"
             onClick={() => setIsExpanded(!isExpanded)}
         >
-            {/* Link preview image */}
-            {resource.type === "link" && resource.linkPreview?.image && (
-                <div className="relative w-full h-32 overflow-hidden bg-app-surface-elevated/30">
-                    <img
-                        src={resource.linkPreview.image}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                            (e.target as HTMLImageElement).style.display =
-                                "none";
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-app-surface/80 to-transparent" />
-                </div>
-            )}
-
             <div className="p-4">
                 {/* Type badge + pin indicator */}
                 <div className="flex items-center justify-between mb-2">
@@ -192,38 +332,14 @@ export default function ResourceCard({
                     {resource.title}
                 </h4>
 
-                {/* Link domain badge */}
-                {resource.type === "link" && domain && (
-                    <div className="flex items-center gap-1.5 mb-2">
-                        {resource.linkPreview?.favicon && (
-                            <img
-                                src={resource.linkPreview.favicon}
-                                alt=""
-                                className="w-3.5 h-3.5 rounded-sm"
-                                onError={(e) => {
-                                    (
-                                        e.target as HTMLImageElement
-                                    ).style.display = "none";
-                                }}
-                            />
-                        )}
-                        <span className="text-[11px] text-blue-400/80 truncate">
-                            {domain}
-                        </span>
-                    </div>
-                )}
-
-                {/* Content preview / link description */}
-                {(resource.content || resource.linkPreview?.description) && (
+                {/* Content preview */}
+                {resource.content && (
                     <p
                         className={`text-[12px] text-app-text-muted leading-relaxed ${
                             isExpanded ? "" : "line-clamp-3"
                         } mb-2`}
                     >
-                        {resource.type === "link" &&
-                        resource.linkPreview?.description
-                            ? resource.linkPreview.description
-                            : resource.content}
+                        {resource.content}
                     </p>
                 )}
 
@@ -252,18 +368,6 @@ export default function ResourceCard({
                         className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        {resource.type === "link" && resource.url && (
-                            <button
-                                onClick={handleOpenLink}
-                                className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                                title="Open link"
-                            >
-                                <ExternalLink
-                                    size={12}
-                                    className="text-app-text-muted"
-                                />
-                            </button>
-                        )}
                         <button
                             onClick={() => onTogglePin(resource.id)}
                             className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
