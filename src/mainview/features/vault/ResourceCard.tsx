@@ -5,15 +5,11 @@
 import {
     ExternalLink,
     Eye,
-    FileText,
     ImageIcon,
-    Lightbulb,
     Link2,
     Pencil,
     Pin,
     PinOff,
-    Scale,
-    Target,
     Trash2,
 } from "lucide-react";
 import { useCallback, useState } from "react";
@@ -23,50 +19,7 @@ import type {
     VaultResourceType,
 } from "../../../shared/types.ts";
 import { openExternalUrl } from "../../rpc.ts";
-
-// ─── Type config ─────────────────────────────────────────────────────────────
-
-const TYPE_CONFIG: Record<
-    VaultResourceType,
-    { icon: typeof Link2; label: string; color: string; bg: string }
-> = {
-    link: {
-        icon: Link2,
-        label: "Link",
-        color: "text-blue-400",
-        bg: "bg-blue-500/10 border-blue-500/20",
-    },
-    note: {
-        icon: FileText,
-        label: "Note",
-        color: "text-emerald-400",
-        bg: "bg-emerald-500/10 border-emerald-500/20",
-    },
-    milestone: {
-        icon: Target,
-        label: "Milestone",
-        color: "text-amber-400",
-        bg: "bg-amber-500/10 border-amber-500/20",
-    },
-    idea: {
-        icon: Lightbulb,
-        label: "Idea",
-        color: "text-purple-400",
-        bg: "bg-purple-500/10 border-purple-500/20",
-    },
-    decision: {
-        icon: Scale,
-        label: "Decision",
-        color: "text-rose-400",
-        bg: "bg-rose-500/10 border-rose-500/20",
-    },
-    image: {
-        icon: ImageIcon,
-        label: "Image",
-        color: "text-cyan-400",
-        bg: "bg-cyan-500/10 border-cyan-500/20",
-    },
-};
+import { TYPE_CONFIG } from "./constants.ts";
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -97,6 +50,7 @@ export default function ResourceCard({
     const [editTitle, setEditTitle] = useState(resource.title);
     const [editContent, setEditContent] = useState(resource.content);
     const [isExpanded, setIsExpanded] = useState(false);
+    const [faviconFailed, setFaviconFailed] = useState(false);
 
     const config = TYPE_CONFIG[resource.type];
     const TypeIcon = config.icon;
@@ -175,19 +129,12 @@ export default function ResourceCard({
                 >
                     {/* Favicon or fallback icon */}
                     <div className="shrink-0 w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
-                        {resource.linkPreview?.favicon ? (
+                        {resource.linkPreview?.favicon && !faviconFailed ? (
                             <img
                                 src={resource.linkPreview.favicon}
                                 alt=""
                                 className="w-4 h-4 rounded-sm"
-                                onError={(e) => {
-                                    (
-                                        e.target as HTMLImageElement
-                                    ).style.display = "none";
-                                    (e.target as HTMLImageElement)
-                                        .parentElement!.innerHTML =
-                                        '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-400"><path d="M10 14a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-.5.5"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-4 4a3.5 3.5 0 0 0 5 5l.5-.5"/></svg>';
-                                }}
+                                onError={() => setFaviconFailed(true)}
                             />
                         ) : (
                             <Link2 size={14} className="text-blue-400" />

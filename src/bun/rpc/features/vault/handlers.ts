@@ -17,6 +17,28 @@ export interface VaultHandlersDeps {
     db: Database;
 }
 
+const VALID_VAULT_TYPES: ReadonlySet<string> = new Set([
+    "link",
+    "note",
+    "milestone",
+    "idea",
+    "decision",
+    "image",
+]);
+
+function isValidVaultType(type: string): type is VaultResourceType {
+    return VALID_VAULT_TYPES.has(type);
+}
+
+function isValidUrl(url: string): boolean {
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 export function createVaultHandlers(deps: VaultHandlersDeps) {
     const { db } = deps;
 
@@ -28,6 +50,9 @@ export function createVaultHandlers(deps: VaultHandlersDeps) {
             projectId: string;
             type?: VaultResourceType;
         }) => {
+            if (type !== undefined && !isValidVaultType(type)) {
+                return [];
+            }
             return getVaultResources(db, projectId, type);
         },
 
@@ -46,6 +71,27 @@ export function createVaultHandlers(deps: VaultHandlersDeps) {
             url?: string;
             tags?: string[];
         }) => {
+            if (!isValidVaultType(type)) {
+                throw new Error(`Invalid vault resource type: "${type}"`);
+            }
+
+            // For link/image types, validate that URL is http/https (or data: for images)
+            if (type === "link" && url && !isValidUrl(url)) {
+                throw new Error(
+                    "Link resources require a valid http/https URL",
+                );
+            }
+            if (
+                type === "image" &&
+                url &&
+                !isValidUrl(url) &&
+                !url.startsWith("data:image/")
+            ) {
+                throw new Error(
+                    "Image resources require a valid URL or data URI",
+                );
+            }
+
             const resource = insertVaultResource(
                 db,
                 projectId,
@@ -92,6 +138,9 @@ export function createVaultHandlers(deps: VaultHandlersDeps) {
             type?: VaultResourceType;
             tags?: string[];
         }) => {
+            if (type !== undefined && !isValidVaultType(type)) {
+                throw new Error(`Invalid vault resource type: "${type}"`);
+            }
             const success = updateVaultResource(db, id, {
                 title,
                 content,

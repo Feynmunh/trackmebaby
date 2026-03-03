@@ -58,6 +58,9 @@ const URL_REGEX = /^https?:\/\//i;
 const IMAGE_URL_REGEX =
     /^https?:\/\/.+\.(png|jpe?g|gif|webp|svg|avif|bmp|ico|tiff?)(\?.*)?$/i;
 
+/** Maximum image file size for base64 storage (5 MB) */
+const MAX_IMAGE_SIZE_BYTES = 5 * 1024 * 1024;
+
 /** Read a File into a base64 data-URL string */
 function fileToDataUrl(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -152,6 +155,13 @@ export default function AddResourceForm({
     const processImageFile = useCallback(
         async (file: File) => {
             if (!file.type.startsWith("image/")) return;
+            if (file.size > MAX_IMAGE_SIZE_BYTES) {
+                setPasteError(
+                    `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Max 5 MB.`,
+                );
+                setTimeout(() => setPasteError(null), 4000);
+                return;
+            }
             try {
                 const dataUrl = await fileToDataUrl(file);
                 setUrl(dataUrl);
@@ -266,9 +276,20 @@ export default function AddResourceForm({
 
             const isLink = selectedType === "link";
             const isImage = selectedType === "image";
-            // For links: fall back to title as URL. For images: only use url field.
+
+            // For links: require a valid http(s) URL
+            if (isLink) {
+                const linkUrl = url || title.trim();
+                if (!URL_REGEX.test(linkUrl)) {
+                    setPasteError("Links require a valid http/https URL");
+                    setTimeout(() => setPasteError(null), 3000);
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
             const resourceUrl = isLink
-                ? url || title
+                ? url || title.trim()
                 : isImage
                   ? url || undefined
                   : undefined;
@@ -337,7 +358,6 @@ export default function AddResourceForm({
                         value={title}
                         onChange={(e) => handleTitleChange(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        onFocus={() => !isExpanded && setIsExpanded(false)}
                         placeholder="Paste a link, jot a note, capture an idea..."
                         className="w-full bg-app-surface-elevated/40 border border-app-border/50 rounded-xl px-4 py-2.5 text-[13px] text-app-text-main placeholder:text-app-text-muted/40 outline-none focus:border-app-accent/40 transition-colors"
                     />

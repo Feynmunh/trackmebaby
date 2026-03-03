@@ -6,15 +6,11 @@ import {
     Calendar,
     Clock,
     ExternalLink,
-    FileText,
     ImageIcon,
-    Lightbulb,
     Link2,
     Pencil,
     Pin,
     PinOff,
-    Scale,
-    Target,
     Trash2,
     X,
 } from "lucide-react";
@@ -25,48 +21,7 @@ import type {
     VaultResourceType,
 } from "../../../shared/types.ts";
 import { openExternalUrl } from "../../rpc.ts";
-
-const TYPE_CONFIG: Record<
-    VaultResourceType,
-    { icon: typeof Link2; label: string; color: string; bg: string }
-> = {
-    link: {
-        icon: Link2,
-        label: "Link",
-        color: "text-blue-400",
-        bg: "bg-blue-500/10 border-blue-500/20",
-    },
-    note: {
-        icon: FileText,
-        label: "Note",
-        color: "text-emerald-400",
-        bg: "bg-emerald-500/10 border-emerald-500/20",
-    },
-    milestone: {
-        icon: Target,
-        label: "Milestone",
-        color: "text-amber-400",
-        bg: "bg-amber-500/10 border-amber-500/20",
-    },
-    idea: {
-        icon: Lightbulb,
-        label: "Idea",
-        color: "text-purple-400",
-        bg: "bg-purple-500/10 border-purple-500/20",
-    },
-    decision: {
-        icon: Scale,
-        label: "Decision",
-        color: "text-rose-400",
-        bg: "bg-rose-500/10 border-rose-500/20",
-    },
-    image: {
-        icon: ImageIcon,
-        label: "Image",
-        color: "text-cyan-400",
-        bg: "bg-cyan-500/10 border-cyan-500/20",
-    },
-};
+import { TYPE_CONFIG } from "./constants.ts";
 
 interface ResourceDetailModalProps {
     resource: VaultResource;

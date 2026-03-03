@@ -173,6 +173,10 @@ function applyMigration6(db: Database): void {
   `);
     db.exec(`
     CREATE INDEX IF NOT EXISTS idx_vault_resources_project
-      ON vault_resources(project_id, created_at DESC)
+      ON vault_resources(project_id, is_pinned DESC, created_at DESC)
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_vault_resources_project_type
+      ON vault_resources(project_id, type, is_pinned DESC, created_at DESC)
   `);
 }

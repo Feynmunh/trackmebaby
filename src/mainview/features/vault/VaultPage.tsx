@@ -17,6 +17,7 @@ import type {
     VaultResourceType,
 } from "../../../shared/types.ts";
 import AddResourceForm from "./AddResourceForm.tsx";
+import { TYPE_EMPTY_LABELS } from "./constants.ts";
 import ResourceCard from "./ResourceCard.tsx";
 import ResourceDetailModal from "./ResourceDetailModal.tsx";
 import { useVault } from "./useVault.ts";
@@ -124,12 +125,14 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                         <Archive size={28} className="text-app-text-muted/30" />
                     </div>
                     <h4 className="text-[14px] font-semibold text-app-text-main/80 mb-1">
-                        Your vault is empty
+                        {activeFilter !== "all"
+                            ? TYPE_EMPTY_LABELS[activeFilter]
+                            : "Your vault is empty"}
                     </h4>
                     <p className="text-[12px] text-app-text-muted/60 max-w-[280px] leading-relaxed">
-                        Start adding links, notes, images, ideas, milestones,
-                        and decisions. Paste a URL or type anything above to get
-                        started.
+                        {activeFilter !== "all"
+                            ? "Use the quick-add bar above to create one."
+                            : "Start adding links, notes, images, ideas, milestones, and decisions. Paste a URL or type anything above to get started."}
                     </p>
                 </div>
             )}

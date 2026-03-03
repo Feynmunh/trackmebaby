@@ -2,7 +2,7 @@
  * useVault — React hook for Resource Vault state management
  * Handles CRUD, filtering, link preview refresh, and AI-assisted input
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type {
     LinkPreview,
     VaultResource,
@@ -62,6 +62,16 @@ export function useVault(projectId: string): UseVaultReturn {
     const [activeFilter, setActiveFilter] = useState<VaultResourceType | "all">(
         "all",
     );
+    const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    // Clean up pending timers on unmount
+    useEffect(() => {
+        return () => {
+            if (previewTimerRef.current) {
+                clearTimeout(previewTimerRef.current);
+            }
+        };
+    }, []);
 
     // ─── Load resources ──────────────────────────────────────────────────
     const loadResources = useCallback(async () => {
@@ -99,17 +109,27 @@ export function useVault(projectId: string): UseVaultReturn {
                     projectId,
                     ...params,
                 });
-                setResources((prev) => [newResource, ...prev]);
 
-                // For links, fetch preview after a short delay and refresh
+                // Only insert optimistically if it matches the current filter
+                if (activeFilter === "all" || activeFilter === params.type) {
+                    setResources((prev) => [newResource, ...prev]);
+                }
+
+                // For links, fetch preview after a delay then reload from server
                 if (params.type === "link" && params.url) {
-                    setTimeout(() => void loadResources(), 2000);
+                    if (previewTimerRef.current) {
+                        clearTimeout(previewTimerRef.current);
+                    }
+                    previewTimerRef.current = setTimeout(
+                        () => void loadResources(),
+                        2000,
+                    );
                 }
             } catch (err: unknown) {
                 console.error("[Vault] Failed to add resource:", err);
             }
         },
-        [projectId, loadResources],
+        [projectId, activeFilter, loadResources],
     );
 
     const editResource = useCallback(
@@ -124,14 +144,13 @@ export function useVault(projectId: string): UseVaultReturn {
         ) => {
             try {
                 await updateVaultResource({ id, ...updates });
-                setResources((prev) =>
-                    prev.map((r) => (r.id === id ? { ...r, ...updates } : r)),
-                );
+                // Reload from server to respect filter + ordering
+                await loadResources();
             } catch (err: unknown) {
                 console.error("[Vault] Failed to edit resource:", err);
             }
         },
-        [],
+        [loadResources],
     );
 
     const removeResource = useCallback(async (id: string) => {
@@ -143,27 +162,39 @@ export function useVault(projectId: string): UseVaultReturn {
         }
     }, []);
 
-    const togglePin = useCallback(async (id: string) => {
-        try {
-            const result = await toggleVaultResourcePin(id);
-            setResources((prev) =>
-                prev.map((r) =>
-                    r.id === id ? { ...r, isPinned: result.isPinned } : r,
-                ),
-            );
-        } catch (err: unknown) {
-            console.error("[Vault] Failed to toggle pin:", err);
-        }
-    }, []);
+    const togglePin = useCallback(
+        async (id: string) => {
+            try {
+                await toggleVaultResourcePin(id);
+                // Reload to get correct pinned-first ordering
+                await loadResources();
+            } catch (err: unknown) {
+                console.error("[Vault] Failed to toggle pin:", err);
+            }
+        },
+        [loadResources],
+    );
 
     // ─── Link preview ────────────────────────────────────────────────────
     const refreshLinkPreview = useCallback(
         async (
-            _resourceId: string,
+            resourceId: string,
             url: string,
         ): Promise<LinkPreview | null> => {
             try {
-                return await fetchLinkPreview(url);
+                const preview = await fetchLinkPreview(url);
+
+                if (preview) {
+                    setResources((prev) =>
+                        prev.map((resource) =>
+                            resource.id === resourceId
+                                ? { ...resource, linkPreview: preview }
+                                : resource,
+                        ),
+                    );
+                }
+
+                return preview;
             } catch (err: unknown) {
                 console.error("[Vault] Link preview failed:", err);
                 return null;
