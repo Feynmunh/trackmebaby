@@ -23,16 +23,16 @@ export default function ProjectsEmptyState({
 
     return (
         <div className="flex flex-col items-center justify-center h-full text-center px-8">
-            <div className="bg-mac-surface rounded-2xl p-12 shadow-mac-md flex flex-col items-center max-w-md">
-                <div className="w-16 h-16 rounded-2xl bg-mac-bg flex items-center justify-center mb-5">
-                    <FolderOpen className="w-8 h-8 text-mac-secondary" />
+            <div className="bg-app-surface rounded-2xl p-12 shadow-app-md flex flex-col items-center max-w-md">
+                <div className="w-16 h-16 rounded-2xl bg-app-bg flex items-center justify-center mb-5">
+                    <FolderOpen className="w-8 h-8 text-app-text-muted" />
                 </div>
-                <h2 className="text-xl font-semibold text-mac-text mb-2">
+                <h2 className="text-xl font-semibold text-app-text-main mb-2">
                     {isLinux
                         ? "Enter your project folder path"
                         : "Select your project folder"}
                 </h2>
-                <p className="text-mac-secondary text-sm mb-6 leading-relaxed">
+                <p className="text-app-text-muted text-sm mb-6 leading-relaxed">
                     {isLinux
                         ? "Enter the full path to your projects folder (e.g., /home/username/projects or ~/projects)"
                         : "Choose a folder containing your projects to start tracking your work automatically."}
@@ -48,7 +48,7 @@ export default function ProjectsEmptyState({
                             value={basePathInput}
                             onChange={(e) => onBasePathChange(e.target.value)}
                             placeholder="/home/username/projects or ~/projects"
-                            className="w-full bg-mac-bg border border-black/20 dark:border-white/10 rounded-lg px-3 py-2 text-[14px] text-mac-text placeholder-mac-secondary focus:ring-2 focus:ring-mac-accent/30 outline-none transition-all"
+                            className="w-full bg-app-bg border border-app-border rounded-lg px-3 py-2 text-[14px] text-app-text-main placeholder-app-text-muted focus:ring-2 focus:ring-app-accent/30 outline-none transition-all"
                             onKeyDown={(e) => {
                                 if (e.key === "Enter") {
                                     onSavePath();
@@ -56,7 +56,7 @@ export default function ProjectsEmptyState({
                             }}
                         />
                         <button
-                            className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac flex items-center justify-center gap-2 disabled:opacity-50"
+                            className="bg-app-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-app-sm flex items-center justify-center gap-2 disabled:opacity-50"
                             onClick={onSavePath}
                             disabled={savingPath || !basePathInput.trim()}
                         >
@@ -75,7 +75,7 @@ export default function ProjectsEmptyState({
                     </div>
                 ) : (
                     <button
-                        className="bg-mac-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-mac flex items-center gap-2"
+                        className="bg-app-accent text-white font-medium px-5 py-2.5 rounded-lg hover:opacity-90 active:scale-[0.98] transition-all shadow-app-sm flex items-center gap-2"
                         onClick={onSelectFolder}
                         disabled={selectingFolder}
                     >

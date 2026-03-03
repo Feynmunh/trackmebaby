@@ -80,7 +80,7 @@ export default function DashboardContent({
                 </div>
 
                 {/* Vitality bars cell */}
-                <div className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3">
+                <div className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3">
                     <OverviewPage
                         project={project}
                         gitSnapshot={gitSnapshot}
@@ -107,7 +107,7 @@ export default function DashboardContent({
                 {/* Commit Timeline cell */}
                 <div
                     ref={timelineRef}
-                    className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3"
+                    className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3"
                 >
                     <GitPage
                         gitSnapshot={gitSnapshot}
@@ -121,7 +121,7 @@ export default function DashboardContent({
                 {/* Remote Environment cell */}
                 <div
                     ref={githubRef}
-                    className="rounded-2xl border border-mac-border bg-mac-surface/30 px-4 py-3"
+                    className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3"
                 >
                     <GitHubPage
                         githubData={githubData}

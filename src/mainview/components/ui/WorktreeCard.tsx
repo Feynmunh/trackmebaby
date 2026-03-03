@@ -28,8 +28,8 @@ export default function WorktreeCard({ worktree }: WorktreeCardProps) {
             border transition-all duration-200
             ${
                 isActive
-                    ? "bg-mac-accent/5 border-mac-accent/30 shadow-mac-sm"
-                    : "bg-mac-surface/50 border-mac-border/30"
+                    ? "bg-app-accent/5 border-app-accent/30 shadow-app-sm"
+                    : "bg-app-surface/50 border-app-border/30"
             }
         `}
         >
@@ -40,27 +40,27 @@ export default function WorktreeCard({ worktree }: WorktreeCardProps) {
                     fill="none"
                     stroke="currentColor"
                     strokeWidth={2}
-                    className="w-3.5 h-3.5 text-mac-accent flex-shrink-0"
+                    className="w-3.5 h-3.5 text-app-accent flex-shrink-0"
                 >
                     <path d="M6 3v12M18 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM6 21a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" />
                     <path d="M18 9c0 6-12 6-12 12" />
                 </svg>
-                <span className="text-xs font-semibold text-mac-text truncate">
+                <span className="text-xs font-semibold text-app-text-main truncate">
                     {worktree.branch}
                 </span>
                 {worktree.isMain && (
-                    <span className="text-[8px] font-bold uppercase tracking-wider text-mac-secondary bg-mac-bg px-1.5 py-0.5 rounded">
+                    <span className="text-[8px] font-bold uppercase tracking-wider text-app-text-muted bg-app-bg px-1.5 py-0.5 rounded">
                         main
                     </span>
                 )}
             </div>
 
             <div className="flex items-center justify-between">
-                <span className="text-[10px] text-mac-secondary">
+                <span className="text-[10px] text-app-text-muted">
                     {formatWorktreeActivity(worktree.lastActivityAt)}
                 </span>
                 {isActive && (
-                    <span className="text-[10px] font-semibold text-mac-accent">
+                    <span className="text-[10px] font-semibold text-app-accent">
                         {worktree.uncommittedCount} changes
                     </span>
                 )}

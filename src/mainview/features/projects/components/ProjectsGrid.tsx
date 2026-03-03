@@ -27,7 +27,7 @@ export default function ProjectsGrid({
                     return (
                         <article
                             key={project.id}
-                            className="relative bg-mac-surface rounded-2xl border border-mac-border hover:border-white/30 transition-colors duration-150 active:scale-[0.98] text-left group"
+                            className="relative bg-app-surface rounded-2xl border border-app-border hover:border-white/30 transition-colors duration-150 active:scale-[0.98] text-left group"
                         >
                             {/* Delete controls — outside the clickable card area */}
                             {confirmingId === project.id ? (
@@ -45,7 +45,7 @@ export default function ProjectsGrid({
                                     <button
                                         type="button"
                                         onClick={() => setConfirmingId(null)}
-                                        className="text-[11px] font-semibold bg-mac-surface hover:bg-mac-border text-mac-secondary px-2.5 py-1 rounded-lg border border-mac-border transition-colors"
+                                        className="text-[11px] font-semibold bg-app-surface hover:bg-app-border text-app-text-muted px-2.5 py-1 rounded-lg border border-app-border transition-colors"
                                     >
                                         Cancel
                                     </button>
@@ -54,7 +54,7 @@ export default function ProjectsGrid({
                                 <button
                                     type="button"
                                     onClick={() => setConfirmingId(project.id)}
-                                    className="absolute top-3 right-3 p-1.5 rounded-lg text-mac-secondary hover:text-red-400 hover:bg-red-500/10 transition-all z-10"
+                                    className="absolute top-3 right-3 p-1.5 rounded-lg text-app-text-muted hover:text-red-400 hover:bg-red-500/10 transition-all z-10"
                                     aria-label={`Delete ${project.name}`}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
@@ -69,8 +69,8 @@ export default function ProjectsGrid({
                             >
                                 {/* Folder + name */}
                                 <div className="flex items-center gap-2.5 mb-4">
-                                    <Folder className="w-[18px] h-[18px] text-mac-secondary shrink-0" />
-                                    <h3 className="text-[17px] font-semibold text-mac-text leading-tight truncate">
+                                    <Folder className="w-[18px] h-[18px] text-app-text-muted shrink-0" />
+                                    <h3 className="text-[17px] font-semibold text-app-text-main leading-tight truncate">
                                         {project.name}
                                     </h3>
                                 </div>
@@ -78,19 +78,19 @@ export default function ProjectsGrid({
                                 {/* Branch + status */}
                                 {snapshot && (
                                     <div className="flex items-center gap-2 mb-5 flex-wrap">
-                                        <span className="inline-flex items-center gap-1.5 text-[11px] text-mac-secondary border border-mac-border bg-transparent px-2.5 py-1 rounded-[6px]">
+                                        <span className="inline-flex items-center gap-1.5 text-[11px] text-app-text-muted border border-app-border bg-transparent px-2.5 py-1 rounded-[6px]">
                                             <GitBranch className="w-3 h-3 shrink-0" />
                                             <span className="max-w-[130px] truncate">
                                                 {snapshot.branch}
                                             </span>
                                         </span>
                                         {hasChanges ? (
-                                            <span className="text-[11px] font-bold uppercase tracking-wide bg-mac-accent/15 text-mac-accent px-2.5 py-1 rounded-[6px]">
+                                            <span className="text-[11px] font-bold uppercase tracking-wide bg-app-accent/15 text-app-accent px-2.5 py-1 rounded-[6px]">
                                                 {snapshot.uncommittedCount}{" "}
                                                 CHANGES
                                             </span>
                                         ) : (
-                                            <span className="text-[11px] font-bold uppercase tracking-wide bg-mac-accent/10 text-mac-accent/70 px-2.5 py-1 rounded-[6px]">
+                                            <span className="text-[11px] font-bold uppercase tracking-wide bg-app-accent/10 text-app-accent/70 px-2.5 py-1 rounded-[6px]">
                                                 SYNCED
                                             </span>
                                         )}
@@ -100,10 +100,10 @@ export default function ProjectsGrid({
                                 {/* Last commit */}
                                 {snapshot?.lastCommitMessage && (
                                     <div>
-                                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-mac-secondary mb-1">
+                                        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-app-text-muted mb-1">
                                             Last Commit
                                         </p>
-                                        <p className="text-[13px] text-mac-text leading-snug line-clamp-1">
+                                        <p className="text-[13px] text-app-text-main leading-snug line-clamp-1">
                                             {snapshot.lastCommitMessage}
                                         </p>
                                     </div>

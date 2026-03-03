@@ -74,7 +74,7 @@ export default function ProjectDashboard({
     } = useGitHubIntegration(project.id);
 
     return (
-        <div className="flex flex-col w-full h-full bg-mac-bg select-none">
+        <div className="flex flex-col w-full h-full bg-app-bg select-none">
             <DashboardHeader
                 project={project}
                 onBack={onBack}

@@ -75,7 +75,7 @@ function DockItem({
             className={[
                 "relative inline-flex shrink-0 items-center justify-center",
                 "transition-colors duration-150 cursor-pointer select-none",
-                isActive ? "text-mac-accent" : "text-white",
+                isActive ? "text-app-accent" : "text-white",
                 disabled ? "opacity-35 cursor-not-allowed" : "",
             ]
                 .filter(Boolean)
@@ -114,7 +114,7 @@ function DockLabel({ children, isHovered }: DockLabelProps) {
                     animate={{ opacity: 1, y: -2 }}
                     exit={{ opacity: 0, y: 4 }}
                     transition={{ duration: 0.15 }}
-                    className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-mac-surface border border-mac-border px-2 py-0.5 text-[11px] text-mac-text shadow-mac-md"
+                    className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-app-surface border border-app-border px-2 py-0.5 text-[11px] text-app-text-main shadow-app-md"
                     role="tooltip"
                 >
                     {children}

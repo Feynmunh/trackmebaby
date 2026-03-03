@@ -6,6 +6,7 @@ import { getPlatform } from "./rpc";
 import CardsTab from "./tabs/CardsTab";
 
 type TabId = "cards" | "ai" | "settings";
+type Theme = "light" | "dark" | "system";
 
 const tabs = [
     {
@@ -54,12 +55,41 @@ function App() {
     const [isMac, setIsMac] = useState(true); // default true to avoid flash
 
     useEffect(() => {
-        const savedTheme = localStorage.getItem("trackmebaby-theme") || "dark";
-        if (savedTheme === "dark") {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
+        const root = document.documentElement;
+
+        const updateTheme = () => {
+            const theme =
+                (localStorage.getItem("trackmebaby-theme") as Theme) ||
+                "system";
+            let isDark = theme === "dark";
+
+            if (theme === "system") {
+                isDark = window.matchMedia(
+                    "(prefers-color-scheme: dark)",
+                ).matches;
+            }
+
+            if (isDark) {
+                root.classList.add("dark");
+            } else {
+                root.classList.remove("dark");
+            }
+        };
+
+        updateTheme();
+
+        // Listen for system theme changes
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const handleSystemChange = () => {
+            const currentTheme = localStorage.getItem(
+                "trackmebaby-theme",
+            ) as Theme;
+            if (!currentTheme || currentTheme === "system") {
+                updateTheme();
+            }
+        };
+
+        mediaQuery.addEventListener("change", handleSystemChange);
 
         // Detect platform — custom titlebar only shown on macOS
         // On Linux/Windows, hiddenInset shows the native titlebar which handles
@@ -67,19 +97,22 @@ function App() {
         getPlatform()
             .then((platform) => setIsMac(platform === "darwin"))
             .catch(() => setIsMac(false));
+
+        return () =>
+            mediaQuery.removeEventListener("change", handleSystemChange);
     }, []);
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-mac-bg font-sans selection:bg-mac-accent/20">
+        <div className="flex flex-col h-screen overflow-hidden bg-app-bg font-sans selection:bg-app-accent/20">
             {/* Custom Titlebar — macOS only (on Linux, the native titlebar handles this) */}
             {isMac && (
-                <div className="h-10 w-full shrink-0 flex items-center justify-center bg-mac-bg border-b border-white/[0.05] z-50 relative electrobun-webkit-app-region-drag">
+                <div className="h-10 w-full shrink-0 flex items-center justify-center bg-app-bg border-b border-white/[0.05] z-50 relative electrobun-webkit-app-region-drag">
                     {/* Spacer for macOS traffic lights (left side) */}
                     <div className="w-20 shrink-0" />
 
                     {/* Centered title */}
                     <div className="flex-1 flex items-center justify-center">
-                        <span className="text-[13px] font-semibold text-mac-text/80 cursor-default select-none electrobun-webkit-app-region-no-drag">
+                        <span className="text-[13px] font-semibold text-app-text-main/80 cursor-default select-none electrobun-webkit-app-region-no-drag">
                             trackmebaby
                         </span>
                     </div>
@@ -90,7 +123,7 @@ function App() {
             )}
 
             {/* Main Application Area */}
-            <div className="flex flex-row flex-1 overflow-hidden text-mac-text">
+            <div className="flex flex-row flex-1 overflow-hidden text-app-text-main">
                 {/* macOS-style translucent sidebar */}
                 <TabBar
                     activeTab={activeTab}

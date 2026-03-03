@@ -18,13 +18,13 @@ export default function DashboardHeader({
     const hasWorktrees = project.worktrees && project.worktrees.length > 1;
 
     return (
-        <header className="h-28 bg-mac-surface/30 backdrop-blur-md px-6 flex items-center justify-between shrink-0">
+        <header className="h-28 bg-app-surface/30 backdrop-blur-md px-6 flex items-center justify-between shrink-0">
             {/* Left — back + name */}
             <div className="flex items-center gap-4 min-w-[180px]">
                 <button
                     onClick={onBack}
                     aria-label="Back to projects"
-                    className="w-9 h-9 rounded-xl bg-mac-surface shadow-mac flex items-center justify-center hover:bg-mac-surface/80 transition-all active:scale-95 group shrink-0"
+                    className="w-9 h-9 rounded-xl bg-app-surface shadow-app-sm flex items-center justify-center hover:bg-app-surface/80 transition-all active:scale-95 group shrink-0"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -32,12 +32,12 @@ export default function DashboardHeader({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth={2.5}
-                        className="w-4 h-4 text-mac-accent group-hover:-translate-x-0.5 transition-transform"
+                        className="w-4 h-4 text-app-accent group-hover:-translate-x-0.5 transition-transform"
                     >
                         <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
                 </button>
-                <h1 className="text-[15px] font-bold text-mac-text truncate">
+                <h1 className="text-[15px] font-bold text-app-text-main truncate">
                     {project.name}
                 </h1>
             </div>

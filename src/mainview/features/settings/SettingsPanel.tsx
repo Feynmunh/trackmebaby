@@ -31,10 +31,12 @@ export default function SettingsPanel() {
         pollInterval: 60000,
         watchDebounce: 500,
     });
-    const [theme, setTheme] = useState<"light" | "dark">(
+    const [theme, setTheme] = useState<"light" | "dark" | "system">(
         () =>
-            (localStorage.getItem("trackmebaby-theme") as "light" | "dark") ||
-            "dark",
+            (localStorage.getItem("trackmebaby-theme") as
+                | "light"
+                | "dark"
+                | "system") || "system",
     );
     const [saving, setSaving] = useState(false);
     const [hasLoadedSettings, setHasLoadedSettings] = useState(false);
@@ -80,14 +82,32 @@ export default function SettingsPanel() {
         }
     }
 
-    function applyTheme(newTheme: "light" | "dark") {
+    function applyTheme(newTheme: "light" | "dark" | "system") {
+        const root = document.documentElement;
+
+        // Apply transition guard
+        root.classList.add("theme-switching");
+
         setTheme(newTheme);
         localStorage.setItem("trackmebaby-theme", newTheme);
-        if (newTheme === "dark") {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
+
+        let isDark = newTheme === "dark";
+        if (newTheme === "system") {
+            isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
         }
+
+        if (isDark) {
+            root.classList.add("dark");
+        } else {
+            root.classList.remove("dark");
+        }
+
+        // Remove guard in next frames to ensure paint without transitions
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                root.classList.remove("theme-switching");
+            });
+        });
     }
 
     return (
@@ -95,15 +115,15 @@ export default function SettingsPanel() {
             {/* Header */}
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-2xl font-semibold text-mac-text tracking-tight">
+                    <h1 className="text-2xl font-semibold text-app-text-main tracking-tight">
                         Settings
                     </h1>
-                    <p className="text-mac-secondary text-sm mt-0.5">
+                    <p className="text-app-text-muted text-sm mt-0.5">
                         Changes are saved automatically
                     </p>
                 </div>
                 {saving && (
-                    <span className="text-xs text-mac-secondary">
+                    <span className="text-xs text-app-text-muted">
                         Saving...
                     </span>
                 )}

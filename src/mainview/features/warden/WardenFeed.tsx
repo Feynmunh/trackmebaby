@@ -38,7 +38,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                    <h3 className="text-[10px] font-bold text-mac-secondary uppercase tracking-[0.2em] flex items-center gap-1.5">
+                    <h3 className="text-[10px] font-bold text-app-text-muted uppercase tracking-[0.2em] flex items-center gap-1.5">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -59,20 +59,20 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                         void triggerAnalysis();
                     }}
                     disabled={isAnalyzing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold bg-mac-surface/40 border border-mac-border rounded-lg text-mac-text hover:bg-mac-hover disabled:opacity-50 transition-colors shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold bg-app-surface/40 border border-app-border rounded-lg text-app-text-main hover:bg-app-hover disabled:opacity-50 transition-colors shadow-sm"
                 >
                     {isAnalyzing ? (
                         <div className="flex gap-1 items-center justify-center w-12">
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-text/70 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-main/70 animate-bounce"
                                 style={{ animationDelay: "0ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-text/70 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-main/70 animate-bounce"
                                 style={{ animationDelay: "150ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-text/70 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-main/70 animate-bounce"
                                 style={{ animationDelay: "300ms" }}
                             />
                         </div>
@@ -129,7 +129,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
 
             {/* Tab Bar */}
             <div
-                className="flex items-center gap-4 mb-4 border-b border-mac-border/50"
+                className="flex items-center gap-4 mb-4 border-b border-app-border/50"
                 role="tablist"
             >
                 {TABS.map((tab) => {
@@ -157,8 +157,8 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                             onClick={() => setActiveTab(tab.id)}
                             className={`pb-2 px-1 text-[13px] font-medium transition-colors ${
                                 isActive
-                                    ? "text-mac-text border-b-2 border-mac-accent"
-                                    : "text-mac-secondary hover:text-mac-text"
+                                    ? "text-app-text-main border-b-2 border-app-accent"
+                                    : "text-app-text-muted hover:text-app-text-main"
                             }`}
                         >
                             {tab.label} ({count})
@@ -176,29 +176,29 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                 aria-live="polite"
             >
                 {!hasApiKey ? (
-                    <div className="bg-mac-surface/40 border border-mac-border rounded-xl shadow-mac-sm p-8 flex flex-col items-center justify-center text-center">
-                        <p className="text-mac-secondary text-sm">
+                    <div className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center">
+                        <p className="text-app-text-muted text-sm">
                             Configure your AI API key in Settings to enable
                             Warden
                         </p>
                     </div>
                 ) : isAnalyzing && insights.length === 0 ? (
-                    <div className="bg-mac-surface/40 border border-mac-border rounded-xl shadow-mac-sm p-8 flex flex-col items-center justify-center text-center gap-3">
+                    <div className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center gap-3">
                         <div className="flex gap-1.5">
                             <span
-                                className="w-1.5 h-1.5 rounded-full bg-mac-secondary/50 animate-bounce"
+                                className="w-1.5 h-1.5 rounded-full bg-app-text-muted/50 animate-bounce"
                                 style={{ animationDelay: "0ms" }}
                             />
                             <span
-                                className="w-1.5 h-1.5 rounded-full bg-mac-secondary/50 animate-bounce"
+                                className="w-1.5 h-1.5 rounded-full bg-app-text-muted/50 animate-bounce"
                                 style={{ animationDelay: "150ms" }}
                             />
                             <span
-                                className="w-1.5 h-1.5 rounded-full bg-mac-secondary/50 animate-bounce"
+                                className="w-1.5 h-1.5 rounded-full bg-app-text-muted/50 animate-bounce"
                                 style={{ animationDelay: "300ms" }}
                             />
                         </div>
-                        <p className="text-mac-secondary text-sm">
+                        <p className="text-app-text-muted text-sm">
                             Warden is analyzing your project...
                         </p>
                     </div>
@@ -207,16 +207,16 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                         {[1, 2, 3].map((i) => (
                             <div
                                 key={i}
-                                className="bg-mac-surface/40 border border-mac-border rounded-xl shadow-mac-sm p-4 h-24 flex flex-col justify-center gap-2.5"
+                                className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-4 h-24 flex flex-col justify-center gap-2.5"
                             >
-                                <div className="h-4 bg-mac-border/40 rounded w-[90%] animate-pulse" />
-                                <div className="h-4 bg-mac-border/40 rounded w-[60%] animate-pulse" />
+                                <div className="h-4 bg-app-border/40 rounded w-[90%] animate-pulse" />
+                                <div className="h-4 bg-app-border/40 rounded w-[60%] animate-pulse" />
                             </div>
                         ))}
                     </div>
                 ) : insights.length === 0 ? (
-                    <div className="bg-mac-surface/40 border border-mac-border rounded-xl shadow-mac-sm p-8 flex flex-col items-center justify-center text-center">
-                        <p className="text-mac-secondary text-[13px]">
+                    <div className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center">
+                        <p className="text-app-text-muted text-[13px]">
                             {activeTab === "new" &&
                                 "No new insights. Warden will analyze your project on the next commit."}
                             {activeTab === "approved" &&
@@ -248,7 +248,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                 {/* Pagination Controls */}
                 {!isLoading && totalPages > 1 && (
                     <div className="flex items-center justify-between mt-6 px-1">
-                        <span className="text-[11px] text-mac-secondary font-medium">
+                        <span className="text-[11px] text-app-text-muted font-medium">
                             Page {page + 1} of {totalPages}
                         </span>
                         <div className="flex items-center gap-2">
@@ -257,7 +257,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                                     setPage((p) => Math.max(0, p - 1))
                                 }
                                 disabled={page === 0}
-                                className="px-3 py-1.5 text-[11px] font-semibold bg-mac-surface/40 border border-mac-border rounded-lg text-mac-text hover:bg-mac-hover disabled:opacity-30 transition-colors shadow-sm"
+                                className="px-3 py-1.5 text-[11px] font-semibold bg-app-surface/40 border border-app-border rounded-lg text-app-text-main hover:bg-app-hover disabled:opacity-30 transition-colors shadow-sm"
                             >
                                 Previous
                             </button>
@@ -268,7 +268,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                                     )
                                 }
                                 disabled={page === totalPages - 1}
-                                className="px-3 py-1.5 text-[11px] font-semibold bg-mac-surface/40 border border-mac-border rounded-lg text-mac-text hover:bg-mac-hover disabled:opacity-30 transition-colors shadow-sm"
+                                className="px-3 py-1.5 text-[11px] font-semibold bg-app-surface/40 border border-app-border rounded-lg text-app-text-main hover:bg-app-hover disabled:opacity-30 transition-colors shadow-sm"
                             >
                                 Next
                             </button>

@@ -171,8 +171,8 @@ export default function CardsTab({
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-mac-accent border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-mac-secondary">
+                    <div className="w-8 h-8 border-2 border-app-accent border-t-transparent rounded-full animate-spin" />
+                    <p className="text-sm text-app-text-muted">
                         Loading projects...
                     </p>
                 </div>
@@ -201,15 +201,15 @@ export default function CardsTab({
             >
                 <div className="max-w-6xl mx-auto mb-5">
                     <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-[32px] font-bold text-mac-text leading-tight tracking-wide">
+                        <h1 className="text-[32px] font-bold text-app-text-main leading-tight tracking-wide">
                             Projects
                         </h1>
-                        <div className="text-xs font-medium text-mac-secondary border border-mac-border bg-transparent px-3 py-1.5 rounded-full">
+                        <div className="text-xs font-medium text-app-text-muted border border-app-border bg-transparent px-3 py-1.5 rounded-full">
                             {filteredProjects.length} PROJECTS
                         </div>
                     </div>
                     <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-mac-secondary pointer-events-none" />
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-text-muted pointer-events-none" />
                         <input
                             id="projects-search"
                             type="text"
@@ -217,7 +217,7 @@ export default function CardsTab({
                             onChange={(e) => setSearch(e.target.value)}
                             placeholder="Search projects..."
                             aria-label="Search projects"
-                            className="w-full bg-mac-surface border border-mac-border rounded-xl pl-8 pr-4 py-2.5 text-[13px] text-mac-text placeholder-mac-secondary focus:outline-none focus:ring-2 focus:ring-mac-accent/30"
+                            className="w-full bg-app-surface border border-app-border rounded-xl pl-8 pr-4 py-2.5 text-[13px] text-app-text-main placeholder-app-text-muted focus:outline-none focus:ring-2 focus:ring-app-accent/30"
                         />
                     </div>
                 </div>
@@ -237,7 +237,7 @@ export default function CardsTab({
             </div>
 
             <div
-                className={`absolute inset-0 h-full w-full bg-mac-bg transition-all duration-500 ${viewMode === "dashboard" ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}`}
+                className={`absolute inset-0 h-full w-full bg-app-bg transition-all duration-500 ${viewMode === "dashboard" ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}`}
             >
                 {projects[activeIndex] && (
                     <div className="h-full w-full">
