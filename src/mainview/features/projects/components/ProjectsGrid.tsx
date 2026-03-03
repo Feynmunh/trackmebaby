@@ -27,7 +27,7 @@ export default function ProjectsGrid({
                     return (
                         <article
                             key={project.id}
-                            className="relative bg-app-surface rounded-2xl border border-app-border hover:border-white/30 transition-colors duration-150 active:scale-[0.98] text-left group"
+                            className="relative bg-app-surface rounded-2xl border border-app-border hover:border-app-text-muted/20 transition-colors duration-150 active:scale-[0.98] text-left group"
                         >
                             {/* Delete controls — outside the clickable card area */}
                             {confirmingId === project.id ? (

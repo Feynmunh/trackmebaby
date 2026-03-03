@@ -106,7 +106,7 @@ function App() {
         <div className="flex flex-col h-screen overflow-hidden bg-app-bg font-sans selection:bg-app-accent/20">
             {/* Custom Titlebar — macOS only (on Linux, the native titlebar handles this) */}
             {isMac && (
-                <div className="h-10 w-full shrink-0 flex items-center justify-center bg-app-bg border-b border-white/[0.05] z-50 relative electrobun-webkit-app-region-drag">
+                <div className="h-10 w-full shrink-0 flex items-center justify-center bg-app-bg border-b border-app-border/40 z-50 relative electrobun-webkit-app-region-drag">
                     {/* Spacer for macOS traffic lights (left side) */}
                     <div className="w-20 shrink-0" />
 

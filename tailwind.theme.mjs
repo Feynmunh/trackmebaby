@@ -11,6 +11,10 @@ const theme = {
                 "text-muted": "hsl(var(--app-text-muted) / <alpha-value>)",
                 accent: "hsl(var(--app-accent) / <alpha-value>)",
                 hover: "hsl(var(--app-hover) / <alpha-value>)",
+                success: "hsl(var(--app-success) / <alpha-value>)",
+                warning: "hsl(var(--app-warning) / <alpha-value>)",
+                error: "hsl(var(--app-error) / <alpha-value>)",
+                info: "hsl(var(--app-info) / <alpha-value>)",
             },
         },
         fontFamily: {

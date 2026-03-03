@@ -115,7 +115,7 @@ function NavButton({
                 onClick={onClick}
                 className={[
                     "relative flex items-center justify-center w-12 h-12 rounded-2xl",
-                    "transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-white/20",
+                    "transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-app-accent/40",
                     isActive
                         ? "bg-app-surface text-app-text-main shadow-sm"
                         : "text-app-text-muted hover:text-app-text-main hover:bg-app-surface/50 active:scale-95",

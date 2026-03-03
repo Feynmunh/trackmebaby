@@ -189,7 +189,7 @@ export default function OverviewPage({
                             return (
                                 <div
                                     key={row.key}
-                                    className="group flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-white/[0.03] transition-colors -mx-2 cursor-pointer"
+                                    className="group flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-app-hover transition-colors -mx-2 cursor-pointer"
                                     onClick={row.onClick}
                                 >
                                     <div className="flex items-center gap-1.5 w-[72px] justify-end shrink-0">
@@ -201,7 +201,7 @@ export default function OverviewPage({
                                             {row.label}
                                         </span>
                                     </div>
-                                    <div className="flex-1 h-[8px] rounded-full overflow-hidden bg-white/[0.05]">
+                                    <div className="flex-1 h-[8px] rounded-full overflow-hidden bg-app-bg">
                                         {row.loading ? (
                                             <div className="h-full w-1/3 bg-app-border/40 rounded-full animate-pulse" />
                                         ) : row.needsAuth ? (
