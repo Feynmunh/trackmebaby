@@ -5,6 +5,7 @@
 import {
     Archive,
     FileText,
+    ImageIcon,
     Lightbulb,
     Link2,
     Scale,
@@ -26,6 +27,7 @@ const FILTER_OPTIONS: {
     { id: "milestone", label: "Milestones", icon: Target },
     { id: "idea", label: "Ideas", icon: Lightbulb },
     { id: "decision", label: "Decisions", icon: Scale },
+    { id: "image", label: "Images", icon: ImageIcon },
 ];
 
 interface VaultPageProps {
@@ -117,8 +119,8 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                         Your vault is empty
                     </h4>
                     <p className="text-[12px] text-app-text-muted/60 max-w-[280px] leading-relaxed">
-                        Start adding links, notes, ideas, milestones, and
-                        decisions. Paste a URL or type anything above to get
+                        Start adding links, notes, images, ideas, milestones,
+                        and decisions. Paste a URL or type anything above to get
                         started.
                     </p>
                 </div>
@@ -190,11 +192,32 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                                 ))}
                         </div>
                     )}
+                    {/* Images as 2-col gallery */}
+                    {unpinnedResources.some((r) => r.type === "image") && (
+                        <div className="grid grid-cols-2 gap-3 mb-3">
+                            {unpinnedResources
+                                .filter((r) => r.type === "image")
+                                .map((resource) => (
+                                    <ResourceCard
+                                        key={resource.id}
+                                        resource={resource}
+                                        onTogglePin={togglePin}
+                                        onDelete={removeResource}
+                                        onEdit={editResource}
+                                    />
+                                ))}
+                        </div>
+                    )}
                     {/* Other types as 2-col grid */}
-                    {unpinnedResources.some((r) => r.type !== "link") && (
+                    {unpinnedResources.some(
+                        (r) => r.type !== "link" && r.type !== "image",
+                    ) && (
                         <div className="grid grid-cols-2 gap-3">
                             {unpinnedResources
-                                .filter((r) => r.type !== "link")
+                                .filter(
+                                    (r) =>
+                                        r.type !== "link" && r.type !== "image",
+                                )
                                 .map((resource) => (
                                     <ResourceCard
                                         key={resource.id}

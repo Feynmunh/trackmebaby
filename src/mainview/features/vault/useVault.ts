@@ -123,19 +123,12 @@ export function useVault(projectId: string): UseVaultReturn {
             },
         ) => {
             try {
-                const { success } = await updateVaultResource({
-                    id,
-                    ...updates,
-                });
-                if (success) {
-                    setResources((prev) =>
-                        prev.map((r) =>
-                            r.id === id ? { ...r, ...updates } : r,
-                        ),
-                    );
-                }
+                await updateVaultResource({ id, ...updates });
+                setResources((prev) =>
+                    prev.map((r) => (r.id === id ? { ...r, ...updates } : r)),
+                );
             } catch (err: unknown) {
-                console.error("[Vault] Failed to update resource:", err);
+                console.error("[Vault] Failed to edit resource:", err);
             }
         },
         [],
@@ -143,10 +136,8 @@ export function useVault(projectId: string): UseVaultReturn {
 
     const removeResource = useCallback(async (id: string) => {
         try {
-            const { success } = await deleteVaultResource(id);
-            if (success) {
-                setResources((prev) => prev.filter((r) => r.id !== id));
-            }
+            await deleteVaultResource(id);
+            setResources((prev) => prev.filter((r) => r.id !== id));
         } catch (err: unknown) {
             console.error("[Vault] Failed to delete resource:", err);
         }
@@ -155,36 +146,26 @@ export function useVault(projectId: string): UseVaultReturn {
     const togglePin = useCallback(async (id: string) => {
         try {
             const result = await toggleVaultResourcePin(id);
-            if (result.success) {
-                setResources((prev) =>
-                    prev.map((r) =>
-                        r.id === id ? { ...r, isPinned: result.isPinned } : r,
-                    ),
-                );
-            }
+            setResources((prev) =>
+                prev.map((r) =>
+                    r.id === id ? { ...r, isPinned: result.isPinned } : r,
+                ),
+            );
         } catch (err: unknown) {
             console.error("[Vault] Failed to toggle pin:", err);
         }
     }, []);
 
-    const refreshLinkPrev = useCallback(
+    // ─── Link preview ────────────────────────────────────────────────────
+    const refreshLinkPreview = useCallback(
         async (
-            resourceId: string,
+            _resourceId: string,
             url: string,
         ): Promise<LinkPreview | null> => {
             try {
-                const preview = await fetchLinkPreview(url);
-                if (preview) {
-                    setResources((prev) =>
-                        prev.map((r) =>
-                            r.id === resourceId
-                                ? { ...r, linkPreview: preview }
-                                : r,
-                        ),
-                    );
-                }
-                return preview;
-            } catch {
+                return await fetchLinkPreview(url);
+            } catch (err: unknown) {
+                console.error("[Vault] Link preview failed:", err);
                 return null;
             }
         },
@@ -193,25 +174,36 @@ export function useVault(projectId: string): UseVaultReturn {
 
     // ─── AI enhance ──────────────────────────────────────────────────────
     const aiEnhanceInput = useCallback(
-        async (rawInput: string) => {
+        async (
+            rawInput: string,
+        ): Promise<{
+            type: VaultResourceType;
+            title: string;
+            content: string;
+            tags: string[];
+        } | null> => {
             try {
-                const prompt = `You are an assistant that helps organize project resources. The user typed the following input for their Resource Vault:
+                const response = await queryAI(
+                    `You are a smart resource categorizer. Given the following raw input, determine the best resource type and structure it.
 
-"${rawInput}"
+Input: "${rawInput}"
 
-Classify this into one of these types: link, note, milestone, idea, decision
-Then structure it as JSON with these fields:
-- type: one of "link", "note", "milestone", "idea", "decision"
-- title: a clear short title (max 60 chars)
-- content: the full structured content
-- tags: an array of 1-3 relevant short tags
+Respond with ONLY a JSON object (no markdown, no explanation):
+{
+  "type": "link" | "note" | "milestone" | "idea" | "decision" | "image",
+  "title": "A clear, concise title",
+  "content": "Expanded description or summary",
+  "tags": ["relevant", "tags"]
+}
 
-Return ONLY valid JSON, no markdown, no explanation.`;
-
-                const response = await queryAI(prompt, {
-                    task: "general",
-                    projectId,
-                });
+Rules:
+- If it's a URL, type should be "link"
+- If it looks like a goal or achievement, use "milestone"
+- If it's a creative thought, use "idea"
+- If it's a choice or resolution, use "decision"
+- If it references an image URL (ending in .png, .jpg, .gif, etc.), use "image"
+- Otherwise default to "note"`,
+                );
 
                 // Try to parse JSON from the response
                 const jsonMatch = response.match(/\{[\s\S]*\}/);
@@ -230,6 +222,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
                     "milestone",
                     "idea",
                     "decision",
+                    "image",
                 ];
                 const type = validTypes.includes(parsed.type ?? "")
                     ? (parsed.type as VaultResourceType)
@@ -259,7 +252,7 @@ Return ONLY valid JSON, no markdown, no explanation.`;
         editResource,
         removeResource,
         togglePin,
-        refreshLinkPreview: refreshLinkPrev,
+        refreshLinkPreview,
         aiEnhanceInput,
         refresh: loadResources,
     };

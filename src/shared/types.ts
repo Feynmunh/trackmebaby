@@ -138,7 +138,8 @@ export type VaultResourceType =
     | "note"
     | "milestone"
     | "idea"
-    | "decision";
+    | "decision"
+    | "image";
 
 export interface LinkPreview {
     title: string | null;

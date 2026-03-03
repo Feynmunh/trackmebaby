@@ -5,6 +5,7 @@
 import {
     ExternalLink,
     FileText,
+    ImageIcon,
     Lightbulb,
     Link2,
     Pencil,
@@ -57,6 +58,12 @@ const TYPE_CONFIG: Record<
         label: "Decision",
         color: "text-rose-400",
         bg: "bg-rose-500/10 border-rose-500/20",
+    },
+    image: {
+        icon: ImageIcon,
+        label: "Image",
+        color: "text-cyan-400",
+        bg: "bg-cyan-500/10 border-cyan-500/20",
     },
 };
 
@@ -272,6 +279,169 @@ export default function ResourceCard({
                         )}
 
                         {/* Actions row */}
+                        <div className="flex items-center justify-between pt-1">
+                            <span className="text-[10px] text-app-text-muted/50">
+                                {timeAgo(resource.createdAt)}
+                            </span>
+                            <div
+                                className="flex items-center gap-1"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                <button
+                                    onClick={() => onTogglePin(resource.id)}
+                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
+                                    title={
+                                        resource.isPinned
+                                            ? "Unpin"
+                                            : "Pin to top"
+                                    }
+                                >
+                                    {resource.isPinned ? (
+                                        <PinOff
+                                            size={12}
+                                            className="text-app-accent"
+                                        />
+                                    ) : (
+                                        <Pin
+                                            size={12}
+                                            className="text-app-text-muted"
+                                        />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setEditTitle(resource.title);
+                                        setEditContent(resource.content);
+                                        setIsEditing(true);
+                                    }}
+                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
+                                    title="Edit"
+                                >
+                                    <Pencil
+                                        size={12}
+                                        className="text-app-text-muted"
+                                    />
+                                </button>
+                                <button
+                                    onClick={() => onDelete(resource.id)}
+                                    className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
+                                    title="Delete"
+                                >
+                                    <Trash2
+                                        size={12}
+                                        className="text-app-text-muted hover:text-red-400"
+                                    />
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    }
+
+    // ─── Image card ──────────────────────────────────────────────────────
+    if (resource.type === "image") {
+        const imageUrl = resource.url || "";
+        const hasValidImage =
+            imageUrl.startsWith("http://") ||
+            imageUrl.startsWith("https://") ||
+            imageUrl.startsWith("data:image/");
+        return (
+            <div className="group rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-200 overflow-hidden">
+                {/* Image preview */}
+                {hasValidImage ? (
+                    <div
+                        className="relative w-full h-40 bg-app-surface-elevated/30 cursor-pointer"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                    >
+                        <img
+                            src={imageUrl}
+                            alt={resource.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                const el = e.target as HTMLImageElement;
+                                el.style.display = "none";
+                                const fallback = el.nextElementSibling;
+                                if (fallback)
+                                    (fallback as HTMLElement).style.display =
+                                        "flex";
+                            }}
+                        />
+                        <div
+                            className="absolute inset-0 flex-col items-center justify-center gap-1.5 text-app-text-muted/40"
+                            style={{ display: "none" }}
+                        >
+                            <ImageIcon size={28} />
+                            <span className="text-[10px]">
+                                Image failed to load
+                            </span>
+                        </div>
+                        {resource.isPinned && (
+                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
+                                <Pin
+                                    size={10}
+                                    className="text-app-accent fill-app-accent"
+                                />
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div
+                        className="relative w-full h-28 bg-app-surface-elevated/20 flex flex-col items-center justify-center gap-1.5 cursor-pointer"
+                        onClick={() => setIsExpanded(!isExpanded)}
+                    >
+                        <ImageIcon
+                            size={24}
+                            className="text-app-text-muted/25"
+                        />
+                        <span className="text-[10px] text-app-text-muted/40">
+                            No image
+                        </span>
+                        {resource.isPinned && (
+                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/30 flex items-center justify-center">
+                                <Pin
+                                    size={10}
+                                    className="text-app-accent fill-app-accent"
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Info bar */}
+                <div
+                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer"
+                    onClick={() => setIsExpanded(!isExpanded)}
+                >
+                    <div className="shrink-0 w-6 h-6 rounded-lg bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center">
+                        <ImageIcon size={11} className="text-cyan-400" />
+                    </div>
+                    <h4 className="flex-1 text-[12px] font-semibold text-app-text-main truncate">
+                        {resource.title}
+                    </h4>
+                </div>
+
+                {/* Expanded details */}
+                {isExpanded && (
+                    <div className="px-4 pb-3 space-y-2 border-t border-app-border/20 pt-3">
+                        {resource.content && (
+                            <p className="text-[12px] text-app-text-muted leading-relaxed">
+                                {resource.content}
+                            </p>
+                        )}
+                        {resource.tags.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                                {resource.tags.map((tag) => (
+                                    <span
+                                        key={tag}
+                                        className="text-[10px] px-1.5 py-0.5 rounded-md bg-app-surface-elevated/50 text-app-text-muted border border-app-border/50"
+                                    >
+                                        {tag}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                         <div className="flex items-center justify-between pt-1">
                             <span className="text-[10px] text-app-text-muted/50">
                                 {timeAgo(resource.createdAt)}
