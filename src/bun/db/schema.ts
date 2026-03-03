@@ -6,7 +6,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const SCHEMA_VERSION = 6;
+const SCHEMA_VERSION = 7;
 const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
@@ -43,6 +43,9 @@ export function runMigrations(db: Database): void {
     }
     if (version < 6) {
         applyMigration6(db);
+    }
+    if (version < 7) {
+        applyMigration7(db);
     }
     if (version < SCHEMA_VERSION) {
         db.exec(
@@ -178,5 +181,35 @@ function applyMigration6(db: Database): void {
     db.exec(`
     CREATE INDEX IF NOT EXISTS idx_vault_resources_project_type
       ON vault_resources(project_id, type, is_pinned DESC, created_at DESC)
+  `);
+}
+
+function applyMigration7(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS conversations (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL DEFAULT 'New Chat',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS chat_messages (
+      id TEXT PRIMARY KEY,
+      conversation_id TEXT NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+      role TEXT NOT NULL,
+      content TEXT NOT NULL,
+      tagged_project_ids TEXT DEFAULT '[]',
+      screen_context TEXT,
+      timestamp TEXT NOT NULL
+    )
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_chat_messages_conversation
+      ON chat_messages(conversation_id, timestamp ASC)
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_conversations_updated
+      ON conversations(updated_at DESC)
   `);
 }

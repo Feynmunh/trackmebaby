@@ -132,6 +132,32 @@ export interface AIQueryOptions {
     filePath?: string;
     fileType?: string;
 }
+
+// ─── AI Chat ─────────────────────────────────────────────────────────────────
+
+export interface Conversation {
+    id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface ChatMessageRecord {
+    id: string;
+    conversationId: string;
+    role: "user" | "assistant";
+    content: string;
+    taggedProjectIds: string[];
+    screenContext: ScreenContext | null;
+    timestamp: string;
+}
+
+export interface ScreenContext {
+    activeTab: string;
+    selectedProjectId: string | null;
+    selectedProjectName: string | null;
+    visibleData: string | null;
+}
 // ─── Resource Vault ──────────────────────────────────────────────────────────
 
 export type VaultResourceType =

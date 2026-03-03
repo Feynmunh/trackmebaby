@@ -43,8 +43,10 @@ const scoreFuzzyMatch = (query: string, text: string): number | null => {
 
 export default function CardsTab({
     onNavigateToSettings,
+    onProjectView,
 }: {
     onNavigateToSettings?: () => void;
+    onProjectView?: (projectId: string, projectName: string) => void;
 }) {
     const {
         projects,
@@ -224,7 +226,15 @@ export default function CardsTab({
                 <ProjectsGrid
                     projects={filteredProjects}
                     gitSnapshots={gitSnapshots}
-                    onOpenDashboard={openDashboard}
+                    onOpenDashboard={(projectId) => {
+                        openDashboard(projectId);
+                        const project = projects.find(
+                            (p) => p.id === projectId,
+                        );
+                        if (project && onProjectView) {
+                            onProjectView(project.id, project.name);
+                        }
+                    }}
                     onDeleteProject={async (projectId) => {
                         try {
                             await deleteProject(projectId);
