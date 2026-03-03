@@ -75,20 +75,20 @@ export default function DashboardContent({
 
     return (
         <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 px-6 py-3">
-            {/* ── TOP ROW: bento cells, full width stacked ── */}
-            <div className="flex flex-col gap-3 shrink-0">
-                {/* AI Pulse cell — owns its own card border */}
-                <div>
-                    <AIOverview
-                        project={project}
-                        gitSnapshot={gitSnapshot}
-                        refreshKey={aiRefreshKey}
-                        onRefreshStats={onRefreshStats}
-                        statsLastUpdated={statsLastUpdated}
-                    />
-                </div>
+            {/* ── AI Pulse cell — owns its own card border ── */}
+            <div className="shrink-0">
+                <AIOverview
+                    project={project}
+                    gitSnapshot={gitSnapshot}
+                    refreshKey={aiRefreshKey}
+                    onRefreshStats={onRefreshStats}
+                    statsLastUpdated={statsLastUpdated}
+                />
+            </div>
 
-                {/* Vitality bars cell */}
+            {/* ── 2x2 GRID ── */}
+            <div className="grid grid-cols-2 gap-3 pb-3">
+                {/* TOP LEFT: Vitality bars cell */}
                 <div className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3">
                     <OverviewPage
                         project={project}
@@ -109,11 +109,22 @@ export default function DashboardContent({
                         onRefreshStats={onRefreshStats}
                     />
                 </div>
-            </div>
 
-            {/* ── BOTTOM ROW: stretches to fill remaining space ── */}
-            <div className="grid grid-cols-2 gap-3 pb-3">
-                {/* Commit Timeline cell */}
+                {/* TOP RIGHT: GitHub Issues cell */}
+                <div
+                    ref={githubRef}
+                    className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3"
+                >
+                    <GitHubPage
+                        githubData={githubData}
+                        githubLoading={githubLoading}
+                        isGitHubAuthenticated={isGitHubAuthenticated}
+                        isWidget={true}
+                        section="issues"
+                    />
+                </div>
+
+                {/* BOTTOM LEFT: Commit Timeline cell */}
                 <div
                     ref={timelineRef}
                     className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3"
@@ -127,17 +138,14 @@ export default function DashboardContent({
                     />
                 </div>
 
-                {/* Remote Environment cell */}
-                <div
-                    ref={githubRef}
-                    className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3"
-                >
+                {/* BOTTOM RIGHT: GitHub PRs cell */}
+                <div className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3">
                     <GitHubPage
                         githubData={githubData}
                         githubLoading={githubLoading}
                         isGitHubAuthenticated={isGitHubAuthenticated}
                         isWidget={true}
-                        section="environment"
+                        section="prs"
                     />
                 </div>
             </div>

@@ -17,9 +17,12 @@ CRITICAL CONSTRAINTS:
 - Start immediately. NO introductory phrases like "In this project", "You have been", or "The activity shows".
 - DO NOT mention the project name, branch name, or line/file counts. The user already sees these.
 - Focus on the logical features, refactors, or bugs addressed.
-- Provide 3-4 sentences as one coherent paragraph (no bullets, no line breaks).
+- Use markdown for emphasis (**bold** or *italics*).
+- ALWAYS format filenames with backticks like \`filename.ts\`.
+- Provide 3-4 sentences as one coherent paragraph (no bullets).
 
-Example of GOOD response: "Implementing JWT authentication and hardening the session refresh logic. The session refresh path now handles expiry edge cases more gracefully. Error reporting is clearer when auth fails, and the related middleware wiring has been simplified." 
+Example of GOOD response: "Refining the \`auth.ts\` middleware to handle JWT expiry more gracefully. The **session refresh** logic now covers edge cases that previously caused silent failures. Error reporting is clearer, and the related *middleware wiring* has been simplified for better readability." 
+
 Example of BAD response: "In the trackmebaby project, you modified 3 files on the master branch to add auth."`;
 
 const FILE_SUMMARY_SYSTEM_PROMPT = `You are a code review expert. Summarize the logical intent of the code changes using the provided file context and diff.

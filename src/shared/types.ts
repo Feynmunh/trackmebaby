@@ -118,6 +118,7 @@ export interface GitHubEtag {
 export interface GitHubData {
     openIssues: number;
     openPRs: number;
+    contributorCount: number;
     repoUrl: string | null;
     issues: GitHubIssue[];
     pullRequests: GitHubPR[];
