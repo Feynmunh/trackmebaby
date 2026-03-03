@@ -6,6 +6,7 @@
 import type { Database } from "bun:sqlite";
 import { BrowserView, type BrowserWindow } from "electrobun/bun";
 import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
+import type { Project } from "../../shared/types.ts";
 import {
     type AIProvider,
     createAIProvider,
@@ -56,8 +57,11 @@ export function createRPC(
     // GitHub service
     const githubService = new GitHubService(db);
 
+    // Deferred callback — set after rpc is created
+    let projectsScannedCallback: ((projects: Project[]) => void) | undefined;
+
     const rpc = BrowserView.defineRPC<TrackmeBabyRPC>({
-        maxRequestTime: 15000,
+        maxRequestTime: 60000,
         handlers: {
             requests: {
                 ...registerProjectHandlers({ db }),
@@ -69,6 +73,9 @@ export function createRPC(
                     resetAIProvider: () => {
                         aiProvider = null;
                     },
+                    onProjectsScanned: (projects) => {
+                        projectsScannedCallback?.(projects);
+                    },
                 }),
                 ...registerGitHubHandlers({ db, githubService }),
                 ...registerWardenHandlers({ db, wardenService }),
@@ -78,6 +85,14 @@ export function createRPC(
             messages: registerSystemHandlers(),
         },
     });
+
+    projectsScannedCallback = (projects) => {
+        try {
+            rpc.send.projectsUpdated({ projects });
+        } catch (err) {
+            console.error("[trackmebaby] Failed to push projectsUpdated:", err);
+        }
+    };
 
     return rpc;
 }

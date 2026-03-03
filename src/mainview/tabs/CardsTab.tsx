@@ -133,10 +133,24 @@ export default function CardsTab({
             const settings = await getSettings();
             const selected = await selectFolder(settings.basePath || undefined);
             if (selected) {
-                await scanProjects(selected);
-                // Small delay to allow the DB write from scanProjects to flush before reload
-                await new Promise((resolve) => setTimeout(resolve, 100));
-                window.location.reload();
+                console.log("[CardsTab] Folder selected:", selected);
+                await updateSettings({ basePath: selected });
+                try {
+                    const scanned = await scanProjects(selected);
+                    console.log(
+                        "[CardsTab] Scan returned",
+                        scanned.length,
+                        "projects",
+                    );
+                } catch (err) {
+                    console.error(
+                        "[CardsTab] Scan failed, will still reload projects:",
+                        err,
+                    );
+                }
+                console.log("[CardsTab] Calling loadProjects...");
+                await loadProjects();
+                console.log("[CardsTab] loadProjects done");
             }
         } finally {
             setSelectingFolder(false);
@@ -147,13 +161,27 @@ export default function CardsTab({
         if (!basePathInput.trim()) return;
         setSavingPath(true);
         try {
-            await updateSettings({ basePath: basePathInput.trim() });
-            await scanProjects(basePathInput.trim());
-            // Small delay to allow the DB write from scanProjects to flush before reload
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            window.location.reload();
+            const trimmedPath = basePathInput.trim();
+            console.log("[CardsTab] Saving base path:", trimmedPath);
+            await updateSettings({ basePath: trimmedPath });
+            try {
+                const scanned = await scanProjects(trimmedPath);
+                console.log(
+                    "[CardsTab] Scan returned",
+                    scanned.length,
+                    "projects",
+                );
+            } catch (err) {
+                console.error(
+                    "[CardsTab] Scan failed, will still reload projects:",
+                    err,
+                );
+            }
+            console.log("[CardsTab] Calling loadProjects...");
+            await loadProjects();
+            console.log("[CardsTab] loadProjects done");
         } catch (err) {
-            console.error("Failed to save path:", err);
+            console.error("[CardsTab] Failed to save path:", err);
         } finally {
             setSavingPath(false);
         }

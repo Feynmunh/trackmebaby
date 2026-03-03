@@ -131,6 +131,24 @@ export function isProjectPathDeleted(db: Database, path: string): boolean {
     return row !== null;
 }
 
+/**
+ * Clear deleted_projects entries whose paths start with the given basePath.
+ * Called when a user explicitly re-scans a folder so previously deleted
+ * projects under it can reappear.
+ */
+export function clearDeletedProjectsUnder(
+    db: Database,
+    basePath: string,
+): number {
+    // Match exact path or paths under basePath/
+    const result = db
+        .query(
+            "DELETE FROM deleted_projects WHERE path = ? OR path LIKE ? ESCAPE '\\'",
+        )
+        .run(basePath, `${basePath.replace(/[%_\\]/g, "\\$&")}/%`);
+    return result.changes;
+}
+
 export function mapProject(row: ProjectRow): Project {
     const worktrees = safeJsonParse<Worktree[]>(
         row.worktrees,

@@ -20,7 +20,7 @@ import type {
 
 // Initialize RPC
 const rpc = Electroview.defineRPC<TrackmeBabyRPC>({
-    maxRequestTime: 15000,
+    maxRequestTime: 60000,
     handlers: {
         requests: {},
         messages: {
