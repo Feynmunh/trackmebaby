@@ -140,6 +140,10 @@ export type TrackmeBabyRPC = {
                     reason: string;
                 };
             };
+            deleteProject: {
+                params: { projectId: string };
+                response: { success: boolean };
+            };
         };
         messages: {
             log: { entry: LogEntry };

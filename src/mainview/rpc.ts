@@ -255,6 +255,12 @@ export async function updateWardenInsightStatus(
     return requestApi.updateWardenInsightStatus({ insightId, status });
 }
 
+export async function deleteProject(
+    projectId: string,
+): Promise<{ success: boolean }> {
+    return requestApi.deleteProject({ projectId });
+}
+
 // --- Push Message Subscriptions ---
 
 export function onProjectsUpdated(

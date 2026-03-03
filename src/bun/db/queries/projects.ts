@@ -110,6 +110,27 @@ export function getProjectByPath(db: Database, path: string): Project | null {
     return row ? mapProject(row) : null;
 }
 
+export function deleteProject(db: Database, id: string): boolean {
+    const project = getProjectById(db, id);
+    if (project) {
+        db.query(
+            "INSERT OR REPLACE INTO deleted_projects (path, deleted_at) VALUES (?, ?)",
+        ).run(project.path, nowIso());
+    }
+    db.query("DELETE FROM project_caches WHERE project_id = ?").run(id);
+    db.query("DELETE FROM git_snapshots WHERE project_id = ?").run(id);
+    db.query("DELETE FROM events WHERE project_id = ?").run(id);
+    db.query("DELETE FROM projects WHERE id = ?").run(id);
+    return true;
+}
+
+export function isProjectPathDeleted(db: Database, path: string): boolean {
+    const row = db
+        .query("SELECT path FROM deleted_projects WHERE path = ?")
+        .get(path);
+    return row !== null;
+}
+
 export function mapProject(row: ProjectRow): Project {
     const worktrees = safeJsonParse<Worktree[]>(
         row.worktrees,

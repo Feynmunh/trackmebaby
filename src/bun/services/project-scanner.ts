@@ -12,6 +12,7 @@ import { basename, join } from "node:path";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 import type { Project, Worktree } from "../../shared/types.ts";
+import { isProjectPathDeleted } from "../db/queries/projects.ts";
 import { upsertProject } from "../db/queries.ts";
 import { runGit } from "./git-command.ts";
 import { getUncommittedFileStatus } from "./git-utils.ts";
@@ -69,10 +70,11 @@ export class ProjectScanner {
             }
         }
 
-        // Second pass: register projects (skip worktree directories)
+        // Second pass: register projects (skip worktree directories and deleted projects)
         const projects: Project[] = [];
         for (const repoPath of repoPaths) {
             if (worktreePaths.has(repoPath)) continue; // This is a worktree, skip
+            if (isProjectPathDeleted(this.db, repoPath)) continue; // User deleted this project
 
             const name = basename(repoPath);
 

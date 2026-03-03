@@ -5,6 +5,7 @@ import ProjectsEmptyState from "../features/projects/components/ProjectsEmptySta
 import ProjectsGrid from "../features/projects/components/ProjectsGrid.tsx";
 import { useProjectData } from "../hooks/useProjectData.ts";
 import {
+    deleteProject,
     getPlatform,
     getSettings,
     scanProjects,
@@ -59,6 +60,7 @@ export default function CardsTab({
         fetchStatsForProject,
         openDashboard,
         closeDashboard,
+        loadProjects,
     } = useProjectData();
 
     const [platform, setPlatform] = useState<string>("");
@@ -223,6 +225,14 @@ export default function CardsTab({
                     projects={filteredProjects}
                     gitSnapshots={gitSnapshots}
                     onOpenDashboard={openDashboard}
+                    onDeleteProject={async (projectId) => {
+                        try {
+                            await deleteProject(projectId);
+                            await loadProjects();
+                        } catch (err) {
+                            console.error("Failed to delete project:", err);
+                        }
+                    }}
                 />
             </div>
 
