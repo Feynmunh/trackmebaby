@@ -35,7 +35,20 @@ export function CommitTrendGraph({
 
     if (commits.length < 2) return null;
 
-    const data = [...commits].reverse();
+    const MAX_POINTS = 100;
+    const dataSource = [...commits].reverse();
+
+    let data: TrendCommit[];
+    if (dataSource.length <= MAX_POINTS) {
+        data = dataSource;
+    } else {
+        const step = dataSource.length / MAX_POINTS;
+        data = Array.from({ length: MAX_POINTS }, (_, i) => {
+            const idx = Math.floor(i * step);
+            return dataSource[idx];
+        }).filter((c): c is TrendCommit => Boolean(c));
+    }
+
     const width = 600;
     const height = 140;
     const paddingTop = 16;

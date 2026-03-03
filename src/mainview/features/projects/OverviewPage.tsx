@@ -104,14 +104,15 @@ export default function OverviewPage({
         // Calculate Repo Age in days
         let ageDays = 0;
         if (projectStats?.repoAgeFirstCommit) {
-            const first = new Date(projectStats.repoAgeFirstCommit);
-            const now = new Date();
-            ageDays = Math.max(
-                0,
-                Math.floor(
-                    (now.getTime() - first.getTime()) / (1000 * 60 * 60 * 24),
-                ),
-            );
+            const firstDate = new Date(projectStats.repoAgeFirstCommit);
+            const firstMs = firstDate.getTime();
+            const nowMs = Date.now();
+            if (Number.isFinite(firstMs) && firstMs <= nowMs) {
+                ageDays = Math.max(
+                    0,
+                    Math.floor((nowMs - firstMs) / (1000 * 60 * 60 * 24)),
+                );
+            }
         }
 
         const formatAge = (days: number) => {

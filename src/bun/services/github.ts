@@ -227,12 +227,12 @@ export class GitHubService {
 
             const cachedIssues = cache?.data?.issues ?? null;
             const cachedPRs = cache?.data?.pullRequests ?? null;
-            const cachedContributorCount = cache?.data?.contributorCount ?? 0;
+            const cachedContributorCount = cache?.data?.contributorCount;
 
             if (
                 issuesStatus === 304 &&
                 prsStatus === 304 &&
-                cachedContributorCount > 0
+                cachedContributorCount !== undefined
             ) {
                 return cache?.data ?? null;
             }
@@ -315,7 +315,7 @@ export class GitHubService {
             if (
                 issuesStatus !== 304 ||
                 prsStatus !== 304 ||
-                !contributorCount
+                cache?.data?.contributorCount === undefined
             ) {
                 contributorCount = await fetchGitHubContributorCount(
                     token,

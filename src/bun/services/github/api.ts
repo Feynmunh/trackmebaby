@@ -126,29 +126,41 @@ export async function fetchGitHubContributorCount(
     token: string,
     owner: string,
     repo: string,
-    retries = 5,
 ): Promise<number> {
     try {
-        // Use the stats/contributors endpoint which matches the GitHub UI "Contributors" tab.
-        // This endpoint often returns 202 Accepted while calculating.
-        const res = await fetch(
-            `${GITHUB_API_BASE}/repos/${owner}/${repo}/stats/contributors`,
-            { headers: getGitHubHeaders(token) },
-        );
+        const maxWaitMs = 10000;
+        const startTime = Date.now();
+        const maxAttempts = 5;
 
-        // GitHub may return 202 Accepted if it's still calculating.
-        if (res.status === 202 && retries > 0) {
-            // Stats API can be slow, especially for new requests.
-            // Exponential backoff could be better, but we'll stick to a steady wait for now.
-            await new Promise((resolve) => setTimeout(resolve, 4000));
-            return fetchGitHubContributorCount(token, owner, repo, retries - 1);
-        }
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            // Use the stats/contributors endpoint which matches the GitHub UI "Contributors" tab.
+            // This endpoint often returns 202 Accepted while calculating.
+            const res = await fetch(
+                `${GITHUB_API_BASE}/repos/${owner}/${repo}/stats/contributors`,
+                { headers: getGitHubHeaders(token) },
+            );
 
-        if (res.ok && res.status !== 204) {
-            const data = await res.json();
-            if (Array.isArray(data)) {
-                return data.length;
+            // GitHub may return 202 Accepted if it's still calculating.
+            if (res.status === 202) {
+                const elapsed = Date.now() - startTime;
+                const remaining = maxWaitMs - elapsed;
+                if (remaining <= 0) break;
+
+                // Exponential backoff starting at 1s
+                const delayMs = Math.min(remaining, 2 ** attempt * 1000);
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                continue;
             }
+
+            if (res.ok && res.status !== 204) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    return data.length;
+                }
+            }
+
+            // If not 202 and not ok, break early to try fallback
+            break;
         }
 
         // Fallback: Use the contributors API with anon=true.
