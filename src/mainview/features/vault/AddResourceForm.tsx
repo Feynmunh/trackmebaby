@@ -99,6 +99,7 @@ export default function AddResourceForm({
     const [isAiLoading, setIsAiLoading] = useState(false);
     const titleRef = useRef<HTMLInputElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [pasteError, setPasteError] = useState<string | null>(null);
 
     const resetForm = useCallback(() => {
         setTitle("");
@@ -180,10 +181,9 @@ export default function AddResourceForm({
         [processImageFile],
     );
 
-    /** Handle paste event for images */
+    /** Handle paste event for images (Cmd+V anywhere on the form) */
     const handlePaste = useCallback(
         (e: React.ClipboardEvent) => {
-            if (selectedType !== "image") return;
             const items = e.clipboardData?.items;
             if (!items) return;
             for (const item of items) {
@@ -195,8 +195,52 @@ export default function AddResourceForm({
                 }
             }
         },
-        [selectedType, processImageFile],
+        [processImageFile],
     );
+
+    /** Paste button click — tries Clipboard API, falls back to execCommand */
+    const handlePasteButtonClick = useCallback(async () => {
+        setPasteError(null);
+        // Method 1: Modern Clipboard API
+        try {
+            const items = await navigator.clipboard.read();
+            for (const item of items) {
+                const imageType = item.types.find((t: string) =>
+                    t.startsWith("image/"),
+                );
+                if (imageType) {
+                    const blob = await item.getType(imageType);
+                    const file = new File([blob], "pasted-image", {
+                        type: imageType,
+                    });
+                    void processImageFile(file);
+                    return;
+                }
+            }
+            // Clipboard had no images
+            setPasteError("No image found in clipboard");
+            setTimeout(() => setPasteError(null), 3000);
+            return;
+        } catch {
+            // Clipboard API not available or denied
+        }
+
+        // Method 2: Try reading clipboard as text (image URL)
+        try {
+            const text = await navigator.clipboard.readText();
+            if (text && IMAGE_URL_REGEX.test(text.trim())) {
+                setUrl(text.trim());
+                setImagePreview(text.trim());
+                if (!isExpanded) setIsExpanded(true);
+                return;
+            }
+        } catch {
+            // readText also unavailable
+        }
+
+        setPasteError("Paste not available — try \u2318V instead");
+        setTimeout(() => setPasteError(null), 3000);
+    }, [processImageFile, isExpanded]);
 
     /** Handle image URL change (manual entry) */
     const handleImageUrlChange = useCallback((value: string) => {
@@ -397,33 +441,7 @@ export default function AddResourceForm({
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={async () => {
-                                        try {
-                                            const items =
-                                                await navigator.clipboard.read();
-                                            for (const item of items) {
-                                                const imageType =
-                                                    item.types.find((t) =>
-                                                        t.startsWith("image/"),
-                                                    );
-                                                if (imageType) {
-                                                    const blob =
-                                                        await item.getType(
-                                                            imageType,
-                                                        );
-                                                    const file = new File(
-                                                        [blob],
-                                                        "pasted-image",
-                                                        { type: imageType },
-                                                    );
-                                                    void processImageFile(file);
-                                                    return;
-                                                }
-                                            }
-                                        } catch {
-                                            // Clipboard API may not be available
-                                        }
-                                    }}
+                                    onClick={() => void handlePasteButtonClick()}
                                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-[11px] font-medium bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 hover:bg-cyan-500/20 transition-colors"
                                 >
                                     <ClipboardPaste size={12} />
@@ -443,6 +461,12 @@ export default function AddResourceForm({
                                     />
                                 </div>
                             </div>
+                            {/* Paste error feedback */}
+                            {pasteError && (
+                                <p className="text-[10px] text-amber-400/80 px-1">
+                                    {pasteError}
+                                </p>
+                            )}
                             {/* Hidden file input */}
                             <input
                                 ref={fileInputRef}

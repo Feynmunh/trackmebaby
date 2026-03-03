@@ -11,9 +11,11 @@ import {
     Scale,
     Target,
 } from "lucide-react";
-import type { VaultResourceType } from "../../../shared/types.ts";
+import { useState } from "react";
+import type { VaultResource, VaultResourceType } from "../../../shared/types.ts";
 import AddResourceForm from "./AddResourceForm.tsx";
 import ResourceCard from "./ResourceCard.tsx";
+import ResourceDetailModal from "./ResourceDetailModal.tsx";
 import { useVault } from "./useVault.ts";
 
 const FILTER_OPTIONS: {
@@ -48,6 +50,8 @@ export default function VaultPage({ projectId }: VaultPageProps) {
         aiEnhanceInput,
         resources,
     } = useVault(projectId);
+
+    const [selectedResource, setSelectedResource] = useState<VaultResource | null>(null);
 
     return (
         <div className="mb-12 space-y-4">
@@ -145,6 +149,7 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                                     onTogglePin={togglePin}
                                     onDelete={removeResource}
                                     onEdit={editResource}
+                                    onViewDetails={setSelectedResource}
                                 />
                             ))}
                     </div>
@@ -159,6 +164,7 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                                         onTogglePin={togglePin}
                                         onDelete={removeResource}
                                         onEdit={editResource}
+                                        onViewDetails={setSelectedResource}
                                     />
                                 ))}
                         </div>
@@ -188,6 +194,7 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                                         onTogglePin={togglePin}
                                         onDelete={removeResource}
                                         onEdit={editResource}
+                                        onViewDetails={setSelectedResource}
                                     />
                                 ))}
                         </div>
@@ -204,6 +211,7 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                                         onTogglePin={togglePin}
                                         onDelete={removeResource}
                                         onEdit={editResource}
+                                        onViewDetails={setSelectedResource}
                                     />
                                 ))}
                         </div>
@@ -225,11 +233,29 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                                         onTogglePin={togglePin}
                                         onDelete={removeResource}
                                         onEdit={editResource}
+                                        onViewDetails={setSelectedResource}
                                     />
                                 ))}
                         </div>
                     )}
                 </div>
+            )}
+
+            {/* ── Detail modal ── */}
+            {selectedResource && (
+                <ResourceDetailModal
+                    resource={selectedResource}
+                    onClose={() => setSelectedResource(null)}
+                    onTogglePin={(id) => {
+                        togglePin(id);
+                        setSelectedResource(null);
+                    }}
+                    onDelete={(id) => {
+                        removeResource(id);
+                        setSelectedResource(null);
+                    }}
+                    onEdit={editResource}
+                />
             )}
         </div>
     );

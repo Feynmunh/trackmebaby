@@ -4,6 +4,7 @@
  */
 import {
     ExternalLink,
+    Eye,
     FileText,
     ImageIcon,
     Lightbulb,
@@ -82,6 +83,7 @@ interface ResourceCardProps {
             tags?: string[];
         },
     ) => void;
+    onViewDetails?: (resource: VaultResource) => void;
 }
 
 export default function ResourceCard({
@@ -89,6 +91,7 @@ export default function ResourceCard({
     onTogglePin,
     onDelete,
     onEdit,
+    onViewDetails,
 }: ResourceCardProps) {
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState(resource.title);
@@ -322,6 +325,18 @@ export default function ResourceCard({
                                         className="text-app-text-muted"
                                     />
                                 </button>
+                                {onViewDetails && (
+                                    <button
+                                        onClick={() => onViewDetails(resource)}
+                                        className="p-1.5 rounded-lg hover:bg-app-accent/10 transition-colors"
+                                        title="Full details"
+                                    >
+                                        <Eye
+                                            size={12}
+                                            className="text-app-text-muted hover:text-app-accent"
+                                        />
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => onDelete(resource.id)}
                                     className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
@@ -485,6 +500,18 @@ export default function ResourceCard({
                                         className="text-app-text-muted"
                                     />
                                 </button>
+                                {onViewDetails && (
+                                    <button
+                                        onClick={() => onViewDetails(resource)}
+                                        className="p-1.5 rounded-lg hover:bg-app-accent/10 transition-colors"
+                                        title="Full details"
+                                    >
+                                        <Eye
+                                            size={12}
+                                            className="text-app-text-muted hover:text-app-accent"
+                                        />
+                                    </button>
+                                )}
                                 <button
                                     onClick={() => onDelete(resource.id)}
                                     className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
@@ -592,6 +619,18 @@ export default function ResourceCard({
                         >
                             <Pencil size={12} className="text-app-text-muted" />
                         </button>
+                        {onViewDetails && (
+                            <button
+                                onClick={() => onViewDetails(resource)}
+                                className="p-1.5 rounded-lg hover:bg-app-accent/10 transition-colors"
+                                title="Full details"
+                            >
+                                <Eye
+                                    size={12}
+                                    className="text-app-text-muted hover:text-app-accent"
+                                />
+                            </button>
+                        )}
                         <button
                             onClick={() => onDelete(resource.id)}
                             className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
