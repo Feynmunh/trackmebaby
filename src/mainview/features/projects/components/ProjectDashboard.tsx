@@ -38,9 +38,9 @@ export default function ProjectDashboard({
     onBack,
     onNavigateToSettings,
 }: ProjectDashboardProps) {
-    const [activeView, setActiveView] = useState<"overview" | "warden">(
-        "overview",
-    );
+    const [activeView, setActiveView] = useState<
+        "overview" | "vault" | "warden"
+    >("overview");
     const timelineRef = useRef<HTMLDivElement>(null);
     const githubRef = useRef<HTMLDivElement>(null);
     const getLocalDateKey = (date: Date): string => {

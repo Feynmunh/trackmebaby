@@ -6,7 +6,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
@@ -40,6 +40,9 @@ export function runMigrations(db: Database): void {
     }
     if (version < 5) {
         applyMigration5(db);
+    }
+    if (version < 6) {
+        applyMigration6(db);
     }
     if (version < SCHEMA_VERSION) {
         db.exec(
@@ -149,5 +152,27 @@ function applyMigration5(db: Database): void {
       path TEXT PRIMARY KEY,
       deleted_at TEXT NOT NULL
     )
+  `);
+}
+
+function applyMigration6(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS vault_resources (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      type TEXT NOT NULL DEFAULT 'note',
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      url TEXT,
+      link_preview TEXT,
+      is_pinned INTEGER NOT NULL DEFAULT 0,
+      tags TEXT DEFAULT '[]',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_vault_resources_project
+      ON vault_resources(project_id, created_at DESC)
   `);
 }
