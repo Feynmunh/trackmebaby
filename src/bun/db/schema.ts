@@ -6,7 +6,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
@@ -37,6 +37,9 @@ export function runMigrations(db: Database): void {
     }
     if (version < 4) {
         applyMigration4(db);
+    }
+    if (version < 5) {
+        applyMigration5(db);
     }
     if (version < SCHEMA_VERSION) {
         db.exec(
@@ -137,5 +140,14 @@ function applyMigration4(db: Database): void {
     db.exec(`
     CREATE INDEX IF NOT EXISTS idx_warden_insights_project_status
       ON warden_insights(project_id, status)
+  `);
+}
+
+function applyMigration5(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS deleted_projects (
+      path TEXT PRIMARY KEY,
+      deleted_at TEXT NOT NULL
+    )
   `);
 }

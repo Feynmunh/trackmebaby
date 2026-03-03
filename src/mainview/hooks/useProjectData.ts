@@ -52,6 +52,7 @@ interface UseProjectDataResult {
     setActiveIndex: (index: number) => void;
     fetchStatsForProject: (projectId: string, force?: boolean) => Promise<void>;
     refreshActiveProject: (projectId: string) => Promise<void>;
+    loadProjects: () => Promise<void>;
     openDashboard: (projectId: string) => void;
     closeDashboard: () => void;
 }
@@ -294,6 +295,7 @@ export function useProjectData(): UseProjectDataResult {
         setActiveIndex,
         fetchStatsForProject,
         refreshActiveProject,
+        loadProjects,
         openDashboard,
         closeDashboard,
     };
