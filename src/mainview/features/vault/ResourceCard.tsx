@@ -171,8 +171,11 @@ export default function ResourceCard({
                                 alt=""
                                 className="w-4 h-4 rounded-sm"
                                 onError={(e) => {
-                                    (e.target as HTMLImageElement).style.display = "none";
-                                    (e.target as HTMLImageElement).parentElement!.innerHTML =
+                                    (
+                                        e.target as HTMLImageElement
+                                    ).style.display = "none";
+                                    (e.target as HTMLImageElement)
+                                        .parentElement!.innerHTML =
                                         '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-blue-400"><path d="M10 14a3.5 3.5 0 0 0 5 0l4-4a3.5 3.5 0 0 0-5-5l-.5.5"/><path d="M14 10a3.5 3.5 0 0 0-5 0l-4 4a3.5 3.5 0 0 0 5 5l.5-.5"/></svg>';
                                 }}
                             />
@@ -195,7 +198,10 @@ export default function ResourceCard({
 
                     {/* Pin indicator */}
                     {resource.isPinned && (
-                        <Pin size={11} className="text-app-accent fill-app-accent shrink-0" />
+                        <Pin
+                            size={11}
+                            className="text-app-accent fill-app-accent shrink-0"
+                        />
                     )}
 
                     {/* Preview button */}
@@ -223,7 +229,9 @@ export default function ResourceCard({
                                     alt=""
                                     className="w-full h-full object-cover"
                                     onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = "none";
+                                        (
+                                            e.target as HTMLImageElement
+                                        ).style.display = "none";
                                     }}
                                 />
                             </div>
@@ -231,16 +239,21 @@ export default function ResourceCard({
 
                         {/* Full URL */}
                         <div className="flex items-center gap-2 bg-app-surface-elevated/30 rounded-lg px-3 py-2">
-                            <Link2 size={11} className="text-app-text-muted/50 shrink-0" />
+                            <Link2
+                                size={11}
+                                className="text-app-text-muted/50 shrink-0"
+                            />
                             <span className="text-[11px] text-blue-400/80 truncate select-all">
                                 {resource.url}
                             </span>
                         </div>
 
                         {/* Description */}
-                        {(resource.linkPreview?.description || resource.content) && (
+                        {(resource.linkPreview?.description ||
+                            resource.content) && (
                             <p className="text-[12px] text-app-text-muted leading-relaxed">
-                                {resource.linkPreview?.description || resource.content}
+                                {resource.linkPreview?.description ||
+                                    resource.content}
                             </p>
                         )}
 
@@ -270,12 +283,22 @@ export default function ResourceCard({
                                 <button
                                     onClick={() => onTogglePin(resource.id)}
                                     className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                                    title={resource.isPinned ? "Unpin" : "Pin to top"}
+                                    title={
+                                        resource.isPinned
+                                            ? "Unpin"
+                                            : "Pin to top"
+                                    }
                                 >
                                     {resource.isPinned ? (
-                                        <PinOff size={12} className="text-app-accent" />
+                                        <PinOff
+                                            size={12}
+                                            className="text-app-accent"
+                                        />
                                     ) : (
-                                        <Pin size={12} className="text-app-text-muted" />
+                                        <Pin
+                                            size={12}
+                                            className="text-app-text-muted"
+                                        />
                                     )}
                                 </button>
                                 <button
@@ -287,14 +310,20 @@ export default function ResourceCard({
                                     className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
                                     title="Edit"
                                 >
-                                    <Pencil size={12} className="text-app-text-muted" />
+                                    <Pencil
+                                        size={12}
+                                        className="text-app-text-muted"
+                                    />
                                 </button>
                                 <button
                                     onClick={() => onDelete(resource.id)}
                                     className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
                                     title="Delete"
                                 >
-                                    <Trash2 size={12} className="text-app-text-muted hover:text-red-400" />
+                                    <Trash2
+                                        size={12}
+                                        className="text-app-text-muted hover:text-red-400"
+                                    />
                                 </button>
                             </div>
                         </div>
