@@ -9,6 +9,7 @@ import type {
 } from "../../../../shared/types.ts";
 import GitPage from "../../git/GitPage.tsx";
 import GitHubPage from "../../github/GitHubPage.tsx";
+import VaultPage from "../../vault/VaultPage.tsx";
 import WardenFeed from "../../warden/WardenFeed.tsx";
 import OverviewPage from "../OverviewPage.tsx";
 import AIOverview from "./AIOverview.tsx";
@@ -32,7 +33,7 @@ interface DashboardContentProps {
     onGitHubSignIn: () => void;
     timelineRef?: RefObject<HTMLDivElement>;
     githubRef?: RefObject<HTMLDivElement>;
-    activeView?: "overview" | "warden";
+    activeView?: "overview" | "vault" | "warden";
 }
 
 export default function DashboardContent({
@@ -56,6 +57,14 @@ export default function DashboardContent({
     githubRef,
     activeView = "overview",
 }: DashboardContentProps) {
+    if (activeView === "vault") {
+        return (
+            <main className="flex-1 overflow-y-auto custom-scrollbar px-6 py-3">
+                <VaultPage projectId={project.id} />
+            </main>
+        );
+    }
+
     if (activeView === "warden") {
         return (
             <main className="flex-1 overflow-y-auto custom-scrollbar px-6 py-3">

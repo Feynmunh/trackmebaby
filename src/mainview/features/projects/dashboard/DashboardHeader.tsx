@@ -5,8 +5,8 @@ import PillDock from "./PillDock.tsx";
 interface DashboardHeaderProps {
     project: Project;
     onBack: () => void;
-    activeView?: "overview" | "warden";
-    onViewChange?: (view: "overview" | "warden") => void;
+    activeView?: "overview" | "vault" | "warden";
+    onViewChange?: (view: "overview" | "vault" | "warden") => void;
 }
 
 export default function DashboardHeader({
@@ -63,7 +63,8 @@ export default function DashboardHeader({
                         {
                             icon: <Database size={15} strokeWidth={2} />,
                             label: "Resource Vault",
-                            disabled: true,
+                            isActive: activeView === "vault",
+                            onClick: () => onViewChange?.("vault"),
                             separator: true,
                         },
                         {

@@ -10,9 +10,12 @@ import type {
     AIQueryOptions,
     GitHubData,
     GitSnapshot,
+    LinkPreview,
     Project,
     ProjectStats,
     Settings,
+    VaultResource,
+    VaultResourceType,
     WardenInsight,
     WardenInsightStatus,
 } from "./types.ts";
@@ -143,6 +146,47 @@ export type TrackmeBabyRPC = {
             deleteProject: {
                 params: { projectId: string };
                 response: { success: boolean };
+            };
+            // --- Resource Vault ---
+            getVaultResources: {
+                params: {
+                    projectId: string;
+                    type?: VaultResourceType;
+                };
+                response: VaultResource[];
+            };
+            addVaultResource: {
+                params: {
+                    projectId: string;
+                    type: VaultResourceType;
+                    title: string;
+                    content: string;
+                    url?: string;
+                    tags?: string[];
+                };
+                response: VaultResource;
+            };
+            updateVaultResource: {
+                params: {
+                    id: string;
+                    title?: string;
+                    content?: string;
+                    type?: VaultResourceType;
+                    tags?: string[];
+                };
+                response: { success: boolean };
+            };
+            deleteVaultResource: {
+                params: { id: string };
+                response: { success: boolean };
+            };
+            toggleVaultResourcePin: {
+                params: { id: string };
+                response: { success: boolean; isPinned: boolean };
+            };
+            fetchLinkPreview: {
+                params: { url: string };
+                response: LinkPreview | null;
             };
         };
         messages: {
