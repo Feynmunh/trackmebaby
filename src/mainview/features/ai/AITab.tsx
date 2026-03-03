@@ -115,7 +115,7 @@ export default function AITab() {
                                             className={`max-w-[80%] rounded-3xl px-6 py-4 text-[15px] leading-relaxed
                                                 ${
                                                     msg.role === "user"
-                                                        ? "bg-app-accent text-white rounded-br-md shadow-[0_4px_20px_rgba(239,83,11,0.2)]"
+                                                        ? "bg-app-accent text-white rounded-br-md shadow-[0_4px_20px_hsl(var(--app-accent)_/_0.2)]"
                                                         : "bg-app-surface-elevated text-app-text-main rounded-bl-md shadow-sm border border-app-border"
                                                 }
                                             `}

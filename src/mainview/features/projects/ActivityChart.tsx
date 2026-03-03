@@ -30,7 +30,7 @@ export default function ActivityChart({
                         >
                             <div className="relative w-full flex flex-col items-center justify-end h-full">
                                 <div
-                                    className={`w-full max-w-[40px] rounded-t-lg transition-all duration-500 ${i === dailyCounts.length - 1 ? "bg-app-accent shadow-[0_0_20px_rgba(0,122,255,0.4)]" : "bg-app-accent/20 group-hover:bg-app-accent/40"}`}
+                                    className={`w-full max-w-[40px] rounded-t-lg transition-all duration-500 ${i === dailyCounts.length - 1 ? "bg-app-accent shadow-[0_0_20px_hsl(var(--app-accent)_/_0.4)]" : "bg-app-accent/20 group-hover:bg-app-accent/40"}`}
                                     style={{
                                         height: `${(d.count / maxCount) * 100}%`,
                                         minHeight: "8px",
@@ -67,7 +67,7 @@ export default function ActivityChart({
                         className="flex-1 flex flex-col items-center gap-2 group"
                     >
                         <div
-                            className={`w-full rounded-t-sm transition-all duration-500 ${i === dailyCounts.length - 1 ? "bg-app-accent shadow-[0_0_12px_rgba(0,122,255,0.4)]" : "bg-app-accent/30 group-hover:bg-app-accent/50"}`}
+                            className={`w-full rounded-t-sm transition-all duration-500 ${i === dailyCounts.length - 1 ? "bg-app-accent shadow-[0_0_12px_hsl(var(--app-accent)_/_0.4)]" : "bg-app-accent/30 group-hover:bg-app-accent/50"}`}
                             style={{
                                 height: `${(d.count / maxCount) * 100}%`,
                                 minHeight: "4px",

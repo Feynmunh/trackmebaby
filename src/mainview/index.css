@@ -210,10 +210,6 @@
 
 /* High Contrast Mode Support */
 @media (forced-colors: active) {
-    :root {
-        --app-border: CanvasText;
-        --app-text-main: CanvasText;
-        --app-text-muted: CanvasText;
-        --app-accent: Highlight;
-    }
+    /* In forced-colors mode, we let the browser handle system colors */
+    /* directly rather than overriding HSL variables with non-numeric keywords. */
 }

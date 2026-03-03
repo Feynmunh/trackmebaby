@@ -501,7 +501,7 @@ export default function OverviewPage({
                     </div>
                     <div className="w-full h-4 bg-app-bg/50 rounded-full overflow-hidden mb-4 border border-app-border/20">
                         <div
-                            className="h-full bg-app-accent transition-all duration-1000 shadow-[0_0_12px_rgba(0,122,255,0.4)]"
+                            className="h-full bg-app-accent transition-all duration-1000 shadow-[0_0_12px_hsl(var(--app-accent)_/_0.4)]"
                             style={{
                                 width: `${Math.min(100, (eventCount / 50) * 100)}%`,
                             }}
