@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import TabBar from "./components/TabBar";
+import { ToastProvider } from "./components/ui/Toast.tsx";
 import AITab from "./features/ai/AITab.tsx";
 import SettingsPanel from "./features/settings/SettingsPanel.tsx";
 import { getPlatform } from "./rpc";
@@ -103,49 +104,51 @@ function App() {
     }, []);
 
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-app-bg font-sans selection:bg-app-accent/20">
-            {/* Custom Titlebar — macOS only (on Linux, the native titlebar handles this) */}
-            {isMac && (
-                <div className="h-10 w-full shrink-0 flex items-center justify-center bg-app-bg border-b border-app-border/40 z-50 relative electrobun-webkit-app-region-drag">
-                    {/* Spacer for macOS traffic lights (left side) */}
-                    <div className="w-20 shrink-0" />
+        <ToastProvider>
+            <div className="flex flex-col h-screen overflow-hidden bg-app-bg font-sans selection:bg-app-accent/20">
+                {/* Custom Titlebar — macOS only (on Linux, the native titlebar handles this) */}
+                {isMac && (
+                    <div className="h-10 w-full shrink-0 flex items-center justify-center bg-app-bg border-b border-app-border/40 z-50 relative electrobun-webkit-app-region-drag">
+                        {/* Spacer for macOS traffic lights (left side) */}
+                        <div className="w-20 shrink-0" />
 
-                    {/* Centered title */}
-                    <div className="flex-1 flex items-center justify-center">
-                        <span className="text-[13px] font-semibold text-app-text-main/80 cursor-default select-none electrobun-webkit-app-region-no-drag">
-                            trackmebaby
-                        </span>
+                        {/* Centered title */}
+                        <div className="flex-1 flex items-center justify-center">
+                            <span className="text-[13px] font-semibold text-app-text-main/80 cursor-default select-none electrobun-webkit-app-region-no-drag">
+                                trackmebaby
+                            </span>
+                        </div>
+
+                        {/* Right spacer to balance */}
+                        <div className="w-4 shrink-0" />
                     </div>
+                )}
 
-                    {/* Right spacer to balance */}
-                    <div className="w-4 shrink-0" />
-                </div>
-            )}
+                {/* Main Application Area */}
+                <div className="flex flex-row flex-1 overflow-hidden text-app-text-main">
+                    {/* macOS-style translucent sidebar */}
+                    <TabBar
+                        activeTab={activeTab}
+                        onTabChange={setActiveTab}
+                        tabs={tabs}
+                        settingsId="settings"
+                    />
 
-            {/* Main Application Area */}
-            <div className="flex flex-row flex-1 overflow-hidden text-app-text-main">
-                {/* macOS-style translucent sidebar */}
-                <TabBar
-                    activeTab={activeTab}
-                    onTabChange={setActiveTab}
-                    tabs={tabs}
-                    settingsId="settings"
-                />
-
-                {/* Main content area */}
-                <div className="flex-1 overflow-y-auto">
-                    {activeTab === "cards" && (
-                        <CardsTab
-                            onNavigateToSettings={() =>
-                                setActiveTab("settings")
-                            }
-                        />
-                    )}
-                    {activeTab === "ai" && <AITab />}
-                    {activeTab === "settings" && <SettingsPanel />}
+                    {/* Main content area */}
+                    <div className="flex-1 overflow-y-auto">
+                        {activeTab === "cards" && (
+                            <CardsTab
+                                onNavigateToSettings={() =>
+                                    setActiveTab("settings")
+                                }
+                            />
+                        )}
+                        {activeTab === "ai" && <AITab />}
+                        {activeTab === "settings" && <SettingsPanel />}
+                    </div>
                 </div>
             </div>
-        </div>
+        </ToastProvider>
     );
 }
 

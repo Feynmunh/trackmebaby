@@ -1,6 +1,9 @@
+import { AnimatePresence } from "motion/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { WardenInsightStatus } from "../../../shared/types.ts";
-
+import { useToast } from "../../components/ui/Toast.tsx";
 import InsightCard from "./InsightCard.tsx";
+import SwipeableCard from "./SwipeableCard.tsx";
 import { useWardenInsights } from "./useWardenInsights.ts";
 
 interface WardenFeedProps {
@@ -16,6 +19,7 @@ const TABS = [
 export default function WardenFeed({ projectId }: WardenFeedProps) {
     const {
         insights,
+        allInsights,
         counts,
         isLoading,
         isAnalyzing,
@@ -30,8 +34,128 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
         approveInsight,
         dismissInsight,
         likeInsight,
+        unlikeInsight,
         triggerAnalysis,
     } = useWardenInsights(projectId);
+
+    const { showToast } = useToast();
+    const [expandedId, setExpandedId] = useState<string | null>(null);
+    const [triagedCount, setTriagedCount] = useState(0);
+    const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+    // Reset triage state and filters when tab changes
+    useEffect(() => {
+        setTriagedCount(0);
+        setSelectedTag(null);
+    }, [activeTab]);
+
+    // Reset triage count when analysis starts
+    useEffect(() => {
+        if (isAnalyzing) setTriagedCount(0);
+    }, [isAnalyzing]);
+
+    const handleApprove = useCallback(
+        (id: string) => {
+            setTriagedCount((prev) => prev + 1);
+            showToast("Approved", "approve");
+            void approveInsight(id);
+        },
+        [approveInsight, showToast],
+    );
+
+    const handleDismiss = useCallback(
+        (id: string) => {
+            setTriagedCount((prev) => prev + 1);
+            showToast("Ignored", "dismiss");
+            void dismissInsight(id);
+        },
+        [dismissInsight, showToast],
+    );
+
+    const handleLike = useCallback(
+        (id: string) => {
+            setTriagedCount((prev) => prev + 1);
+            showToast("Loved", "like");
+            void likeInsight(id);
+        },
+        [likeInsight, showToast],
+    );
+
+    const handleLikeToggle = useCallback(
+        (id: string, isCurrentlyLiked: boolean) => {
+            if (isCurrentlyLiked) {
+                showToast("Unliked", "info");
+                void unlikeInsight(id);
+            } else {
+                handleLike(id);
+            }
+        },
+        [handleLike, unlikeInsight, showToast],
+    );
+
+    // Keyboard navigation
+    useEffect(() => {
+        if (activeTab !== "new" || insights.length === 0) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            const topInsight = insights[0];
+            if (!topInsight) return;
+
+            if (e.key === "ArrowLeft") {
+                handleDismiss(topInsight.id);
+            } else if (e.key === "ArrowRight") {
+                handleApprove(topInsight.id);
+            } else if (e.key === "ArrowUp") {
+                handleLike(topInsight.id);
+            } else if (e.key === "ArrowDown") {
+                setExpandedId((prev) =>
+                    prev === topInsight.id ? null : topInsight.id,
+                );
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, [activeTab, insights, handleDismiss, handleApprove, handleLike]);
+
+    // Reset expansion when the top card changes
+    useEffect(() => {
+        if (insights[0]?.id !== expandedId) {
+            setExpandedId(null);
+        }
+    }, [insights, expandedId]);
+
+    // Get unique tags (categories) from the current list of insights
+    const availableTags = useMemo(() => {
+        const tags = new Set<string>();
+        for (const insight of insights) {
+            tags.add(insight.category);
+        }
+        return Array.from(tags).sort();
+    }, [insights]);
+
+    // Filter insights by selected tag
+    const filteredInsights = useMemo(() => {
+        if (!selectedTag) return insights;
+        return insights.filter((i) => i.category === selectedTag);
+    }, [insights, selectedTag]);
+
+    // Sort filtered insights by estimated visual weight to minimize row height gaps in grid
+    const sortedFilteredInsights = useMemo(() => {
+        return [...filteredInsights].sort((a, b) => {
+            const getWeight = (i: typeof a) =>
+                (i.title?.length || 0) +
+                (i.description?.length || 0) * 1.2 +
+                (i.affectedFiles?.length || 0) * 20;
+            return getWeight(b) - getWeight(a);
+        });
+    }, [filteredInsights]);
+
+    const totalInSession = triagedCount + (allInsights?.length || 0);
+
+    const formatCategory = (cat: string) => {
+        return cat.replace("_", " ").toUpperCase();
+    };
 
     return (
         <div className="mb-12">
@@ -87,8 +211,8 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
 
             {/* Error Banner */}
             {error && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
-                    <div className="flex items-center gap-2 text-red-500">
+                <div className="mb-4 p-3 bg-app-error/10 border border-app-error/20 rounded-xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-1">
+                    <div className="flex items-center gap-2 text-app-error">
                         <svg
                             xmlns="http://www.w3.org/2000/svg"
                             viewBox="0 0 24 24"
@@ -107,7 +231,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                     </div>
                     <button
                         onClick={clearError}
-                        className="text-red-500/60 hover:text-red-500 transition-colors"
+                        className="text-app-error/60 hover:text-app-error transition-colors"
                         aria-label="Dismiss error"
                     >
                         <svg
@@ -129,7 +253,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
 
             {/* Tab Bar */}
             <div
-                className="flex items-center gap-4 mb-4 border-b border-app-border/50"
+                className="flex items-center gap-4 mb-6 border-b border-app-border/50"
                 role="tablist"
             >
                 {TABS.map((tab) => {
@@ -142,18 +266,6 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                             aria-selected={isActive}
                             aria-controls="warden-tabpanel"
                             id={`warden-tab-${tab.id}`}
-                            onKeyDown={(e) => {
-                                if (e.key === "ArrowRight") {
-                                    const nextIndex =
-                                        (TABS.indexOf(tab) + 1) % TABS.length;
-                                    setActiveTab(TABS[nextIndex].id);
-                                } else if (e.key === "ArrowLeft") {
-                                    const prevIndex =
-                                        (TABS.indexOf(tab) - 1 + TABS.length) %
-                                        TABS.length;
-                                    setActiveTab(TABS[prevIndex].id);
-                                }
-                            }}
                             onClick={() => setActiveTab(tab.id)}
                             className={`pb-2 px-1 text-[13px] font-medium transition-colors ${
                                 isActive
@@ -169,21 +281,21 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
 
             {/* Content Area */}
             <div
-                className="flex flex-col gap-3"
+                className="flex flex-col gap-3 min-h-[300px]"
                 id="warden-tabpanel"
                 role="tabpanel"
                 aria-labelledby={`warden-tab-${activeTab}`}
                 aria-live="polite"
             >
                 {!hasApiKey ? (
-                    <div className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center">
+                    <div className="bg-app-surface border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center">
                         <p className="text-app-text-muted text-sm">
                             Configure your AI API key in Settings to enable
                             Warden
                         </p>
                     </div>
                 ) : isAnalyzing && insights.length === 0 ? (
-                    <div className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center gap-3">
+                    <div className="bg-app-surface border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center gap-3">
                         <div className="flex gap-1.5">
                             <span
                                 className="w-1.5 h-1.5 rounded-full bg-app-text-muted/50 animate-bounce"
@@ -207,7 +319,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                         {[1, 2, 3].map((i) => (
                             <div
                                 key={i}
-                                className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-4 h-24 flex flex-col justify-center gap-2.5"
+                                className="bg-app-surface border border-app-border rounded-xl shadow-app-sm p-4 h-24 flex flex-col justify-center gap-2.5"
                             >
                                 <div className="h-4 bg-app-border/40 rounded w-[90%] animate-pulse" />
                                 <div className="h-4 bg-app-border/40 rounded w-[60%] animate-pulse" />
@@ -215,7 +327,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                         ))}
                     </div>
                 ) : insights.length === 0 ? (
-                    <div className="bg-app-surface/40 border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center">
+                    <div className="bg-app-surface border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center">
                         <p className="text-app-text-muted text-[13px]">
                             {activeTab === "new" &&
                                 "No new insights. Warden will analyze your project on the next commit."}
@@ -225,28 +337,165 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                                 "No liked insights yet. Like your favorite approved insights."}
                         </p>
                     </div>
+                ) : activeTab === "new" ? (
+                    <div className="flex flex-col items-center w-full">
+                        {/* Compact Mechanical Progress Bar */}
+                        <div className="w-full max-w-[320px] flex gap-1.5 mb-10 h-0.5">
+                            {Array.from({ length: totalInSession }).map(
+                                (_, idx) => {
+                                    const isProcessed = idx < triagedCount;
+                                    const isCurrent = idx === triagedCount;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            className={`h-full flex-1 transition-all duration-300 ${
+                                                isProcessed
+                                                    ? "bg-app-accent/20"
+                                                    : isCurrent
+                                                      ? "bg-app-accent shadow-[0_0_8px_rgba(var(--app-accent),0.5)]"
+                                                      : "bg-app-border"
+                                            }`}
+                                        />
+                                    );
+                                },
+                            )}
+                        </div>
+
+                        <div className="relative w-full max-w-[460px]">
+                            <AnimatePresence mode="popLayout">
+                                {insights.slice(0, 3).map((insight, idx) => (
+                                    <SwipeableCard
+                                        key={insight.id}
+                                        insight={insight}
+                                        index={idx}
+                                        isTop={idx === 0}
+                                        isExpanded={expandedId === insight.id}
+                                        onToggleExpand={() =>
+                                            setExpandedId((prev) =>
+                                                prev === insight.id
+                                                    ? null
+                                                    : insight.id,
+                                            )
+                                        }
+                                        onSwipeLeft={handleDismiss}
+                                        onSwipeRight={handleApprove}
+                                        onSwipeUp={handleLike}
+                                        onLike={() =>
+                                            handleLikeToggle(
+                                                insight.id,
+                                                insight.status === "liked",
+                                            )
+                                        }
+                                    />
+                                ))}
+                            </AnimatePresence>
+                            {/* Empty space placeholder to prevent footer jumping */}
+                            <div className="h-[440px] pointer-events-none" />
+                        </div>
+
+                        {/* Flat Mechanical Hints */}
+                        <div className="flex justify-center gap-8 mt-10">
+                            <div className="flex items-center gap-2">
+                                <kbd className="flex items-center justify-center w-6 h-6 rounded border border-app-border bg-app-surface-elevated font-mono text-[10px] text-app-text-muted">
+                                    ←
+                                </kbd>
+                                <span className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest">
+                                    Ignore
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <kbd className="flex items-center justify-center w-6 h-6 rounded border border-app-border bg-app-surface-elevated font-mono text-[10px] text-app-text-muted">
+                                    ↑
+                                </kbd>
+                                <span className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest">
+                                    Love
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <kbd className="flex items-center justify-center w-6 h-6 rounded border border-app-border bg-app-surface-elevated font-mono text-[10px] text-app-text-muted">
+                                    ↓
+                                </kbd>
+                                <span className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest">
+                                    Expand
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <kbd className="flex items-center justify-center w-6 h-6 rounded border border-app-border bg-app-surface-elevated font-mono text-[10px] text-app-text-muted">
+                                    →
+                                </kbd>
+                                <span className="text-[9px] font-bold text-app-text-muted uppercase tracking-widest">
+                                    Approve
+                                </span>
+                            </div>
+                        </div>
+                    </div>
                 ) : (
-                    insights.map((insight) => (
-                        <InsightCard
-                            key={insight.id}
-                            insight={insight}
-                            onApprove={
-                                activeTab === "new" ? approveInsight : undefined
-                            }
-                            onDismiss={
-                                activeTab === "new" ? dismissInsight : undefined
-                            }
-                            onLike={
-                                activeTab === "approved"
-                                    ? likeInsight
-                                    : undefined
-                            }
-                        />
-                    ))
+                    <div className="flex flex-col gap-6">
+                        {/* Tag Filter Bar */}
+                        {availableTags.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pb-2 border-b border-app-border/30">
+                                <button
+                                    onClick={() => setSelectedTag(null)}
+                                    className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                        selectedTag === null
+                                            ? "bg-app-accent text-white shadow-lg shadow-app-accent/20"
+                                            : "bg-app-surface-elevated text-app-text-muted border border-app-border hover:border-app-text-muted"
+                                    }`}
+                                >
+                                    All
+                                </button>
+                                {availableTags.map((tag) => (
+                                    <button
+                                        key={tag}
+                                        onClick={() => setSelectedTag(tag)}
+                                        className={`px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-widest transition-all ${
+                                            selectedTag === tag
+                                                ? "bg-app-accent text-white shadow-lg shadow-app-accent/20"
+                                                : "bg-app-surface-elevated text-app-text-muted border border-app-border hover:border-app-text-muted"
+                                        }`}
+                                    >
+                                        {formatCategory(tag)}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
+
+                        {/* Balanced Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 animate-in fade-in duration-500 items-stretch">
+                            {sortedFilteredInsights.map((insight) => (
+                                <div key={insight.id} className="flex">
+                                    <InsightCard
+                                        insight={insight}
+                                        flexHeight={true}
+                                        onLike={() =>
+                                            handleLikeToggle(
+                                                insight.id,
+                                                insight.status === "liked",
+                                            )
+                                        }
+                                    />
+                                </div>
+                            ))}
+                        </div>
+
+                        {filteredInsights.length === 0 && selectedTag && (
+                            <div className="py-12 flex flex-col items-center justify-center text-center gap-2">
+                                <p className="text-app-text-muted text-sm font-medium">
+                                    No insights match this filter.
+                                </p>
+                                <button
+                                    onClick={() => setSelectedTag(null)}
+                                    className="text-app-accent text-[11px] font-bold uppercase tracking-widest hover:underline"
+                                >
+                                    Clear Filter
+                                </button>
+                            </div>
+                        )}
+                    </div>
                 )}
 
-                {/* Pagination Controls */}
-                {!isLoading && totalPages > 1 && (
+                {/* Pagination Controls - only for archived tabs */}
+                {!isLoading && totalPages > 1 && activeTab !== "new" && (
                     <div className="flex items-center justify-between mt-6 px-1">
                         <span className="text-[11px] text-app-text-muted font-medium">
                             Page {page + 1} of {totalPages}
@@ -257,7 +506,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                                     setPage((p) => Math.max(0, p - 1))
                                 }
                                 disabled={page === 0}
-                                className="px-3 py-1.5 text-[11px] font-semibold bg-app-surface/40 border border-app-border rounded-lg text-app-text-main hover:bg-app-hover disabled:opacity-30 transition-colors shadow-sm"
+                                className="px-3 py-1.5 text-[11px] font-semibold bg-app-surface border border-app-border rounded-lg text-app-text-main hover:bg-app-hover disabled:opacity-30 transition-colors shadow-sm"
                             >
                                 Previous
                             </button>
@@ -268,7 +517,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                                     )
                                 }
                                 disabled={page === totalPages - 1}
-                                className="px-3 py-1.5 text-[11px] font-semibold bg-app-surface/40 border border-app-border rounded-lg text-app-text-main hover:bg-app-hover disabled:opacity-30 transition-colors shadow-sm"
+                                className="px-3 py-1.5 text-[11px] font-semibold bg-app-surface border border-app-border rounded-lg text-app-text-main hover:bg-app-hover disabled:opacity-30 transition-colors shadow-sm"
                             >
                                 Next
                             </button>

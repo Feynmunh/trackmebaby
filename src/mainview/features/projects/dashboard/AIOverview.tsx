@@ -1,9 +1,7 @@
-import type { ReactElement } from "react";
 import { useEffect, useState } from "react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import { timeAgo } from "../../../../shared/time.ts";
 import type { GitSnapshot, Project } from "../../../../shared/types.ts";
+import Markdown from "../../../components/ui/Markdown.tsx";
 import { queryAI } from "../../../rpc.ts";
 import DiffView from "./DiffView.tsx";
 
@@ -196,83 +194,10 @@ export default function AIOverview({
                         </div>
                     ) : summary ? (
                         <div className="text-[15px] leading-relaxed text-app-text-main/90 font-medium">
-                            <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                components={{
-                                    p: ({ children }) => (
-                                        <p className="my-2 first:mt-0 last:mb-0">
-                                            {children}
-                                        </p>
-                                    ),
-                                    strong: ({ children }) => (
-                                        <strong className="font-semibold">
-                                            {children}
-                                        </strong>
-                                    ),
-                                    em: ({ children }) => (
-                                        <em className="italic">{children}</em>
-                                    ),
-                                    a: ({ children, href }) => (
-                                        <a
-                                            href={href}
-                                            className="underline decoration-2 underline-offset-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-                                            target="_blank"
-                                            rel="noreferrer"
-                                        >
-                                            {children}
-                                        </a>
-                                    ),
-                                    ul: ({ children }) => (
-                                        <ul className="list-disc pl-5 space-y-1 my-2">
-                                            {children}
-                                        </ul>
-                                    ),
-                                    ol: ({ children }) => (
-                                        <ol className="list-decimal pl-5 space-y-1 my-2">
-                                            {children}
-                                        </ol>
-                                    ),
-                                    li: ({ children }) => (
-                                        <li className="leading-relaxed">
-                                            {children}
-                                        </li>
-                                    ),
-                                    code: ({ className, children }) => {
-                                        const isBlock =
-                                            typeof className === "string" &&
-                                            className.includes("language-");
-                                        if (isBlock) {
-                                            return (
-                                                <code className="block w-full overflow-auto rounded-lg bg-app-surface-elevated p-3 font-mono text-[13px] border border-app-border">
-                                                    {children}
-                                                </code>
-                                            );
-                                        }
-                                        return (
-                                            <code className="px-1.5 py-0.5 rounded-md bg-app-surface-elevated font-mono text-[13px]">
-                                                {children}
-                                            </code>
-                                        );
-                                    },
-                                    pre: ({ children }) => (
-                                        <div className="my-3 w-full">
-                                            <pre className="block w-full overflow-auto rounded-lg bg-app-surface-elevated p-3 font-mono text-[13px] border border-app-border m-0">
-                                                {children as ReactElement}
-                                            </pre>
-                                        </div>
-                                    ),
-                                    blockquote: ({ children }) => (
-                                        <blockquote className="border-l-4 border-app-border pl-3 ml-1 text-app-text-muted italic">
-                                            {children}
-                                        </blockquote>
-                                    ),
-                                    hr: () => (
-                                        <hr className="my-4 border-app-border" />
-                                    ),
-                                }}
-                            >
-                                {summary}
-                            </ReactMarkdown>
+                            <Markdown
+                                content={summary}
+                                textSize="text-[15px]"
+                            />
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 text-sm text-app-text-muted">

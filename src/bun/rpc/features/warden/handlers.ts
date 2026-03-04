@@ -1,11 +1,11 @@
 import type { Database } from "bun:sqlite";
 import type { WardenInsightStatus } from "../../../../shared/types.ts";
 import {
-    getWardenInsight,
     getWardenInsightCountsByProject,
     getWardenInsights,
     updateWardenInsightStatus,
-} from "../../../db/queries.ts";
+} from "../../../db/queries/warden.ts";
+
 import { getSavedApiKey } from "../../../services/ai/index.ts";
 import type { WardenService } from "../../../services/warden.ts";
 
@@ -66,18 +66,6 @@ export function createUpdateWardenInsightStatusHandler(db: Database) {
         status: WardenInsightStatus;
     }) => {
         try {
-            // Validation: can ONLY set to 'liked' if currently 'approved'
-            if (status === "liked") {
-                const current = getWardenInsight(db, insightId);
-                if (!current || current.status !== "approved") {
-                    console.warn(
-                        "[RPC] Cannot like non-approved insight:",
-                        insightId,
-                    );
-                    return { success: false };
-                }
-            }
-
             const success = updateWardenInsightStatus(db, insightId, status);
             return { success };
         } catch (err: unknown) {
