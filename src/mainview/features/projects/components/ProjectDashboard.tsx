@@ -47,6 +47,7 @@ export default function ProjectDashboard({
         null,
     );
     const [dashAnimKey, setDashAnimKey] = useState(0);
+    const [isTransitioning, setIsTransitioning] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
     const timelineRef = useRef<HTMLDivElement>(null);
     const githubRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,13 @@ export default function ProjectDashboard({
     ];
 
     const navigateDashboard = (direction: "left" | "right") => {
+        // Block navigation if we're already transitioning
+        if (isTransitioning) return;
+
+        setIsTransitioning(true);
+        // Clear the lock after animation completes (280ms animation + small buffer)
+        setTimeout(() => setIsTransitioning(false), 350);
+
         setActiveView((current) => {
             const idx = DASHBOARD_VIEWS.indexOf(current);
             if (direction === "left") {
@@ -80,8 +88,11 @@ export default function ProjectDashboard({
     };
 
     useSwipeGesture(containerRef, {
-        onSwipeLeft: () => navigateDashboard("left"),
-        onSwipeRight: () => navigateDashboard("right"),
+        threshold: 30,
+        settleMs: 20,
+        cooldownMs: 300,
+        onSwipeLeft: () => navigateDashboard("right"),
+        onSwipeRight: () => navigateDashboard("left"),
     });
     const getLocalDateKey = (date: Date): string => {
         const year = date.getFullYear();
