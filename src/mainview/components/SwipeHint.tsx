@@ -5,8 +5,8 @@
  * exactly like Chrome's back/forward swipe gesture.
  *
  * swipeProgress (-1 to 1):
- *   > 0  → dragging right → left arrow appears on the left edge
- *   < 0  → dragging left  → right arrow appears on the right edge
+ *   > 0  → user is swiping right  → show LEFT hint (go back)
+ *   < 0  → user is swiping left   → show RIGHT hint (go forward)
  *   = 0  → hidden
  */
 
@@ -72,7 +72,7 @@ export default function SwipeHint({
         <>
             {showLeft && (
                 <button
-                    onClick={onSwipeRight}
+                    onClick={onSwipeLeft}
                     aria-label="Go back"
                     style={{
                         ...circleStyle,
@@ -92,7 +92,7 @@ export default function SwipeHint({
 
             {showRight && (
                 <button
-                    onClick={onSwipeLeft}
+                    onClick={onSwipeRight}
                     aria-label="Go forward"
                     style={{
                         ...circleStyle,

@@ -72,10 +72,10 @@ export default function CardsTab({
         {},
     );
 
-    // Swipe left (two-finger swipe left) = go back to grid from dashboard
+    // Swipe right (two-finger swipe right) = go back to grid from dashboard
     useSwipeGesture(containerRef, {
         enabled: viewMode === "dashboard",
-        onSwipeLeft: closeDashboard,
+        onSwipeRight: closeDashboard,
     });
 
     const trimmedSearch = search.trim();
