@@ -8,6 +8,9 @@
  *
  * Strategy: Wheel events (macOS / Windows trackpads fire deltaX in pixel mode)
  *
+ * The listener is scoped to the provided ref element (or window if "window" is
+ * passed). This prevents inner/outer gesture handlers from double-firing.
+ *
  * onSwiping callback:
  *   Called continuously with progress (-1 to 1, 0 = idle/reset)
  * onSwipeCommit callback:
@@ -35,7 +38,7 @@ interface SwipeGestureOptions {
 }
 
 export function useSwipeGesture(
-    _target: React.RefObject<HTMLElement | null> | "window",
+    target: React.RefObject<HTMLElement | null> | "window",
     options: SwipeGestureOptions = {},
 ): void {
     const {
@@ -60,6 +63,13 @@ export function useSwipeGesture(
 
     useEffect(() => {
         if (!enabled) return;
+
+        // Resolve the actual DOM element to attach to.
+        // Using the ref element (not window) ensures inner/outer hooks don't
+        // both fire on the same wheel event — the inner element's listener
+        // fires first and stopPropagation prevents bubbling to the outer one.
+        const el: HTMLElement | Window =
+            target === "window" ? window : (target.current ?? window);
 
         let accumulatedX = 0;
         let accumulatedY = 0;
@@ -95,12 +105,17 @@ export function useSwipeGesture(
             settleTimer = null;
         };
 
-        const handleWheel = (e: WheelEvent) => {
-            const dx = e.deltaX;
-            const dy = e.deltaY;
+        const handleWheel = (e: Event) => {
+            const we = e as WheelEvent;
+            const dx = we.deltaX;
+            const dy = we.deltaY;
 
             // Ignore pure vertical scrolls early
             if (Math.abs(dy) > Math.abs(dx) * axisRatio && !isTracking) return;
+
+            // Stop the event from bubbling to parent swipe handlers (e.g. app-level)
+            // so nested dashboard swipe doesn't also trigger tab navigation.
+            e.stopPropagation();
 
             accumulatedX += dx;
             accumulatedY += dy;
@@ -124,11 +139,11 @@ export function useSwipeGesture(
             settleTimer = setTimeout(commit, settleMs);
         };
 
-        window.addEventListener("wheel", handleWheel, { passive: true });
+        el.addEventListener("wheel", handleWheel, { passive: true });
 
         return () => {
-            window.removeEventListener("wheel", handleWheel);
+            el.removeEventListener("wheel", handleWheel);
             if (settleTimer !== null) clearTimeout(settleTimer);
         };
-    }, [enabled, threshold, settleMs, cooldownMs, axisRatio]);
+    }, [enabled, threshold, settleMs, cooldownMs, axisRatio, target]);
 }
