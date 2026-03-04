@@ -131,9 +131,15 @@ function renderMarkdown(text: string): JSX.Element[] {
             <p
                 key={`p-${i}`}
                 className="leading-relaxed"
-                // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering
+                // biome-ignore lint/security/noDangerouslySetInnerHtml: markdown rendering with pre-sanitized input
                 dangerouslySetInnerHTML={{
+                    // Escape raw HTML first so AI-injected tags can't execute,
+                    // then apply safe inline-markdown replacements.
                     __html: line
+                        .replace(/&/g, "&amp;")
+                        .replace(/</g, "&lt;")
+                        .replace(/>/g, "&gt;")
+                        .replace(/"/g, "&quot;")
                         .replace(
                             /\*\*(.+?)\*\*/g,
                             '<strong class="font-semibold">$1</strong>',
@@ -409,25 +415,7 @@ export default function AITab({ screenContext, isSidebar = false }: AITabProps) 
     const inputRef = useRef<HTMLTextAreaElement>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
-    // Load initial data
-    useEffect(() => {
-        loadConversations();
-        loadProjects();
-    }, []);
-
-    // Scroll to bottom on new messages
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages, loading]);
-
-    // Auto-resize textarea
-    useEffect(() => {
-        if (inputRef.current) {
-            inputRef.current.style.height = "auto";
-            inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 160)}px`;
-        }
-    }, [input]);
-
+    // Define callbacks BEFORE the useEffect that calls them to avoid TDZ
     const loadConversations = useCallback(async () => {
         if (!rpcFns) return;
         try {
@@ -451,6 +439,25 @@ export default function AITab({ screenContext, isSidebar = false }: AITabProps) 
             });
         }
     }, []);
+
+    // Load initial data — callbacks are defined above so no TDZ risk
+    useEffect(() => {
+        loadConversations();
+        loadProjects();
+    }, [loadConversations, loadProjects]);
+
+    // Scroll to bottom on new messages
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages, loading]);
+
+    // Auto-resize textarea
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.style.height = "auto";
+            inputRef.current.style.height = `${Math.min(inputRef.current.scrollHeight, 160)}px`;
+        }
+    }, [input]);
 
     const loadMessages = useCallback(async (conversationId: string) => {
         if (!rpcFns) return;
@@ -631,7 +638,8 @@ export default function AITab({ screenContext, isSidebar = false }: AITabProps) 
 
             // Check for @ trigger
             const textBeforeCursor = value.slice(0, cursorPos);
-            const atMatch = textBeforeCursor.match(/@(\w*)$/);
+            // Use [^\s@]* so project names containing hyphens/dots match fully
+            const atMatch = textBeforeCursor.match(/@([^\s@]*)$/);
 
             if (atMatch) {
                 setShowMentionPopup(true);

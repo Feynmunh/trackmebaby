@@ -75,6 +75,9 @@ function App() {
     const [aiSidebarOpen, setAiSidebarOpen] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(400);
     const isResizing = useRef(false);
+    // Ref keeps keyboard handler stable without re-registering on every toggle
+    const aiSidebarOpenRef = useRef(aiSidebarOpen);
+    useEffect(() => { aiSidebarOpenRef.current = aiSidebarOpen; }, [aiSidebarOpen]);
     const [lastViewedProject, setLastViewedProject] = useState<{
         id: string;
         name: string;
@@ -161,23 +164,26 @@ function App() {
             .then((platform) => setIsMac(platform === "darwin"))
             .catch(() => setIsMac(false));
 
-        // Keyboard shortcut: Cmd+Shift+C (or Ctrl+Shift+C) to toggle sidebar
+        return () => {
+            mediaQuery.removeEventListener("change", handleSystemChange);
+        };
+    }, []);
+
+    // Keyboard shortcut — separate effect so theme/platform setup runs only once
+    useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "c") {
+            // Use toLowerCase() so Shift doesn't produce uppercase "C" on some platforms
+            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "c") {
                 e.preventDefault();
                 setAiSidebarOpen((prev) => !prev);
             }
-            if (e.key === "Escape" && aiSidebarOpen) {
+            if (e.key === "Escape" && aiSidebarOpenRef.current) {
                 setAiSidebarOpen(false);
             }
         };
         window.addEventListener("keydown", handleKeyDown);
-
-        return () => {
-            mediaQuery.removeEventListener("change", handleSystemChange);
-            window.removeEventListener("keydown", handleKeyDown);
-        };
-    }, [aiSidebarOpen]);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     return (
         <div className="flex flex-col h-screen overflow-hidden bg-app-bg font-sans selection:bg-app-accent/20">
