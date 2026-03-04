@@ -4,7 +4,6 @@ import ProjectDashboard from "../features/projects/components/ProjectDashboard.t
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
 import ProjectsGrid from "../features/projects/components/ProjectsGrid.tsx";
 import { useProjectData } from "../hooks/useProjectData.ts";
-import { useSwipeGesture } from "../hooks/useSwipeGesture.ts";
 import { deleteProject, getSettings, scanProjects, selectFolder } from "../rpc";
 
 const scoreFuzzyMatch = (query: string, text: string): number | null => {
@@ -71,12 +70,6 @@ export default function CardsTab({
     const [aiRefreshKeys, setAiRefreshKeys] = useState<Record<string, number>>(
         {},
     );
-
-    // Swipe left (two-finger swipe left) = go back to grid from dashboard
-    useSwipeGesture(containerRef, {
-        enabled: viewMode === "dashboard",
-        onSwipeLeft: closeDashboard,
-    });
 
     const trimmedSearch = search.trim();
     const normalizedSearch = trimmedSearch.toLowerCase();

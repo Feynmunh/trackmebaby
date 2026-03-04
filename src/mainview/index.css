@@ -312,6 +312,47 @@
     }
 }
 
+/* ─── Dashboard view slide transitions ───────────────────────────────────── */
+/*
+ * Same spring feel as tab slides but slightly tighter translate (40px)
+ * since the dashboard views are nested inside the main content area.
+ */
+
+.dash-slide-enter-from-right {
+    animation: dash-from-right 280ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+.dash-slide-enter-from-left {
+    animation: dash-from-left 280ms cubic-bezier(0.34, 1.4, 0.64, 1) both;
+}
+
+@keyframes dash-from-right {
+    0% {
+        opacity: 0;
+        transform: translateX(40px) scale(0.98);
+    }
+    60% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+@keyframes dash-from-left {
+    0% {
+        opacity: 0;
+        transform: translateX(-40px) scale(0.98);
+    }
+    60% {
+        opacity: 1;
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
 /* ── macOS-style liquid glass dock pill ── */
 .dock-pill {
     position: relative;

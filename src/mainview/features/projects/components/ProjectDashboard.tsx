@@ -7,6 +7,7 @@ import type {
     ProjectStats,
 } from "../../../../shared/types.ts";
 import { useGitHubIntegration } from "../../../hooks/useGitHubIntegration.ts";
+import { useSwipeGesture } from "../../../hooks/useSwipeGesture.ts";
 import DashboardContent from "../dashboard/DashboardContent.tsx";
 import DashboardHeader from "../dashboard/DashboardHeader.tsx";
 import WorktreeSection from "../dashboard/WorktreeSection.tsx";
@@ -41,8 +42,47 @@ export default function ProjectDashboard({
     const [activeView, setActiveView] = useState<
         "overview" | "vault" | "warden"
     >("overview");
+    // Slide direction for the dashboard view transition animation
+    const [dashSlideDir, setDashSlideDir] = useState<"left" | "right" | null>(
+        null,
+    );
+    const [dashAnimKey, setDashAnimKey] = useState(0);
+    const containerRef = useRef<HTMLDivElement>(null);
     const timelineRef = useRef<HTMLDivElement>(null);
     const githubRef = useRef<HTMLDivElement>(null);
+
+    const DASHBOARD_VIEWS: Array<"overview" | "vault" | "warden"> = [
+        "overview",
+        "vault",
+        "warden",
+    ];
+
+    const navigateDashboard = (direction: "left" | "right") => {
+        setActiveView((current) => {
+            const idx = DASHBOARD_VIEWS.indexOf(current);
+            if (direction === "left") {
+                // Swipe left → advance to next view (overview → vault → warden)
+                if (idx >= DASHBOARD_VIEWS.length - 1) return current;
+                setDashSlideDir("left");
+                setDashAnimKey((k) => k + 1);
+                return DASHBOARD_VIEWS[idx + 1];
+            } else {
+                // Swipe right → go back (warden → vault → overview → close)
+                if (idx <= 0) {
+                    onBack();
+                    return current;
+                }
+                setDashSlideDir("right");
+                setDashAnimKey((k) => k + 1);
+                return DASHBOARD_VIEWS[idx - 1];
+            }
+        });
+    };
+
+    useSwipeGesture(containerRef, {
+        onSwipeLeft: () => navigateDashboard("left"),
+        onSwipeRight: () => navigateDashboard("right"),
+    });
     const getLocalDateKey = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -74,49 +114,70 @@ export default function ProjectDashboard({
     } = useGitHubIntegration(project.id);
 
     return (
-        <div className="flex flex-col w-full h-full bg-app-bg select-none">
+        <div
+            ref={containerRef}
+            className="flex flex-col w-full h-full bg-app-bg select-none"
+        >
             <DashboardHeader
                 project={project}
                 onBack={onBack}
                 activeView={activeView}
-                onViewChange={setActiveView}
+                onViewChange={(view) => {
+                    const oldIdx = DASHBOARD_VIEWS.indexOf(activeView);
+                    const newIdx = DASHBOARD_VIEWS.indexOf(view);
+                    setDashSlideDir(newIdx > oldIdx ? "left" : "right");
+                    setDashAnimKey((k) => k + 1);
+                    setActiveView(view);
+                }}
             />
             <WorktreeSection worktrees={project.worktrees} />
-            <DashboardContent
-                project={project}
-                gitSnapshot={gitSnapshot}
-                projectStats={projectStats}
-                events={events}
-                activitySummary={activitySummary}
-                todayEventCount={todayEventCount}
-                statsLoading={statsLoading}
-                statsLastUpdated={statsLastUpdated}
-                onRefreshStats={onRefreshStats}
-                aiRefreshKey={aiRefreshKey}
-                activeView={activeView}
-                onCommitsClick={() =>
-                    timelineRef.current?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                    })
-                }
-                onGitHubClick={() =>
-                    githubRef.current?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                    })
-                }
-                isGitHubAuthenticated={isGitHubAuthenticated}
-                githubData={githubData}
-                githubLoading={githubLoading}
-                onGitHubSignIn={
-                    isGitHubAuthenticated
-                        ? handleGitHubSignIn
-                        : onNavigateToSettings || handleGitHubSignIn
-                }
-                timelineRef={timelineRef}
-                githubRef={githubRef}
-            />
+            {/* Dashboard view slide animation — same spring curve as tab swipes */}
+            <div
+                key={dashAnimKey}
+                className={`flex-1 overflow-hidden ${
+                    dashSlideDir === "left"
+                        ? "dash-slide-enter-from-right"
+                        : dashSlideDir === "right"
+                          ? "dash-slide-enter-from-left"
+                          : ""
+                }`}
+            >
+                <DashboardContent
+                    project={project}
+                    gitSnapshot={gitSnapshot}
+                    projectStats={projectStats}
+                    events={events}
+                    activitySummary={activitySummary}
+                    todayEventCount={todayEventCount}
+                    statsLoading={statsLoading}
+                    statsLastUpdated={statsLastUpdated}
+                    onRefreshStats={onRefreshStats}
+                    aiRefreshKey={aiRefreshKey}
+                    activeView={activeView}
+                    onCommitsClick={() =>
+                        timelineRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        })
+                    }
+                    onGitHubClick={() =>
+                        githubRef.current?.scrollIntoView({
+                            behavior: "smooth",
+                            block: "start",
+                        })
+                    }
+                    isGitHubAuthenticated={isGitHubAuthenticated}
+                    githubData={githubData}
+                    githubLoading={githubLoading}
+                    onGitHubSignIn={
+                        isGitHubAuthenticated
+                            ? handleGitHubSignIn
+                            : onNavigateToSettings || handleGitHubSignIn
+                    }
+                    timelineRef={timelineRef}
+                    githubRef={githubRef}
+                />
+            </div>
         </div>
     );
 }
