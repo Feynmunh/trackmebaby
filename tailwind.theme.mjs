@@ -29,14 +29,26 @@ const theme = {
             playfair: ['"Playfair Display"', "serif"],
             jura: ['"Jura"', "sans-serif"],
         },
-        borderRadius: {
-            app: "10px",
-            "app-lg": "12px",
-        },
         boxShadow: {
             "app-sm": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
             "app-md": "0 4px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",
             "app-lg": "0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)",
+        },
+        keyframes: {
+            "gradient-x": {
+                "0%, 100%": {
+                    "background-size": "200% 200%",
+                    "background-position": "left center",
+                },
+                "50%": {
+                    "background-size": "200% 200%",
+                    "background-position": "right center",
+                },
+            },
+        },
+        animation: {
+            "gradient-x": "gradient-x 3s ease infinite",
+            "spin-slow": "spin 8s linear infinite",
         },
     },
 };

@@ -229,6 +229,23 @@ export class WardenService {
         return result !== null;
     }
 
+    /**
+     * Trigger manual analysis.
+     */
+    async triggerAnalysis(
+        projectId: string,
+        options: { manual: boolean } = { manual: true },
+    ) {
+        return this.analyzeProjectIfNeeded(projectId, options.manual);
+    }
+
+    /**
+     * Triggered when a project is viewed in the UI.
+     */
+    async onProjectView(projectId: string) {
+        return this.analyzeProjectIfNeeded(projectId, false);
+    }
+
     private processQueue(): void {
         while (
             this.queue.length > 0 &&
