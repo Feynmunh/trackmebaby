@@ -54,7 +54,7 @@ export default function StatCard({
                     <div
                         className={
                             authLabelClassName ??
-                            "text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60"
+                            "text-[10px] font-bold text-app-text-muted uppercase tracking-widest opacity-60"
                         }
                     >
                         {authPromptLabel}
@@ -65,7 +65,7 @@ export default function StatCard({
                     <div
                         className={
                             valueClassName ??
-                            "text-2xl font-black text-mac-text mb-1 h-8 flex items-center"
+                            "text-2xl font-black text-app-text-main mb-1 h-8 flex items-center"
                         }
                     >
                         {loading ? loadingIndicator : value}
@@ -73,7 +73,7 @@ export default function StatCard({
                     <div
                         className={
                             titleClassName ??
-                            "text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60"
+                            "text-[10px] font-bold text-app-text-muted uppercase tracking-widest opacity-60"
                         }
                     >
                         {title}

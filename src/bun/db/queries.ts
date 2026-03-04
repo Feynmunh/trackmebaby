@@ -4,3 +4,5 @@ export * from "./queries/git.ts";
 export * from "./queries/project-cache.ts";
 export * from "./queries/projects.ts";
 export * from "./queries/settings.ts";
+export * from "./queries/vault.ts";
+export * from "./queries/warden.ts";

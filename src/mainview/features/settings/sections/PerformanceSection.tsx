@@ -10,15 +10,15 @@ export default function PerformanceSection({
     onChange,
 }: PerformanceSectionProps) {
     return (
-        <div className="bg-mac-surface rounded-xl shadow-mac overflow-hidden">
-            <div className="px-4 py-3 border-b border-mac-border">
-                <h2 className="text-[13px] font-semibold text-mac-text uppercase tracking-wide">
+        <div className="bg-app-surface rounded-xl shadow-app-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-app-border">
+                <h2 className="text-[13px] font-semibold text-app-text-main uppercase tracking-wide">
                     Performance
                 </h2>
             </div>
-            <div className="divide-y divide-mac-border">
+            <div className="divide-y divide-app-border">
                 <div className="px-4 py-3 flex items-center justify-between">
-                    <span className="text-[14px] text-mac-text">
+                    <span className="text-[14px] text-app-text-main">
                         Git Poll Interval (s)
                     </span>
                     <input
@@ -33,11 +33,11 @@ export default function PerformanceSection({
                             })
                         }
                         min={30}
-                        className="bg-mac-bg rounded-lg px-3 py-1.5 text-[14px] text-mac-text text-right focus:ring-2 focus:ring-mac-accent/30 outline-none w-24"
+                        className="bg-app-bg rounded-lg px-3 py-1.5 text-[14px] text-app-text-main text-right focus:ring-2 focus:ring-app-accent/30 outline-none w-24"
                     />
                 </div>
                 <div className="px-4 py-3 flex items-center justify-between">
-                    <span className="text-[14px] text-mac-text">
+                    <span className="text-[14px] text-app-text-main">
                         File Watcher Debounce (ms)
                     </span>
                     <input
@@ -51,7 +51,7 @@ export default function PerformanceSection({
                             })
                         }
                         min={100}
-                        className="bg-mac-bg rounded-lg px-3 py-1.5 text-[14px] text-mac-text text-right focus:ring-2 focus:ring-mac-accent/30 outline-none w-24"
+                        className="bg-app-bg rounded-lg px-3 py-1.5 text-[14px] text-app-text-main text-right focus:ring-2 focus:ring-app-accent/30 outline-none w-24"
                     />
                 </div>
             </div>

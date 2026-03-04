@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import type {
     ActivityEvent,
     ActivitySummary,
@@ -38,6 +38,9 @@ export default function ProjectDashboard({
     onBack,
     onNavigateToSettings,
 }: ProjectDashboardProps) {
+    const [activeView, setActiveView] = useState<
+        "overview" | "vault" | "warden"
+    >("overview");
     const timelineRef = useRef<HTMLDivElement>(null);
     const githubRef = useRef<HTMLDivElement>(null);
     const getLocalDateKey = (date: Date): string => {
@@ -71,8 +74,13 @@ export default function ProjectDashboard({
     } = useGitHubIntegration(project.id);
 
     return (
-        <div className="flex flex-col w-full h-full bg-mac-bg select-none">
-            <DashboardHeader project={project} onBack={onBack} />
+        <div className="flex flex-col w-full h-full bg-app-bg select-none">
+            <DashboardHeader
+                project={project}
+                onBack={onBack}
+                activeView={activeView}
+                onViewChange={setActiveView}
+            />
             <WorktreeSection worktrees={project.worktrees} />
             <DashboardContent
                 project={project}
@@ -85,6 +93,7 @@ export default function ProjectDashboard({
                 statsLastUpdated={statsLastUpdated}
                 onRefreshStats={onRefreshStats}
                 aiRefreshKey={aiRefreshKey}
+                activeView={activeView}
                 onCommitsClick={() =>
                     timelineRef.current?.scrollIntoView({
                         behavior: "smooth",

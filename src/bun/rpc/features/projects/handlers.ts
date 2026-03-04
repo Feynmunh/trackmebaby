@@ -1,5 +1,6 @@
 import type { Database } from "bun:sqlite";
 import {
+    deleteProject,
     getActivitySummary,
     getProjects,
     getRecentEvents,
@@ -38,6 +39,10 @@ export function createProjectHandlers({ db }: ProjectHandlersDeps) {
                 new Date(since),
                 new Date(until),
             );
+        },
+        deleteProject: ({ projectId }: { projectId: string }) => {
+            deleteProject(db, projectId);
+            return { success: true };
         },
     };
 }

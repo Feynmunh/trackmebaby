@@ -93,11 +93,11 @@ export async function fetchGitHubIssuesAndPRs(
         }
         const [issuesRes, prsRes] = await Promise.all([
             fetch(
-                `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:issue&sort=created&order=desc&per_page=50`,
+                `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:issue&sort=created&order=desc&per_page=100`,
                 { headers: issuesHeaders, signal: controller.signal },
             ),
             fetch(
-                `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:pr&sort=created&order=desc&per_page=50`,
+                `${GITHUB_API_BASE}/search/issues?q=repo:${owner}/${repo}+is:pr&sort=created&order=desc&per_page=100`,
                 { headers: prsHeaders, signal: controller.signal },
             ),
         ]);
@@ -119,6 +119,99 @@ export async function fetchGitHubIssuesAndPRs(
         };
     } finally {
         clearTimeout(timeoutId);
+    }
+}
+
+export async function fetchGitHubContributorCount(
+    token: string,
+    owner: string,
+    repo: string,
+): Promise<number> {
+    try {
+        const maxWaitMs = 10000;
+        const startTime = Date.now();
+        const maxAttempts = 5;
+
+        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+            // Use the stats/contributors endpoint which matches the GitHub UI "Contributors" tab.
+            // This endpoint often returns 202 Accepted while calculating.
+            const res = await fetch(
+                `${GITHUB_API_BASE}/repos/${owner}/${repo}/stats/contributors`,
+                { headers: getGitHubHeaders(token) },
+            );
+
+            // GitHub may return 202 Accepted if it's still calculating.
+            if (res.status === 202) {
+                const elapsed = Date.now() - startTime;
+                const remaining = maxWaitMs - elapsed;
+                if (remaining <= 0) break;
+
+                // Exponential backoff starting at 1s
+                const delayMs = Math.min(remaining, 2 ** attempt * 1000);
+                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                continue;
+            }
+
+            if (res.ok && res.status !== 204) {
+                const data = await res.json();
+                if (Array.isArray(data)) {
+                    return data.length;
+                }
+            }
+
+            // If not 202 and not ok, break early to try fallback
+            break;
+        }
+
+        // Fallback: Use the contributors API with anon=true.
+        // This is fast and usually accurate for matching the UI count.
+        const backupRes = await fetch(
+            `${GITHUB_API_BASE}/repos/${owner}/${repo}/contributors?per_page=1&anon=true`,
+            { headers: getGitHubHeaders(token) },
+        );
+
+        if (backupRes.ok) {
+            const linkHeader = backupRes.headers.get("Link");
+            if (linkHeader) {
+                const lastMatch = linkHeader.match(/page=(\d+)>; rel="last"/);
+                if (lastMatch) {
+                    return parseInt(lastMatch[1], 10);
+                }
+            }
+
+            // If no link header but ok, it might be 1 or 0 contributors.
+            const backupData = await backupRes.json();
+            if (Array.isArray(backupData) && backupData.length > 0) {
+                return backupData.length;
+            }
+        }
+
+        // Final Bulletproof Fallback: Fetch the last 100 commits and count unique authors.
+        // This is necessary because GitHub's contributors endpoints can be very slow to update
+        // or might exclude some contributors for various reasons.
+        const commitRes = await fetch(
+            `${GITHUB_API_BASE}/repos/${owner}/${repo}/commits?per_page=100`,
+            { headers: getGitHubHeaders(token) },
+        );
+        if (commitRes.ok) {
+            const commits = await commitRes.json();
+            if (Array.isArray(commits)) {
+                const authors = new Set(
+                    commits
+                        .map((c) => c.author?.login || c.commit?.author?.email)
+                        .filter(Boolean),
+                );
+                return authors.size;
+            }
+        }
+
+        return 0;
+    } catch (err: unknown) {
+        logger.error("error fetching contributor count", {
+            repo: `${owner}/${repo}`,
+            error: toErrorData(err),
+        });
+        return 0;
     }
 }
 

@@ -72,3 +72,16 @@ export function mapEvent(row: EventRow): ActivityEvent {
         data: row.data ?? undefined,
     };
 }
+
+export function hasEventsSince(
+    db: Database,
+    projectId: string,
+    since: Date,
+): boolean {
+    const result = db
+        .query(
+            "SELECT 1 FROM events WHERE project_id = ? AND timestamp > ? LIMIT 1",
+        )
+        .get(projectId, since.toISOString());
+    return result !== null;
+}

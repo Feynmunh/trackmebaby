@@ -9,6 +9,8 @@ import type {
 } from "../../../../shared/types.ts";
 import GitPage from "../../git/GitPage.tsx";
 import GitHubPage from "../../github/GitHubPage.tsx";
+import VaultPage from "../../vault/VaultPage.tsx";
+import WardenFeed from "../../warden/WardenFeed.tsx";
 import OverviewPage from "../OverviewPage.tsx";
 import AIOverview from "./AIOverview.tsx";
 
@@ -31,6 +33,7 @@ interface DashboardContentProps {
     onGitHubSignIn: () => void;
     timelineRef?: RefObject<HTMLDivElement>;
     githubRef?: RefObject<HTMLDivElement>;
+    activeView?: "overview" | "vault" | "warden";
 }
 
 export default function DashboardContent({
@@ -52,61 +55,98 @@ export default function DashboardContent({
     onGitHubSignIn,
     timelineRef,
     githubRef,
+    activeView = "overview",
 }: DashboardContentProps) {
+    if (activeView === "vault") {
+        return (
+            <main className="flex-1 overflow-y-auto custom-scrollbar px-6 py-3">
+                <VaultPage projectId={project.id} />
+            </main>
+        );
+    }
+
+    if (activeView === "warden") {
+        return (
+            <main className="flex-1 overflow-y-auto custom-scrollbar px-6 py-3">
+                <WardenFeed projectId={project.id} />
+            </main>
+        );
+    }
+
     return (
-        <main className="flex-1 overflow-y-auto custom-scrollbar p-12">
-            <div className="max-w-[1600px] mx-auto">
+        <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 px-6 py-3">
+            {/* ── AI Pulse cell — owns its own card border ── */}
+            <div className="shrink-0">
                 <AIOverview
                     project={project}
                     gitSnapshot={gitSnapshot}
                     refreshKey={aiRefreshKey}
+                    onRefreshStats={onRefreshStats}
+                    statsLastUpdated={statsLastUpdated}
                 />
+            </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-                    <div className="lg:col-span-8 order-2 lg:order-1 space-y-12">
-                        <section ref={timelineRef} className="scroll-mt-12">
-                            <GitPage
-                                gitSnapshot={gitSnapshot}
-                                projectStats={projectStats}
-                                statsLoading={statsLoading}
-                                isWidget={true}
-                                section="timeline"
-                            />
-                        </section>
+            {/* ── 2x2 GRID ── */}
+            <div className="grid grid-cols-2 gap-3 pb-3">
+                {/* TOP LEFT: Vitality bars cell */}
+                <div className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3">
+                    <OverviewPage
+                        project={project}
+                        gitSnapshot={gitSnapshot}
+                        projectStats={projectStats}
+                        eventCount={todayEventCount}
+                        events={events}
+                        activitySummary={activitySummary}
+                        isWidget={true}
+                        onCommitsClick={onCommitsClick}
+                        onGitHubClick={onGitHubClick}
+                        isGitHubAuthenticated={isGitHubAuthenticated}
+                        githubData={githubData}
+                        githubLoading={githubLoading}
+                        onGitHubSignIn={onGitHubSignIn}
+                        statsLoading={statsLoading}
+                        statsLastUpdated={statsLastUpdated}
+                        onRefreshStats={onRefreshStats}
+                    />
+                </div>
 
-                        <section ref={githubRef} className="scroll-mt-12">
-                            <GitHubPage
-                                githubData={githubData}
-                                githubLoading={githubLoading}
-                                isGitHubAuthenticated={isGitHubAuthenticated}
-                                isWidget={true}
-                                section="environment"
-                            />
-                        </section>
-                    </div>
+                {/* TOP RIGHT: GitHub Issues cell */}
+                <div
+                    ref={githubRef}
+                    className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3"
+                >
+                    <GitHubPage
+                        githubData={githubData}
+                        githubLoading={githubLoading}
+                        isGitHubAuthenticated={isGitHubAuthenticated}
+                        isWidget={true}
+                        section="issues"
+                    />
+                </div>
 
-                    <div className="lg:col-span-4 order-1 lg:order-2 space-y-12">
-                        <section>
-                            <OverviewPage
-                                project={project}
-                                gitSnapshot={gitSnapshot}
-                                projectStats={projectStats}
-                                eventCount={todayEventCount}
-                                events={events}
-                                activitySummary={activitySummary}
-                                isWidget={true}
-                                onCommitsClick={onCommitsClick}
-                                onGitHubClick={onGitHubClick}
-                                isGitHubAuthenticated={isGitHubAuthenticated}
-                                githubData={githubData}
-                                githubLoading={githubLoading}
-                                onGitHubSignIn={onGitHubSignIn}
-                                statsLoading={statsLoading}
-                                statsLastUpdated={statsLastUpdated}
-                                onRefreshStats={onRefreshStats}
-                            />
-                        </section>
-                    </div>
+                {/* BOTTOM LEFT: Commit Timeline cell */}
+                <div
+                    ref={timelineRef}
+                    className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3"
+                >
+                    <GitPage
+                        gitSnapshot={gitSnapshot}
+                        projectStats={projectStats}
+                        statsLoading={statsLoading}
+                        isWidget={true}
+                        section="timeline"
+                    />
+                </div>
+
+                {/* BOTTOM RIGHT: GitHub PRs cell */}
+                <div className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3">
+                    <GitHubPage
+                        githubData={githubData}
+                        githubLoading={githubLoading}
+                        isGitHubAuthenticated={isGitHubAuthenticated}
+                        isWidget={true}
+                        section="prs"
+                    />
                 </div>
             </div>
         </main>

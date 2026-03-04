@@ -6,17 +6,24 @@
 import type { Database } from "bun:sqlite";
 import { BrowserView, type BrowserWindow } from "electrobun/bun";
 import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
-import { type AIProvider, createAIProvider } from "../services/ai/index.ts";
+import {
+    type AIProvider,
+    createAIProvider,
+    getSavedApiKey,
+} from "../services/ai/index.ts";
 import type { GitTrackerService } from "../services/git-tracker.ts";
 import { GitHubService } from "../services/github.ts";
 import type { ProjectScanner } from "../services/project-scanner.ts";
 import type { SettingsService } from "../services/settings.ts";
+import type { WardenService } from "../services/warden.ts";
 import { registerAIHandlers } from "./features/ai/registrar.ts";
 import { registerGitHandlers } from "./features/git/registrar.ts";
 import { registerGitHubHandlers } from "./features/github/registrar.ts";
 import { registerProjectHandlers } from "./features/projects/registrar.ts";
 import { registerSettingsHandlers } from "./features/settings/registrar.ts";
 import { registerSystemHandlers } from "./features/system/registrar.ts";
+import { registerVaultHandlers } from "./features/vault/registrar.ts";
+import { registerWardenHandlers } from "./features/warden/registrar.ts";
 import { registerWindowHandlers } from "./features/window/registrar.ts";
 
 type BrowserWindowInstance = InstanceType<typeof BrowserWindow>;
@@ -26,6 +33,8 @@ export function createRPC(
     settingsService: SettingsService,
     scanner: ProjectScanner,
     gitTracker: GitTrackerService,
+    wardenService: WardenService,
+
     getMainWindow: () => BrowserWindowInstance | null,
 ) {
     // Create AI provider from current settings
@@ -44,9 +53,6 @@ export function createRPC(
     }
 
     // Simple API key storage (env var or file-based)
-    function getSavedApiKey(): string {
-        return process.env.GROQ_API_KEY || process.env.AI_API_KEY || "";
-    }
 
     // GitHub service
     const githubService = new GitHubService(db);
@@ -66,6 +72,8 @@ export function createRPC(
                     },
                 }),
                 ...registerGitHubHandlers({ db, githubService }),
+                ...registerWardenHandlers({ db, wardenService }),
+                ...registerVaultHandlers({ db }),
                 ...registerWindowHandlers({ getMainWindow }),
             },
             messages: registerSystemHandlers(),

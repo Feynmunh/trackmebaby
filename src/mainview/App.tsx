@@ -11,6 +11,7 @@ import CardsTab from "./tabs/CardsTab";
 const DRAG_MAX_PX = 80;
 
 type TabId = "cards" | "ai" | "settings";
+type Theme = "light" | "dark" | "system";
 
 const tabs = [
     {
@@ -22,10 +23,10 @@ const tabs = [
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={1.8}
+                strokeWidth={1.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[20px] h-[20px]"
+                className="w-[22px] h-[22px]"
             >
                 <rect x="3" y="3" width="7" height="7" rx="2" />
                 <rect x="14" y="3" width="7" height="7" rx="2" />
@@ -43,10 +44,10 @@ const tabs = [
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
-                strokeWidth={1.8}
+                strokeWidth={1.6}
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className="w-[20px] h-[20px]"
+                className="w-[22px] h-[22px]"
             >
                 <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
             </svg>
@@ -76,12 +77,41 @@ function App() {
     const appRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        const savedTheme = localStorage.getItem("trackmebaby-theme") || "dark";
-        if (savedTheme === "dark") {
-            document.documentElement.classList.add("dark");
-        } else {
-            document.documentElement.classList.remove("dark");
-        }
+        const root = document.documentElement;
+
+        const updateTheme = () => {
+            const theme =
+                (localStorage.getItem("trackmebaby-theme") as Theme) ||
+                "system";
+            let isDark = theme === "dark";
+
+            if (theme === "system") {
+                isDark = window.matchMedia(
+                    "(prefers-color-scheme: dark)",
+                ).matches;
+            }
+
+            if (isDark) {
+                root.classList.add("dark");
+            } else {
+                root.classList.remove("dark");
+            }
+        };
+
+        updateTheme();
+
+        // Listen for system theme changes
+        const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+        const handleSystemChange = () => {
+            const currentTheme = localStorage.getItem(
+                "trackmebaby-theme",
+            ) as Theme;
+            if (!currentTheme || currentTheme === "system") {
+                updateTheme();
+            }
+        };
+
+        mediaQuery.addEventListener("change", handleSystemChange);
 
         // Detect platform — custom titlebar only shown on macOS
         // On Windows, hiddenInset shows the native titlebar which handles
@@ -89,6 +119,9 @@ function App() {
         getPlatform()
             .then((platform) => setIsMac(platform === "darwin"))
             .catch(() => setIsMac(false));
+
+        return () =>
+            mediaQuery.removeEventListener("change", handleSystemChange);
     }, []);
 
     const navigateTab = (direction: "left" | "right") => {
@@ -153,17 +186,17 @@ function App() {
     return (
         <div
             ref={appRef}
-            className="flex flex-col h-screen overflow-hidden bg-mac-bg font-sans selection:bg-mac-accent/20"
+            className="flex flex-col h-screen overflow-hidden bg-app-bg font-sans selection:bg-app-accent/20"
         >
-            {/* Custom Titlebar — macOS only (on Windows, the native titlebar handles this) */}
+            {/* Custom Titlebar — macOS only (on Windows/Linux, the native titlebar handles this) */}
             {isMac && (
-                <div className="h-10 w-full shrink-0 flex items-center justify-center bg-mac-bg border-b border-white/[0.05] z-50 relative electrobun-webkit-app-region-drag">
+                <div className="h-10 w-full shrink-0 flex items-center justify-center bg-app-bg border-b border-app-border/40 z-50 relative electrobun-webkit-app-region-drag">
                     {/* Spacer for macOS traffic lights (left side) */}
                     <div className="w-20 shrink-0" />
 
                     {/* Centered title */}
                     <div className="flex-1 flex items-center justify-center">
-                        <span className="text-[13px] font-semibold text-mac-text/80 cursor-default select-none electrobun-webkit-app-region-no-drag">
+                        <span className="text-[13px] font-semibold text-app-text-main/80 cursor-default select-none electrobun-webkit-app-region-no-drag">
                             trackmebaby
                         </span>
                     </div>
@@ -174,7 +207,7 @@ function App() {
             )}
 
             {/* Main Application Area */}
-            <div className="flex flex-row flex-1 overflow-hidden text-mac-text">
+            <div className="flex flex-row flex-1 overflow-hidden text-app-text-main">
                 {/* macOS-style translucent sidebar */}
                 <TabBar
                     activeTab={activeTab}

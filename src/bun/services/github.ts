@@ -17,6 +17,7 @@ import {
 import { runGit } from "./git-command.ts";
 import type { GitHubSearchItem } from "./github/api.ts";
 import {
+    fetchGitHubContributorCount,
     fetchGitHubIssuesAndPRs,
     fetchGitHubUser,
     parseGitHubRemoteUrl,
@@ -143,12 +144,25 @@ export class GitHubService {
             authUrl.searchParams.set("scope", "repo");
             authUrl.searchParams.set("state", crypto.randomUUID());
 
-            // Open the browser
-            const openCmd = process.platform === "darwin" ? "open" : "start";
-            Bun.spawn([openCmd, authUrl.toString()], {
-                detached: true,
-                stdio: ["ignore", "ignore", "ignore"],
-            }).unref();
+            // Open the browser using the correct platform command.
+            // "open" on macOS, "cmd /c start" on Windows (start is a cmd built-in,
+            // not a standalone executable), xdg-open on Linux.
+            if (process.platform === "darwin") {
+                Bun.spawn(["open", authUrl.toString()], {
+                    detached: true,
+                    stdio: ["ignore", "ignore", "ignore"],
+                }).unref();
+            } else if (process.platform === "win32") {
+                Bun.spawn(["cmd", "/c", "start", "", authUrl.toString()], {
+                    detached: true,
+                    stdio: ["ignore", "ignore", "ignore"],
+                }).unref();
+            } else {
+                Bun.spawn(["xdg-open", authUrl.toString()], {
+                    detached: true,
+                    stdio: ["ignore", "ignore", "ignore"],
+                }).unref();
+            }
 
             return { success: true };
         } catch (err: unknown) {
@@ -221,8 +235,13 @@ export class GitHubService {
 
             const cachedIssues = cache?.data?.issues ?? null;
             const cachedPRs = cache?.data?.pullRequests ?? null;
+            const cachedContributorCount = cache?.data?.contributorCount;
 
-            if (issuesStatus === 304 && prsStatus === 304) {
+            if (
+                issuesStatus === 304 &&
+                prsStatus === 304 &&
+                cachedContributorCount !== undefined
+            ) {
                 return cache?.data ?? null;
             }
 
@@ -299,9 +318,24 @@ export class GitHubService {
                 mergedAt: i.pull_request?.merged_at ?? null,
             });
 
-            const data = {
+            // Fetch contributor count if not 304 or if cache is missing it
+            let contributorCount = cache?.data?.contributorCount ?? 0;
+            if (
+                issuesStatus !== 304 ||
+                prsStatus !== 304 ||
+                cache?.data?.contributorCount === undefined
+            ) {
+                contributorCount = await fetchGitHubContributorCount(
+                    token,
+                    remote.owner,
+                    remote.repo,
+                );
+            }
+
+            const data: GitHubData = {
                 openIssues,
                 openPRs,
+                contributorCount,
                 repoUrl: `https://github.com/${remote.owner}/${remote.repo}`,
                 issues: issueItems.map(mapIssue),
                 pullRequests: prItems.map(mapPr),

@@ -8,11 +8,23 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
-    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Jura:wght@400;500;600;700&display=swap"
     rel="stylesheet">
+  <script>
+    (() => {
+      try {
+        const theme = localStorage.getItem('trackmebaby-theme') || 'system';
+        let isDark = theme === 'dark';
+        if (theme === 'system') {
+          isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        }
+        if (isDark) document.documentElement.classList.add('dark');
+      } catch (_e) { }
+    })();
+  </script>
 </head>
 
-<body class="bg-mac-bg text-mac-text antialiased overflow-hidden font-sans">
+<body class="bg-app-bg text-app-text-main antialiased overflow-hidden font-sans">
   <div id="root" class="h-screen w-screen overflow-hidden"></div>
   <script type="module" src="/main.tsx"></script>
 </body>

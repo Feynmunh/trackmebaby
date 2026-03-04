@@ -108,3 +108,10 @@ export function mapGitSnapshot(row: GitSnapshotRow): GitSnapshot {
         data: row.data ?? undefined,
     };
 }
+
+export function hasGitSnapshots(db: Database, projectId: string): boolean {
+    const result = db
+        .query("SELECT 1 FROM git_snapshots WHERE project_id = ? LIMIT 1")
+        .get(projectId);
+    return result !== null;
+}

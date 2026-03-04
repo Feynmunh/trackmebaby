@@ -10,15 +10,14 @@ import { useEffect, useMemo, useState } from "react";
 import type { GitSnapshot, Project } from "../../../../shared/types.ts";
 import { getGitDiff, queryAI } from "../../../rpc.ts";
 
-const getDiffUnsafeCSS = (theme: "light" | "dark") => {
-    const isDark = theme === "dark";
+const getDiffUnsafeCSS = () => {
     return `
     [data-diffs-header] {
-        background-color: ${isDark ? "#1e1e1e" : "#f6f8fa"} !important;
-        border-bottom: 1px solid ${isDark ? "#30363d" : "#d0d7de"};
+        background-color: hsl(var(--app-surface-elevated)) !important;
+        border-bottom: 1px solid hsl(var(--app-border));
     }
     [data-diffs] {
-        background-color: ${isDark ? "#0d1117" : "#ffffff"} !important;
+        background-color: hsl(var(--app-bg)) !important;
     }
     [data-diffs] pre {
         background-color: transparent !important;
@@ -166,30 +165,30 @@ export default function DiffView({
         }
     }, [diffContent]);
 
-    const diffUnsafeCSS = useMemo(() => getDiffUnsafeCSS(theme), [theme]);
+    const diffUnsafeCSS = useMemo(() => getDiffUnsafeCSS(), []);
 
     return (
-        <div className="bg-mac-surface/40 backdrop-blur-xl border border-mac-border rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[80vh] max-w-4xl relative">
-            <div className="px-8 py-5 border-b border-mac-border flex items-center justify-between bg-mac-surface/20 shrink-0">
+        <div className="bg-app-surface/40 backdrop-blur-xl border border-app-border rounded-2xl w-full overflow-hidden shadow-app-lg flex flex-col max-h-[80vh] relative">
+            <div className="px-8 py-5 border-b border-app-border flex items-center justify-between bg-app-surface/20 shrink-0">
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg dark:bg-zinc-800/60 dark:border-zinc-700/50 bg-zinc-100/60 border border-zinc-200/50">
-                        <GitBranch size={14} className="text-zinc-400" />
-                        <span className="text-sm font-semibold dark:text-zinc-200 text-zinc-700">
+                    <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-app-surface-elevated border border-app-border">
+                        <GitBranch size={14} className="text-app-text-muted" />
+                        <span className="text-sm font-semibold text-app-text-main">
                             {gitSnapshot.branch}
                         </span>
                     </div>
                     {loading && (
                         <div className="flex gap-1 ml-2">
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "0ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "150ms" }}
                             />
                             <span
-                                className="w-1 h-1 rounded-full bg-mac-secondary/30 animate-bounce"
+                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
                                 style={{ animationDelay: "300ms" }}
                             />
                         </div>
@@ -197,26 +196,26 @@ export default function DiffView({
                 </div>
                 <button
                     onClick={onClose}
-                    className="p-2 rounded-xl hover:bg-mac-border/30 text-mac-secondary transition-colors"
+                    className="p-2 rounded-xl hover:bg-app-border/30 text-app-text-muted transition-colors"
                 >
                     <X size={18} />
                 </button>
             </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar dark:bg-black bg-white">
+            <div className="flex-1 overflow-auto custom-scrollbar bg-app-bg">
                 {loading ? (
-                    <div className="p-12 text-center text-mac-secondary font-medium animate-pulse">
+                    <div className="p-12 text-center text-app-text-muted font-medium animate-pulse">
                         Loading diff...
                     </div>
                 ) : diffError ? (
                     <div className="p-12 text-center">
-                        <p className="text-sm font-medium text-mac-secondary italic">
+                        <p className="text-sm font-medium text-app-text-muted italic">
                             {diffError}
                         </p>
                     </div>
                 ) : parsed.error ? (
                     <div className="p-12 text-center">
-                        <p className="text-sm font-medium text-mac-secondary italic">
+                        <p className="text-sm font-medium text-app-text-muted italic">
                             {parsed.error}
                         </p>
                     </div>
@@ -231,10 +230,10 @@ export default function DiffView({
                             return (
                                 <div
                                     key={fileKey}
-                                    className="dark:bg-gradient-to-br dark:from-zinc-800/80 dark:to-zinc-900/80 dark:border-zinc-700/50 bg-gradient-to-br from-zinc-100/80 to-zinc-200/80 border border-zinc-200/50 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-shadow"
+                                    className="bg-app-surface-elevated border border-app-border rounded-2xl overflow-hidden shadow-app-md hover:shadow-app-lg transition-shadow"
                                 >
-                                    <div className="px-4 py-3 flex items-center justify-between dark:bg-zinc-800/50 dark:border-zinc-700/30 bg-zinc-50/50 border-b border-zinc-200/30">
-                                        <div className="text-sm font-semibold dark:text-zinc-100 text-zinc-800 truncate">
+                                    <div className="px-4 py-3 flex items-center justify-between bg-app-surface-elevated/50 border-b border-app-border">
+                                        <div className="text-sm font-semibold text-app-text-main truncate">
                                             {file.name}
                                         </div>
                                         <div className="flex items-center gap-3">
@@ -273,7 +272,7 @@ export default function DiffView({
                                                         );
                                                     }
                                                 }}
-                                                className="dark:text-zinc-400 dark:hover:text-zinc-100 text-zinc-500 hover:text-zinc-700 transition-colors"
+                                                className="text-app-text-muted hover:text-app-text-main transition-colors"
                                                 aria-label={
                                                     isExpanded
                                                         ? "Close diff"
@@ -289,20 +288,20 @@ export default function DiffView({
                                         </div>
                                     </div>
                                     {isExpanded && (
-                                        <div className="pierre-diff-file">
+                                        <div className="border-t border-app-border">
                                             <div className="px-4 py-4">
-                                                <div className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em]">
+                                                <div className="text-[10px] font-bold text-app-text-muted uppercase tracking-[0.2em]">
                                                     AI Summary
                                                 </div>
                                                 {fileSummaryLoading[fileKey] ? (
                                                     <div className="space-y-2 mt-3">
-                                                        <div className="h-3 dark:bg-zinc-800/70 bg-zinc-200/70 rounded w-[85%] animate-pulse" />
-                                                        <div className="h-3 dark:bg-zinc-800/60 bg-zinc-200/60 rounded w-[60%] animate-pulse" />
+                                                        <div className="h-3 bg-app-surface-elevated rounded w-[85%] animate-pulse" />
+                                                        <div className="h-3 bg-app-surface-elevated rounded w-[60%] animate-pulse" />
                                                     </div>
                                                 ) : fileSummaryErrors[
                                                       fileKey
                                                   ] ? (
-                                                    <p className="mt-3 text-sm dark:text-zinc-400 text-zinc-500">
+                                                    <p className="mt-3 text-sm text-app-text-muted">
                                                         {
                                                             fileSummaryErrors[
                                                                 fileKey
@@ -310,7 +309,7 @@ export default function DiffView({
                                                         }
                                                     </p>
                                                 ) : (
-                                                    <p className="mt-3 text-[14px] leading-relaxed dark:text-zinc-200 text-zinc-700 font-medium">
+                                                    <p className="mt-3 text-[14px] leading-relaxed text-app-text-main font-medium">
                                                         {fileSummaries[
                                                             fileKey
                                                         ] ?? ""}
@@ -339,7 +338,7 @@ export default function DiffView({
                     </div>
                 ) : (
                     <div className="p-20 text-center">
-                        <p className="text-sm font-medium text-mac-secondary italic">
+                        <p className="text-sm font-medium text-app-text-muted italic">
                             No differences found in the current draft.
                         </p>
                     </div>

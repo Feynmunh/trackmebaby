@@ -6,7 +6,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 6;
 const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
@@ -34,6 +34,15 @@ export function runMigrations(db: Database): void {
     }
     if (version < 3) {
         applyMigration3(db);
+    }
+    if (version < 4) {
+        applyMigration4(db);
+    }
+    if (version < 5) {
+        applyMigration5(db);
+    }
+    if (version < 6) {
+        applyMigration6(db);
     }
     if (version < SCHEMA_VERSION) {
         db.exec(
@@ -113,5 +122,61 @@ function applyMigration3(db: Database): void {
       github_updated_at TEXT,
       FOREIGN KEY (project_id) REFERENCES projects(id)
     )
+  `);
+}
+
+function applyMigration4(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS warden_insights (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      status TEXT NOT NULL DEFAULT 'new',
+      severity TEXT NOT NULL,
+      category TEXT NOT NULL,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      affected_files TEXT,
+      created_at TEXT NOT NULL,
+      resolved_at TEXT
+    )
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_warden_insights_project_status
+      ON warden_insights(project_id, status)
+  `);
+}
+
+function applyMigration5(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS deleted_projects (
+      path TEXT PRIMARY KEY,
+      deleted_at TEXT NOT NULL
+    )
+  `);
+}
+
+function applyMigration6(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS vault_resources (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      type TEXT NOT NULL DEFAULT 'note',
+      title TEXT NOT NULL,
+      content TEXT NOT NULL DEFAULT '',
+      url TEXT,
+      link_preview TEXT,
+      is_pinned INTEGER NOT NULL DEFAULT 0,
+      tags TEXT DEFAULT '[]',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_vault_resources_project
+      ON vault_resources(project_id, is_pinned DESC, created_at DESC)
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_vault_resources_project_type
+      ON vault_resources(project_id, type, is_pinned DESC, created_at DESC)
   `);
 }

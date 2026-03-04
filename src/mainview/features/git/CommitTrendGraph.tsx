@@ -35,7 +35,20 @@ export function CommitTrendGraph({
 
     if (commits.length < 2) return null;
 
-    const data = [...commits].reverse().slice(-20);
+    const MAX_POINTS = 100;
+    const dataSource = [...commits].reverse();
+
+    let data: TrendCommit[];
+    if (dataSource.length <= MAX_POINTS) {
+        data = dataSource;
+    } else {
+        const step = dataSource.length / MAX_POINTS;
+        data = Array.from({ length: MAX_POINTS }, (_, i) => {
+            const idx = Math.floor(i * step);
+            return dataSource[idx];
+        }).filter((c): c is TrendCommit => Boolean(c));
+    }
+
     const width = 600;
     const height = 140;
     const paddingTop = 16;
@@ -99,7 +112,7 @@ export function CommitTrendGraph({
     const hovered = hoveredIdx !== null ? data[hoveredIdx] : null;
 
     return (
-        <div className="bg-mac-surface/40 backdrop-blur rounded-2xl p-6 border border-mac-border shadow-mac mb-6">
+        <div className="rounded-xl p-3 mb-3">
             <div className="flex items-center mb-4">
                 <div className="flex gap-4">
                     <div className="flex items-center gap-2">
@@ -107,7 +120,7 @@ export function CommitTrendGraph({
                             className="w-2 h-2 rounded-full"
                             style={{ backgroundColor: primaryColor }}
                         />
-                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">
+                        <span className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest opacity-60">
                             {primaryLabel}
                         </span>
                     </div>
@@ -116,7 +129,7 @@ export function CommitTrendGraph({
                             className="w-2 h-2 rounded-full"
                             style={{ backgroundColor: secondaryColor }}
                         />
-                        <span className="text-[10px] font-bold text-mac-secondary uppercase tracking-widest opacity-60">
+                        <span className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest opacity-60">
                             {secondaryLabel}
                         </span>
                     </div>
@@ -180,7 +193,7 @@ export function CommitTrendGraph({
                             x2={width - paddingX}
                             y2={paddingTop + chartHeight * (1 - frac)}
                             stroke="currentColor"
-                            className="text-mac-border/20"
+                            className="text-app-border/20"
                             strokeWidth="0.5"
                             strokeDasharray="4 4"
                         />
@@ -191,7 +204,7 @@ export function CommitTrendGraph({
                         x2={width - paddingX}
                         y2={height - paddingBottom}
                         stroke="currentColor"
-                        className="text-mac-border/30"
+                        className="text-app-border/30"
                         strokeWidth="1"
                     />
 
@@ -222,7 +235,7 @@ export function CommitTrendGraph({
                             x2={getX(hoveredIdx)}
                             y2={height - paddingBottom}
                             stroke="currentColor"
-                            className="text-mac-accent/40"
+                            className="text-app-accent/40"
                             strokeWidth="1"
                             strokeDasharray="3 3"
                         />
@@ -255,13 +268,13 @@ export function CommitTrendGraph({
                                             });
                                             el.classList.add(
                                                 "ring-2",
-                                                "ring-mac-accent/60",
+                                                "ring-app-accent/60",
                                             );
                                             setTimeout(
                                                 () =>
                                                     el.classList.remove(
                                                         "ring-2",
-                                                        "ring-mac-accent/60",
+                                                        "ring-app-accent/60",
                                                     ),
                                                 2000,
                                             );
@@ -304,7 +317,7 @@ export function CommitTrendGraph({
                             x={getX(i)}
                             y={height - 6}
                             textAnchor="middle"
-                            className="text-mac-secondary"
+                            className="text-app-text-muted"
                             fill="currentColor"
                             fontSize="9"
                             fontWeight="700"
@@ -329,9 +342,9 @@ export function CommitTrendGraph({
                             transform: "translate(-50%, -100%)",
                         }}
                     >
-                        <div className="bg-mac-surface border border-mac-border rounded-xl shadow-mac-lg px-3 py-2 min-w-[140px] max-w-[220px]">
+                        <div className="bg-app-surface border border-app-border rounded-xl shadow-app-lg px-3 py-2 min-w-[140px] max-w-[220px]">
                             <p
-                                className="text-[10px] text-mac-text font-bold leading-snug mb-1"
+                                className="text-[10px] text-app-text-main font-bold leading-snug mb-1"
                                 style={{
                                     display: "-webkit-box",
                                     WebkitLineClamp: 2,

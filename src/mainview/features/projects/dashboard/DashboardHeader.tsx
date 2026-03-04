@@ -1,23 +1,30 @@
+import { Bot, Code2, Database } from "lucide-react";
 import type { Project } from "../../../../shared/types.ts";
+import PillDock from "./PillDock.tsx";
 
 interface DashboardHeaderProps {
     project: Project;
     onBack: () => void;
+    activeView?: "overview" | "vault" | "warden";
+    onViewChange?: (view: "overview" | "vault" | "warden") => void;
 }
 
 export default function DashboardHeader({
     project,
     onBack,
+    activeView = "overview",
+    onViewChange,
 }: DashboardHeaderProps) {
     const hasWorktrees = project.worktrees && project.worktrees.length > 1;
 
     return (
-        <header className="h-20 bg-mac-surface/30 backdrop-blur-md px-12 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-6">
+        <header className="h-28 bg-app-surface/30 backdrop-blur-md px-6 flex items-center justify-between shrink-0">
+            {/* Left — back + name */}
+            <div className="flex items-center gap-4 min-w-[180px]">
                 <button
                     onClick={onBack}
                     aria-label="Back to projects"
-                    className="w-10 h-10 rounded-xl bg-mac-surface shadow-mac flex items-center justify-center hover:bg-mac-surface/80 transition-all active:scale-95 group"
+                    className="w-9 h-9 rounded-xl bg-app-surface shadow-app-sm flex items-center justify-center hover:bg-app-surface/80 transition-all active:scale-95 group shrink-0"
                 >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
@@ -25,28 +32,50 @@ export default function DashboardHeader({
                         fill="none"
                         stroke="currentColor"
                         strokeWidth={2.5}
-                        className="w-5 h-5 text-mac-accent group-hover:-translate-x-0.5 transition-transform"
+                        className="w-4 h-4 text-app-accent group-hover:-translate-x-0.5 transition-transform"
                     >
                         <path d="M19 12H5M12 19l-7-7 7-7" />
                     </svg>
                 </button>
-
-                <div>
-                    <h1 className="text-lg font-bold text-mac-text">
-                        {project.name}
-                    </h1>
-                    <p className="text-[10px] text-mac-secondary font-mono truncate max-w-md opacity-80">
-                        {project.path}
-                    </p>
-                </div>
+                <h1 className="text-[15px] font-bold text-app-text-main truncate">
+                    {project.name}
+                </h1>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Right — pill dock + badges */}
+            <div className="flex items-end gap-4 min-w-[180px] justify-end pb-5">
                 {hasWorktrees && (
                     <span className="text-[10px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-400 px-2.5 py-1 rounded-full border border-purple-500/20">
                         {project.worktrees.length} worktrees
                     </span>
                 )}
+                <PillDock
+                    baseItemSize={34}
+                    magnification={50}
+                    distance={130}
+                    items={[
+                        {
+                            icon: <Code2 size={15} strokeWidth={2.2} />,
+                            label: "Code",
+                            isActive: activeView === "overview",
+                            onClick: () => onViewChange?.("overview"),
+                        },
+                        {
+                            icon: <Database size={15} strokeWidth={2} />,
+                            label: "Resource Vault",
+                            isActive: activeView === "vault",
+                            onClick: () => onViewChange?.("vault"),
+                            separator: true,
+                        },
+                        {
+                            icon: <Bot size={15} strokeWidth={2} />,
+                            label: "Warden",
+                            isActive: activeView === "warden",
+                            onClick: () => onViewChange?.("warden"),
+                            separator: true,
+                        },
+                    ]}
+                />
             </div>
         </header>
     );

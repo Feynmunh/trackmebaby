@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-A background desktop app that watches your projects folder and tracks what you're working on. Built with Electrobun, React, Tailwind CSS, and Bun.
+A background desktop app that watches your projects folder and tracks what you're working on. Built with Electrobun, React, Tailwind CSS, and Bun
 
 **Stack:**
 - Runtime: Electrobun (desktop shell)
@@ -263,6 +263,35 @@ Frontend communicates with backend via Electrobun RPC:
 
 ---
 
+---
+
+## Design System & Theming (Semantic Tokens)
+
+The application uses a **Hybrid Token System** with CSS Variables (HSL) as the source of truth, mapped to Tailwind utility classes. This ensures a single source of truth and allows for high-performance theme switching.
+
+### 1. Token Naming Convention
+Tokens follow the `app-` prefix to be platform-agnostic. Use these tokens instead of raw Tailwind colors (e.g., zinc, slate) for UI elements.
+
+| Token | Purpose |
+| :--- | :--- |
+| `app-bg` | Core window background |
+| `app-surface` | Primary cards and panels |
+| `app-surface-elevated` | Secondary panels and inputs |
+| `app-text-main` | Primary readable content |
+| `app-text-muted` | Labels, timestamps, secondary text |
+| `app-border` | Default separators and outlines |
+| `app-accent` | Brand color (default orange) |
+| `app-hover` | Interaction highlights |
+
+### 2. Implementation Rules (MUST DO)
+- **Never use `dark:` prefix** for semantic roles. The CSS variables automatically change values when the `.dark` class is applied to the root.
+- **Use Tailwind Bridge**: Map all new semantic variables in `tailwind.theme.mjs` using the HSL pattern: `hsl(var(--token) / <alpha-value>)`. This enables Tailwind's opacity modifiers (e.g., `bg-app-accent/50`).
+- **No raw colors**: Avoid using raw Tailwind colors like `bg-zinc-800` for structural elements. Use `bg-app-surface` instead.
+- **Instant Swaps**: Use the `.theme-switching` guard class to suppress transitions during theme toggles to avoid ghosting.
+- **Accessibility**: Support High Contrast mode via the `@media (forced-colors: active)` block in `index.css`.
+- **FOUC Prevention**: Ensure the theme-detection script remains at the top of `index.html`.
+
+---
 ## Gotchas
 
 1. **Parcel watcher fallback:** `@parcel/watcher-wasm` may fail in some environments; code gracefully falls back to `fs.watch`
