@@ -7,7 +7,7 @@
 
 import { toErrorData, toErrorMessage } from "../../../shared/error.ts";
 import { createLogger } from "../../../shared/logger.ts";
-import type { AIProvider, AIQueryOptions } from "./provider.ts";
+import type { AIProvider, AIQueryOptions, ChatTurn } from "./provider.ts";
 
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
@@ -122,6 +122,72 @@ export class GroqProvider implements AIProvider {
         } catch (err: unknown) {
             logger.warn("health check failed", { error: toErrorData(err) });
             return false;
+        }
+    }
+
+    async queryMultiTurn(
+        systemPrompt: string,
+        messages: ChatTurn[],
+        options?: AIQueryOptions,
+    ): Promise<string> {
+        if (!this.apiKey) {
+            return "Please add your GROQ_API_KEY to your .env file to get AI insights.";
+        }
+
+        try {
+            const apiMessages = [
+                { role: "system" as const, content: systemPrompt },
+                ...messages.map((m) => ({
+                    role: m.role as "user" | "assistant",
+                    content: m.content,
+                })),
+            ];
+
+            const response = await fetch(GROQ_API_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${this.apiKey}`,
+                },
+                body: JSON.stringify({
+                    model: this.model,
+                    messages: apiMessages,
+                    temperature: 0.3,
+                    max_tokens: options?.maxTokens ?? 2048,
+                    response_format: options?.jsonMode
+                        ? { type: "json_object" }
+                        : undefined,
+                }),
+            });
+
+            if (!response.ok) {
+                const errorBody = await response.text();
+                logger.error("multi-turn api error", {
+                    status: response.status,
+                    errorBody,
+                });
+                if (response.status === 429) {
+                    return "Rate limit reached. Please wait a moment and try again.";
+                }
+                if (response.status === 401 || response.status === 403) {
+                    return "Invalid API key. Please check your GROQ_API_KEY.";
+                }
+                return `AI query failed (${response.status}).`;
+            }
+
+            const data = (await response.json()) as {
+                choices: Array<{ message: { content: string } }>;
+            };
+
+            return (
+                data.choices?.[0]?.message?.content || "No response from AI."
+            );
+        } catch (err: unknown) {
+            const message = toErrorMessage(err);
+            logger.error("multi-turn request error", {
+                error: toErrorData(err),
+            });
+            return `AI query failed: ${message}`;
         }
     }
 }
