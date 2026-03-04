@@ -111,6 +111,10 @@ async function getMainViewUrl(): Promise<string> {
 }
 
 const isLinux = process.platform === "linux";
+const isWindows = process.platform === "win32";
+// On non-macOS platforms use the OS-native titlebar (minimize/maximize/close)
+// hiddenInset is macOS-only (transparent titlebar with inset traffic lights)
+const isNonMac = isLinux || isWindows;
 let isCreatingWindow = false;
 
 async function createWindow(): Promise<void> {
@@ -132,10 +136,13 @@ async function createWindow(): Promise<void> {
             title: "trackmebaby",
             url,
             rpc,
-            // hiddenInset causes double titlebars and potential crashes on some Linux setups
-            titleBarStyle: isLinux ? "default" : "hiddenInset",
-            // Transparency on Linux can cause GLX/OpenGL segmentation faults (0x0)
-            transparent: !isLinux,
+            // On Linux/Windows use "default" so the native OS titlebar (with minimize,
+            // maximize, close buttons) appears. "hiddenInset" is macOS-only and hides
+            // the native titlebar without providing replacement controls on other OSes.
+            // Transparency on Linux can cause GLX/OpenGL segmentation faults (0x0),
+            // and on Windows it can cause rendering artifacts.
+            titleBarStyle: isNonMac ? "default" : "hiddenInset",
+            transparent: !isNonMac,
             styleMask: {
                 Titled: true,
                 Closable: true,

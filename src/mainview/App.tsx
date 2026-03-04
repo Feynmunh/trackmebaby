@@ -168,9 +168,10 @@ function App() {
 
         mediaQuery.addEventListener("change", handleSystemChange);
 
-        // Detect platform — custom titlebar only shown on macOS
-        // On Linux/Windows, hiddenInset shows the native titlebar which handles
-        // window controls (minimize, maximize, close, drag, resize)
+        // Detect platform — custom titlebar only shown on macOS.
+        // On Linux and Windows the backend uses titleBarStyle:"default" so the
+        // OS-native titlebar (with minimize/maximize/close buttons) is shown; no
+        // custom titlebar HTML is needed.
         getPlatform()
             .then((platform) => setIsMac(platform === "darwin"))
             .catch(() => setIsMac(false));
