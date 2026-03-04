@@ -144,17 +144,25 @@ export class GitHubService {
             authUrl.searchParams.set("scope", "repo");
             authUrl.searchParams.set("state", crypto.randomUUID());
 
-            // Open the browser
-            const openCmd =
-                process.platform === "darwin"
-                    ? "open"
-                    : process.platform === "win32"
-                      ? "start"
-                      : "xdg-open";
-            Bun.spawn([openCmd, authUrl.toString()], {
-                detached: true,
-                stdio: ["ignore", "ignore", "ignore"],
-            }).unref();
+            // Open the browser using the correct platform command.
+            // "open" on macOS, "cmd /c start" on Windows (start is a cmd built-in,
+            // not a standalone executable), xdg-open on Linux.
+            if (process.platform === "darwin") {
+                Bun.spawn(["open", authUrl.toString()], {
+                    detached: true,
+                    stdio: ["ignore", "ignore", "ignore"],
+                }).unref();
+            } else if (process.platform === "win32") {
+                Bun.spawn(["cmd", "/c", "start", "", authUrl.toString()], {
+                    detached: true,
+                    stdio: ["ignore", "ignore", "ignore"],
+                }).unref();
+            } else {
+                Bun.spawn(["xdg-open", authUrl.toString()], {
+                    detached: true,
+                    stdio: ["ignore", "ignore", "ignore"],
+                }).unref();
+            }
 
             return { success: true };
         } catch (err: unknown) {
