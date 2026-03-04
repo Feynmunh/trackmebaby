@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { timeAgo } from "../../../../shared/time.ts";
 import type { GitSnapshot, Project } from "../../../../shared/types.ts";
+import Markdown from "../../../components/ui/Markdown.tsx";
 import { queryAI } from "../../../rpc.ts";
 import DiffView from "./DiffView.tsx";
-import Markdown from "../../../components/ui/Markdown.tsx";
 
 interface AIOverviewProps {
     project: Project;
@@ -194,7 +194,10 @@ export default function AIOverview({
                         </div>
                     ) : summary ? (
                         <div className="text-[15px] leading-relaxed text-app-text-main/90 font-medium">
-                            <Markdown content={summary} textSize="text-[15px]" />
+                            <Markdown
+                                content={summary}
+                                textSize="text-[15px]"
+                            />
                         </div>
                     ) : (
                         <div className="flex items-center gap-2 text-sm text-app-text-muted">

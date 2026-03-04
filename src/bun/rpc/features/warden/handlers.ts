@@ -26,7 +26,7 @@ export function createGetWardenInsightsHandler(db: Database) {
     };
 }
 
-export function createGetWardenInsightCountsHandler(db: Database) {
+export function createGetWardenInsightCountsByProjectHandler(db: Database) {
     return async ({ projectId }: { projectId: string }) => {
         return getWardenInsightCountsByProject(db, projectId);
     };
@@ -74,7 +74,8 @@ function createOnProjectViewHandler(wardenService: WardenService) {
 export function createWardenHandlers(deps: WardenHandlersDeps) {
     return {
         getWardenInsights: createGetWardenInsightsHandler(deps.db),
-        getWardenInsightCounts: createGetWardenInsightCountsHandler(deps.db),
+        getWardenInsightCountsByProject:
+            createGetWardenInsightCountsByProjectHandler(deps.db),
         triggerWardenAnalysis: createTriggerWardenAnalysisHandler(
             deps.wardenService,
         ),
