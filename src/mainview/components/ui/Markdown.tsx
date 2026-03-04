@@ -17,9 +17,15 @@ export default function Markdown({
     const { showToast } = useToast();
 
     const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text).then(() => {
-            showToast("Copied to clipboard", "success");
-        });
+        navigator.clipboard
+            .writeText(text)
+            .then(() => {
+                showToast("Copied to clipboard", "success");
+            })
+            .catch((err) => {
+                console.error("[Markdown] Failed to copy:", err);
+                showToast("Failed to copy to clipboard", "error");
+            });
     };
 
     return (

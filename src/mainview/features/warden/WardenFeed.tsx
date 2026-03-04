@@ -98,16 +98,32 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
         if (activeTab !== "new" || insights.length === 0) return;
 
         const handleKeyDown = (e: KeyboardEvent) => {
-            const topInsight = insights[0];
+            // Early return if user is typing in an input
+            const target = e.target as HTMLElement;
+            if (
+                target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.isContentEditable
+            ) {
+                return;
+            }
+
+            // Use allInsights for triage deck navigation
+            const topInsight =
+                activeTab === "new" ? allInsights[0] : insights[0];
             if (!topInsight) return;
 
             if (e.key === "ArrowLeft") {
+                e.preventDefault();
                 handleDismiss(topInsight.id);
             } else if (e.key === "ArrowRight") {
+                e.preventDefault();
                 handleApprove(topInsight.id);
             } else if (e.key === "ArrowUp") {
+                e.preventDefault();
                 handleLike(topInsight.id);
             } else if (e.key === "ArrowDown") {
+                e.preventDefault();
                 setExpandedId((prev) =>
                     prev === topInsight.id ? null : topInsight.id,
                 );
@@ -116,29 +132,50 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
 
         window.addEventListener("keydown", handleKeyDown);
         return () => window.removeEventListener("keydown", handleKeyDown);
-    }, [activeTab, insights, handleDismiss, handleApprove, handleLike]);
+    }, [
+        activeTab,
+        insights,
+        allInsights,
+        handleDismiss,
+        handleApprove,
+        handleLike,
+    ]);
 
     // Reset expansion when the top card changes
     useEffect(() => {
-        if (insights[0]?.id !== expandedId) {
+        const topId =
+            activeTab === "new" ? allInsights[0]?.id : insights[0]?.id;
+        if (topId !== expandedId) {
             setExpandedId(null);
         }
-    }, [insights, expandedId]);
+    }, [insights, allInsights, expandedId, activeTab]);
 
-    // Get unique tags (categories) from the current list of insights
+    // Get unique tags (categories) from ALL insights for stable filtering
     const availableTags = useMemo(() => {
         const tags = new Set<string>();
-        for (const insight of insights) {
+        // Only show tags that actually exist in the current tab's status pool
+        const currentTabPool = allInsights.filter((i) => {
+            if (activeTab === "approved")
+                return i.status === "approved" || i.status === "liked";
+            return i.status === activeTab;
+        });
+
+        for (const insight of currentTabPool) {
             tags.add(insight.category);
         }
         return Array.from(tags).sort();
-    }, [insights]);
+    }, [allInsights, activeTab]);
 
-    // Filter insights by selected tag
+    // Filter ALL insights by status and selected tag, then we will paginate later if needed
     const filteredInsights = useMemo(() => {
-        if (!selectedTag) return insights;
-        return insights.filter((i) => i.category === selectedTag);
-    }, [insights, selectedTag]);
+        const base = allInsights.filter((i) => {
+            if (activeTab === "approved")
+                return i.status === "approved" || i.status === "liked";
+            return i.status === activeTab;
+        });
+        if (!selectedTag) return base;
+        return base.filter((i) => i.category === selectedTag);
+    }, [allInsights, activeTab, selectedTag]);
 
     // Sort filtered insights by estimated visual weight to minimize row height gaps in grid
     const sortedFilteredInsights = useMemo(() => {
@@ -151,7 +188,8 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
         });
     }, [filteredInsights]);
 
-    const totalInSession = triagedCount + (allInsights?.length || 0);
+    const totalInSession =
+        triagedCount + (activeTab === "new" ? allInsights.length : 0);
 
     const formatCategory = (cat: string) => {
         return cat.replace("_", " ").toUpperCase();
@@ -326,7 +364,9 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                             </div>
                         ))}
                     </div>
-                ) : insights.length === 0 ? (
+                ) : (activeTab === "new"
+                      ? allInsights.length
+                      : filteredInsights.length) === 0 ? (
                     <div className="bg-app-surface border border-app-border rounded-xl shadow-app-sm p-8 flex flex-col items-center justify-center text-center">
                         <p className="text-app-text-muted text-[13px]">
                             {activeTab === "new" &&
@@ -363,7 +403,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
 
                         <div className="relative w-full max-w-[460px]">
                             <AnimatePresence mode="popLayout">
-                                {insights.slice(0, 3).map((insight, idx) => (
+                                {allInsights.slice(0, 3).map((insight, idx) => (
                                     <SwipeableCard
                                         key={insight.id}
                                         insight={insight}

@@ -36,24 +36,7 @@ export function createTriggerWardenAnalysisHandler(
     wardenService: WardenService,
 ) {
     return async ({ projectId }: { projectId: string }) => {
-        try {
-            return await wardenService.analyzeProjectIfNeeded(projectId, true);
-        } catch (err: unknown) {
-            console.error("[RPC] Warden analysis failed:", err);
-            return { success: false, insightCount: 0, reason: "ERROR" };
-        }
-    };
-}
-
-export function createIsAIConfiguredHandler() {
-    return async () => {
-        return !!getSavedApiKey();
-    };
-}
-
-export function createOnProjectViewHandler(wardenService: WardenService) {
-    return async ({ projectId }: { projectId: string }) => {
-        return wardenService.analyzeProjectIfNeeded(projectId, false);
+        return wardenService.triggerAnalysis(projectId, { manual: true });
     };
 }
 
@@ -75,12 +58,23 @@ export function createUpdateWardenInsightStatusHandler(db: Database) {
     };
 }
 
+function createIsAIConfiguredHandler() {
+    return async () => {
+        const apiKey = await getSavedApiKey();
+        return !!apiKey;
+    };
+}
+
+function createOnProjectViewHandler(wardenService: WardenService) {
+    return async ({ projectId }: { projectId: string }) => {
+        return wardenService.onProjectView(projectId);
+    };
+}
+
 export function createWardenHandlers(deps: WardenHandlersDeps) {
     return {
         getWardenInsights: createGetWardenInsightsHandler(deps.db),
-        getWardenInsightCountsByProject: createGetWardenInsightCountsHandler(
-            deps.db,
-        ),
+        getWardenInsightCounts: createGetWardenInsightCountsHandler(deps.db),
         triggerWardenAnalysis: createTriggerWardenAnalysisHandler(
             deps.wardenService,
         ),

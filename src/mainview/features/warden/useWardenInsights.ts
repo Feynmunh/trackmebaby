@@ -280,7 +280,8 @@ export function useWardenInsights(projectId: string) {
                     result.reason === "MISSING_API_KEY"
                 )
                     setHasApiKey(false);
-                setError(result.reason || "Analysis failed");
+                const message = mapWardenReasonToMessage(result.reason || "");
+                setError(message ?? (result.reason || "Analysis failed"));
                 setIsAnalyzing(false);
             }
             await fetchAllData();

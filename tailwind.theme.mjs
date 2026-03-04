@@ -29,10 +29,6 @@ const theme = {
             playfair: ['"Playfair Display"', "serif"],
             jura: ['"Jura"', "sans-serif"],
         },
-        borderRadius: {
-            app: "10px",
-            "app-lg": "12px",
-        },
         boxShadow: {
             "app-sm": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",
             "app-md": "0 4px 12px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04)",

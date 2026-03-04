@@ -116,7 +116,7 @@ export default function SwipeableCard({
             whileDrag={{ cursor: "grabbing" }}
             className="touch-none"
         >
-            {/* Action Feedback Stamps */}
+            {/* Action Feedback Stamps - Using Semantic Tokens */}
             {isTop && (
                 <>
                     {/* APPROVE STAMP */}
@@ -136,8 +136,8 @@ export default function SwipeableCard({
                         style={{ opacity: ignoreOpacity, scale: ignoreScale }}
                         className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none"
                     >
-                        <div className="border-4 border-zinc-500/40 bg-zinc-500/5 px-8 py-3 rounded-xl rotate-[12deg]">
-                            <span className="font-mono text-4xl font-black tracking-[0.3em] text-zinc-500 uppercase">
+                        <div className="border-4 border-app-border bg-app-surface-elevated/50 px-8 py-3 rounded-xl rotate-[12deg]">
+                            <span className="font-mono text-4xl font-black tracking-[0.3em] text-app-text-muted uppercase">
                                 Ignore
                             </span>
                         </div>
