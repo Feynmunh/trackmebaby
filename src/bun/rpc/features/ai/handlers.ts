@@ -29,7 +29,7 @@ const CHAT_SYSTEM_PROMPT = `You are trackmebaby AI, a developer assistant embedd
 
 CAPABILITIES:
 - You can see the user's tracked projects, file changes, git activity, and project metadata.
-- When the user tags a project with @, you receive detailed context about that project.
+- When the user tags a project with @, you receive DETAILED context about that project including: metadata, git status, branch info, recent commits, file activity, uncommitted diffs, and project statistics.
 - You may receive context about what the user is currently viewing on screen.
 
 GUIDELINES:
@@ -37,7 +37,15 @@ GUIDELINES:
 - Use markdown formatting: **bold**, *italics*, \`code\`, and code blocks with language tags.
 - When discussing files, wrap names in backticks like \`filename.ts\`.
 - If you have no data about something, say so clearly rather than guessing.
-- Be conversational but efficient — developers value speed.`;
+- Be conversational but efficient — developers value speed.
+
+WHEN ANSWERING ABOUT @-TAGGED PROJECTS:
+- ALWAYS use the provided Developer Context to give specific, data-driven answers.
+- Reference actual file names, branch names, commit messages, and activity counts from the context.
+- If the context shows recent commits, mention what the developer has been working on.
+- If it shows uncommitted changes, mention what's in progress.
+- Never give a generic answer when you have specific project context available.
+- If no context is provided or it's empty, tell the user no data is available yet for that project.`;
 
 const PROJECT_SUMMARY_SYSTEM_PROMPT = `You are trackmebaby, an insightful senior developer. Summarize the LATEST work based on the provided activity and diff context.
 
@@ -162,7 +170,7 @@ export function createAIHandlers({ db, getAIProvider }: AIHandlersDeps) {
                         const projectContext = await assembleContext(
                             db,
                             content,
-                            { projectId },
+                            { projectId, isTagged: true },
                         );
                         contextParts.push(projectContext);
                     }

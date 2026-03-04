@@ -131,6 +131,8 @@ export interface AIQueryOptions {
     projectId?: string;
     filePath?: string;
     fileType?: string;
+    /** When true, the project was explicitly @-mentioned in chat — use wider context */
+    isTagged?: boolean;
 }
 
 // ─── AI Chat ─────────────────────────────────────────────────────────────────
