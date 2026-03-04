@@ -144,10 +144,7 @@ function renderMarkdown(text: string): JSX.Element[] {
                             /\*\*(.+?)\*\*/g,
                             '<strong class="font-semibold">$1</strong>',
                         )
-                        .replace(
-                            /\*(.+?)\*/g,
-                            '<em class="italic">$1</em>',
-                        )
+                        .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
                         .replace(
                             /`([^`]+)`/g,
                             '<code class="px-1.5 py-0.5 rounded bg-app-surface-elevated text-[13px] font-mono text-app-accent">$1</code>',
@@ -301,34 +298,25 @@ function ConversationItem({
 
     return (
         <div
-            className={`group relative flex items-center gap-2 px-3 py-2 rounded-lg cursor-pointer transition-colors ${
+            className={`group relative flex items-center gap-2 px-1 py-0.5 rounded-lg transition-colors ${
                 isActive
                     ? "bg-app-accent/10 text-app-accent"
                     : "hover:bg-app-hover text-app-text-main"
             }`}
-            onClick={onClick}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => e.key === "Enter" && onClick()}
         >
-            <MessageSquarePlus className="w-3.5 h-3.5 shrink-0 opacity-60" />
-            {isRenaming ? (
-                <input
-                    ref={inputRef}
-                    className="flex-1 min-w-0 text-sm bg-transparent border-b border-app-accent outline-none px-0 py-0"
-                    value={renameValue}
-                    onChange={(e) => setRenameValue(e.target.value)}
-                    onBlur={() => {
-                        setIsRenaming(false);
-                        if (
-                            renameValue.trim() &&
-                            renameValue !== conversation.title
-                        ) {
-                            onRename(renameValue.trim());
-                        }
-                    }}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter") {
+            <button
+                type="button"
+                className="flex-1 flex items-center gap-2 px-2 py-1.5 min-w-0 text-left cursor-pointer rounded-md"
+                onClick={onClick}
+            >
+                <MessageSquarePlus className="w-3.5 h-3.5 shrink-0 opacity-60" />
+                {isRenaming ? (
+                    <input
+                        ref={inputRef}
+                        className="flex-1 min-w-0 text-sm bg-transparent border-b border-app-accent outline-none px-0 py-0"
+                        value={renameValue}
+                        onChange={(e) => setRenameValue(e.target.value)}
+                        onBlur={() => {
                             setIsRenaming(false);
                             if (
                                 renameValue.trim() &&
@@ -336,18 +324,29 @@ function ConversationItem({
                             ) {
                                 onRename(renameValue.trim());
                             }
-                        } else if (e.key === "Escape") {
-                            setIsRenaming(false);
-                            setRenameValue(conversation.title);
-                        }
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                />
-            ) : (
-                <span className="flex-1 min-w-0 text-sm truncate">
-                    {conversation.title}
-                </span>
-            )}
+                        }}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                setIsRenaming(false);
+                                if (
+                                    renameValue.trim() &&
+                                    renameValue !== conversation.title
+                                ) {
+                                    onRename(renameValue.trim());
+                                }
+                            } else if (e.key === "Escape") {
+                                setIsRenaming(false);
+                                setRenameValue(conversation.title);
+                            }
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                ) : (
+                    <span className="flex-1 min-w-0 text-sm truncate">
+                        {conversation.title}
+                    </span>
+                )}
+            </button>
             <div className="shrink-0 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                 <button
                     type="button"
@@ -392,7 +391,10 @@ function ConversationItem({
 
 // ─── Main AI Tab ─────────────────────────────────────────────────────────────
 
-export default function AITab({ screenContext, isSidebar = false }: AITabProps) {
+export default function AITab({
+    screenContext,
+    isSidebar = false,
+}: AITabProps) {
     // Conversations state
     const [conversations, setConversations] = useState<Conversation[]>([]);
     const [activeConversationId, setActiveConversationId] = useState<
@@ -462,8 +464,7 @@ export default function AITab({ screenContext, isSidebar = false }: AITabProps) 
     const loadMessages = useCallback(async (conversationId: string) => {
         if (!rpcFns) return;
         try {
-            const msgs =
-                await rpcFns.getConversationMessages(conversationId);
+            const msgs = await rpcFns.getConversationMessages(conversationId);
             setMessages(msgs);
         } catch (err: unknown) {
             logger.error("failed to load messages", {
@@ -693,9 +694,7 @@ export default function AITab({ screenContext, isSidebar = false }: AITabProps) 
     const filteredConversations = useMemo(() => {
         if (!sidebarSearch.trim()) return conversations;
         const q = sidebarSearch.toLowerCase();
-        return conversations.filter((c) =>
-            c.title.toLowerCase().includes(q),
-        );
+        return conversations.filter((c) => c.title.toLowerCase().includes(q));
     }, [conversations, sidebarSearch]);
 
     const activeConversation = conversations.find(
@@ -719,11 +718,15 @@ export default function AITab({ screenContext, isSidebar = false }: AITabProps) 
                     isSidebar
                         ? // Overlay drawer mode — floats above the chat, doesn't squeeze it
                           `absolute top-0 left-0 h-full z-30 flex flex-col bg-app-surface border-r border-app-border shadow-xl transition-all duration-200 ${
-                              sidebarOpen ? "w-64 opacity-100 translate-x-0" : "w-64 opacity-0 -translate-x-full pointer-events-none"
+                              sidebarOpen
+                                  ? "w-64 opacity-100 translate-x-0"
+                                  : "w-64 opacity-0 -translate-x-full pointer-events-none"
                           }`
                         : // Normal flex mode — sits beside the chat
                           `shrink-0 border-r border-app-border bg-app-surface/50 flex flex-col transition-all duration-200 ${
-                              sidebarOpen ? "w-64" : "w-0 overflow-hidden border-r-0"
+                              sidebarOpen
+                                  ? "w-64"
+                                  : "w-0 overflow-hidden border-r-0"
                           }`
                 }
             >

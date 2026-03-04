@@ -77,7 +77,9 @@ function App() {
     const isResizing = useRef(false);
     // Ref keeps keyboard handler stable without re-registering on every toggle
     const aiSidebarOpenRef = useRef(aiSidebarOpen);
-    useEffect(() => { aiSidebarOpenRef.current = aiSidebarOpen; }, [aiSidebarOpen]);
+    useEffect(() => {
+        aiSidebarOpenRef.current = aiSidebarOpen;
+    }, [aiSidebarOpen]);
     const [lastViewedProject, setLastViewedProject] = useState<{
         id: string;
         name: string;
@@ -100,25 +102,30 @@ function App() {
     );
 
     // Sidebar resize drag handler
-    const startResize = useCallback((e: React.MouseEvent) => {
-        e.preventDefault();
-        isResizing.current = true;
-        const startX = e.clientX;
-        const startWidth = sidebarWidth;
+    const startResize = useCallback(
+        (e: React.MouseEvent) => {
+            e.preventDefault();
+            isResizing.current = true;
+            const startX = e.clientX;
+            const startWidth = sidebarWidth;
 
-        const onMove = (ev: MouseEvent) => {
-            if (!isResizing.current) return;
-            const delta = startX - ev.clientX;
-            setSidebarWidth(Math.min(700, Math.max(280, startWidth + delta)));
-        };
-        const onUp = () => {
-            isResizing.current = false;
-            window.removeEventListener("mousemove", onMove);
-            window.removeEventListener("mouseup", onUp);
-        };
-        window.addEventListener("mousemove", onMove);
-        window.addEventListener("mouseup", onUp);
-    }, [sidebarWidth]);
+            const onMove = (ev: MouseEvent) => {
+                if (!isResizing.current) return;
+                const delta = startX - ev.clientX;
+                setSidebarWidth(
+                    Math.min(700, Math.max(280, startWidth + delta)),
+                );
+            };
+            const onUp = () => {
+                isResizing.current = false;
+                window.removeEventListener("mousemove", onMove);
+                window.removeEventListener("mouseup", onUp);
+            };
+            window.addEventListener("mousemove", onMove);
+            window.addEventListener("mouseup", onUp);
+        },
+        [sidebarWidth],
+    );
 
     useEffect(() => {
         const root = document.documentElement;
@@ -173,7 +180,11 @@ function App() {
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
             // Use toLowerCase() so Shift doesn't produce uppercase "C" on some platforms
-            if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "c") {
+            if (
+                (e.metaKey || e.ctrlKey) &&
+                e.shiftKey &&
+                e.key.toLowerCase() === "c"
+            ) {
                 e.preventDefault();
                 setAiSidebarOpen((prev) => !prev);
             }
@@ -235,7 +246,9 @@ function App() {
                         {/* Floating AI Sidebar Toggle Button */}
                         {activeTab !== "ai" && (
                             <button
-                                onClick={() => setAiSidebarOpen((prev) => !prev)}
+                                onClick={() =>
+                                    setAiSidebarOpen((prev) => !prev)
+                                }
                                 title={`${aiSidebarOpen ? "Close" : "Open"} AI Assistant (⌘⇧C)`}
                                 className={[
                                     "absolute bottom-5 right-5 z-40",
@@ -249,7 +262,17 @@ function App() {
                             >
                                 {aiSidebarOpen ? (
                                     /* X icon when open */
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={16} height={16}>
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        strokeWidth={2}
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        width={16}
+                                        height={16}
+                                    >
                                         <line x1="18" y1="6" x2="6" y2="18" />
                                         <line x1="6" y1="6" x2="18" y2="18" />
                                     </svg>
@@ -280,16 +303,38 @@ function App() {
                                 <div className="flex items-center justify-between px-3 py-2 border-b border-app-border/60 shrink-0 bg-app-surface-elevated">
                                     <div className="flex items-center gap-2 text-app-text-main">
                                         <AISidebarIcon size={14} />
-                                        <span className="text-[12px] font-semibold tracking-wide">AI Assistant</span>
+                                        <span className="text-[12px] font-semibold tracking-wide">
+                                            AI Assistant
+                                        </span>
                                     </div>
                                     <button
                                         onClick={() => setAiSidebarOpen(false)}
                                         className="flex items-center justify-center w-5 h-5 rounded text-app-text-muted hover:text-app-text-main hover:bg-app-hover transition-colors"
                                         title="Close (Esc)"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" width={13} height={13}>
-                                            <line x1="18" y1="6" x2="6" y2="18" />
-                                            <line x1="6" y1="6" x2="18" y2="18" />
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth={2}
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            width={13}
+                                            height={13}
+                                        >
+                                            <line
+                                                x1="18"
+                                                y1="6"
+                                                x2="6"
+                                                y2="18"
+                                            />
+                                            <line
+                                                x1="6"
+                                                y1="6"
+                                                x2="18"
+                                                y2="18"
+                                            />
                                         </svg>
                                     </button>
                                 </div>

@@ -1,14 +1,17 @@
 import type { Database } from "bun:sqlite";
 import { toErrorData, toErrorMessage } from "../../../../shared/error.ts";
 import { createLogger } from "../../../../shared/logger.ts";
-import type { AIQueryOptions, ScreenContext } from "../../../../shared/types.ts";
+import type {
+    AIQueryOptions,
+    ScreenContext,
+} from "../../../../shared/types.ts";
 import {
     createConversation,
     deleteConversation,
     getConversationMessages,
     getConversations,
-    insertChatMessage,
     getRecentConversationMessages,
+    insertChatMessage,
     updateConversationTitle,
 } from "../../../db/queries.ts";
 import { assembleContext } from "../../../services/ai/context-assembler.ts";
@@ -193,9 +196,7 @@ export function createAIHandlers({ db, getAIProvider }: AIHandlersDeps) {
                     20,
                 );
                 // Exclude the just-inserted user msg from history (it's already there)
-                const pastMessages = history.filter(
-                    (m) => m.id !== userMsg.id,
-                );
+                const pastMessages = history.filter((m) => m.id !== userMsg.id);
 
                 const systemPrompt =
                     CHAT_SYSTEM_PROMPT +
@@ -275,9 +276,13 @@ export function createAIHandlers({ db, getAIProvider }: AIHandlersDeps) {
             parts.push(`Active tab: ${activeTab}`);
 
             if (selectedProjectId) {
-                const context = await assembleContext(db, "describe current state", {
-                    projectId: selectedProjectId,
-                });
+                const context = await assembleContext(
+                    db,
+                    "describe current state",
+                    {
+                        projectId: selectedProjectId,
+                    },
+                );
                 parts.push(context);
             }
 
