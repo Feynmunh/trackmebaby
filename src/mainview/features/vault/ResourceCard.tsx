@@ -19,7 +19,7 @@ import type {
     VaultResourceType,
 } from "../../../shared/types.ts";
 import { openExternalUrl } from "../../rpc.ts";
-import { TYPE_CONFIG } from "./constants.ts";
+import { TYPE_CONFIG, TYPE_OPTIONS } from "./constants.ts";
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,6 @@ interface ResourceCardProps {
             title?: string;
             content?: string;
             type?: VaultResourceType;
-            tags?: string[];
         },
     ) => void;
     onViewDetails?: (resource: VaultResource) => void;
@@ -49,22 +48,41 @@ export default function ResourceCard({
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState(resource.title);
     const [editContent, setEditContent] = useState(resource.content);
-    const [isExpanded, setIsExpanded] = useState(false);
+    const [editType, setEditType] = useState<VaultResourceType>(resource.type);
     const [faviconFailed, setFaviconFailed] = useState(false);
+    const [aspectRatio, setAspectRatio] = useState<"square" | "wide" | "tall">(
+        "square",
+    );
 
     const config = TYPE_CONFIG[resource.type];
     const TypeIcon = config.icon;
 
     const handleSaveEdit = useCallback(() => {
-        onEdit(resource.id, { title: editTitle, content: editContent });
+        onEdit(resource.id, {
+            title: editTitle,
+            content: editContent,
+            type: editType,
+        });
         setIsEditing(false);
-    }, [resource.id, editTitle, editContent, onEdit]);
+    }, [resource.id, editTitle, editContent, editType, onEdit]);
 
     const handleOpenLink = useCallback(() => {
         if (resource.url) {
             void openExternalUrl(resource.url);
         }
     }, [resource.url]);
+
+    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+        const { naturalWidth, naturalHeight } = e.currentTarget;
+        const ratio = naturalWidth / naturalHeight;
+        if (ratio > 1.5) {
+            setAspectRatio("wide");
+        } else if (ratio < 0.7) {
+            setAspectRatio("tall");
+        } else {
+            setAspectRatio("square");
+        }
+    };
 
     const domain = resource.url
         ? (() => {
@@ -76,10 +94,61 @@ export default function ResourceCard({
           })()
         : null;
 
+    // ─── Grid Spans ──────────────────────────────────────────────────────
+    let gridSpan = "col-span-2 row-span-3"; // Standard base size (approx 120px height)
+
+    if (resource.type === "image") {
+        if (aspectRatio === "wide") {
+            gridSpan = "col-span-4 row-span-4";
+        } else if (aspectRatio === "tall") {
+            gridSpan = "col-span-2 row-span-6";
+        } else {
+            gridSpan = "col-span-2 row-span-4";
+        }
+    } else if (resource.type === "link") {
+        if (resource.linkPreview?.image) {
+            gridSpan = "col-span-4 row-span-5";
+        } else {
+            gridSpan = "col-span-2 row-span-2";
+        }
+    } else if (resource.type === "note" || resource.type === "idea") {
+        if (resource.content && resource.content.length > 300) {
+            gridSpan = "col-span-4 row-span-5";
+        } else if (resource.content && resource.content.length > 150) {
+            gridSpan = "col-span-2 row-span-4";
+        }
+    } else if (resource.type === "blocker") {
+        gridSpan = "col-span-4 row-span-3";
+    }
+
     // ─── Edit mode ───────────────────────────────────────────────────────
     if (isEditing) {
         return (
-            <div className="group rounded-2xl border border-app-accent/30 bg-app-surface/50 backdrop-blur-sm p-4 transition-all">
+            <div
+                className={`group rounded-2xl border border-app-accent/30 bg-app-surface/50 backdrop-blur-sm p-4 transition-all h-full ${gridSpan}`}
+            >
+                {/* Category Selector */}
+                <div className="flex items-center gap-1.5 mb-3 overflow-x-auto scrollbar-none pb-1">
+                    {TYPE_OPTIONS.map((opt) => {
+                        const Icon = opt.icon;
+                        const isSelected = editType === opt.type;
+                        return (
+                            <button
+                                key={opt.type}
+                                onClick={() => setEditType(opt.type)}
+                                className={`inline-flex items-center gap-1.5 px-2 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap ${
+                                    isSelected
+                                        ? `${opt.bg} ${opt.color} border-current/20`
+                                        : "text-app-text-muted/40 border-transparent hover:bg-app-surface-elevated/50"
+                                }`}
+                            >
+                                <Icon size={11} />
+                                {opt.label}
+                            </button>
+                        );
+                    })}
+                </div>
+
                 <input
                     type="text"
                     value={editTitle}
@@ -121,183 +190,126 @@ export default function ResourceCard({
 
     if (resource.type === "link") {
         return (
-            <div className="group rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-200 overflow-hidden">
-                {/* Compact row: favicon + site name + actions */}
-                <div
-                    className="flex items-center gap-3 px-4 py-3 cursor-pointer"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                >
-                    {/* Favicon or fallback icon */}
-                    <div className="shrink-0 w-8 h-8 rounded-xl bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
-                        {resource.linkPreview?.favicon && !faviconFailed ? (
-                            <img
-                                src={resource.linkPreview.favicon}
-                                alt=""
-                                className="w-4 h-4 rounded-sm"
-                                onError={() => setFaviconFailed(true)}
-                            />
-                        ) : (
-                            <Link2 size={14} className="text-blue-400" />
-                        )}
-                    </div>
-
-                    {/* Site name */}
-                    <div className="flex-1 min-w-0">
-                        <h4 className="text-[13px] font-semibold text-app-text-main truncate">
-                            {siteName}
-                        </h4>
-                        {domain && siteName !== domain && (
-                            <span className="text-[10px] text-blue-400/60">
-                                {domain}
-                            </span>
-                        )}
-                    </div>
-
-                    {/* Pin indicator */}
-                    {resource.isPinned && (
-                        <Pin
-                            size={11}
-                            className="text-app-accent fill-app-accent shrink-0"
+            <div
+                className={`group relative flex flex-col rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-300 overflow-hidden h-full ${gridSpan}`}
+            >
+                {/* OG preview image (Large) */}
+                {resource.linkPreview?.image && (
+                    <div className="relative w-full aspect-video overflow-hidden bg-app-surface-elevated/30">
+                        <img
+                            src={resource.linkPreview.image}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).style.display =
+                                    "none";
+                            }}
                         />
-                    )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60" />
+                    </div>
+                )}
 
-                    {/* Preview button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenLink();
-                        }}
-                        className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20 hover:bg-blue-500/20 transition-colors"
-                        title="Open in browser"
-                    >
-                        <ExternalLink size={10} />
-                        Preview
-                    </button>
-                </div>
-
-                {/* ── Expanded details (shown on click) ── */}
-                {isExpanded && (
-                    <div className="px-4 pb-3 space-y-2 border-t border-app-border/20 pt-3">
-                        {/* OG preview image */}
-                        {resource.linkPreview?.image && (
-                            <div className="relative w-full h-28 rounded-xl overflow-hidden bg-app-surface-elevated/30">
-                                <img
-                                    src={resource.linkPreview.image}
-                                    alt=""
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                        (
-                                            e.target as HTMLImageElement
-                                        ).style.display = "none";
-                                    }}
-                                />
+                <div className="flex-1 flex flex-col p-4">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                            <div className="shrink-0 w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/15 flex items-center justify-center">
+                                {resource.linkPreview?.favicon &&
+                                !faviconFailed ? (
+                                    <img
+                                        src={resource.linkPreview.favicon}
+                                        alt=""
+                                        className="w-3.5 h-3.5 rounded-sm"
+                                        onError={() => setFaviconFailed(true)}
+                                    />
+                                ) : (
+                                    <Link2
+                                        size={12}
+                                        className="text-blue-400"
+                                    />
+                                )}
                             </div>
-                        )}
-
-                        {/* Full URL */}
-                        <div className="flex items-center gap-2 bg-app-surface-elevated/30 rounded-lg px-3 py-2">
-                            <Link2
-                                size={11}
-                                className="text-app-text-muted/50 shrink-0"
-                            />
-                            <span className="text-[11px] text-blue-400/80 truncate select-all">
-                                {resource.url}
-                            </span>
+                            <h4 className="text-[13px] font-bold text-app-text-main truncate">
+                                {domain || siteName}
+                            </h4>
                         </div>
+                        {resource.isPinned && (
+                            <Pin
+                                size={11}
+                                className="text-app-accent fill-app-accent shrink-0 mt-1"
+                            />
+                        )}
+                    </div>
 
-                        {/* Description */}
+                    {/* URL and Description */}
+                    <div className="space-y-2 mb-3">
+                        <p className="text-[11px] text-blue-400 font-mono break-all line-clamp-2">
+                            {resource.url}
+                        </p>
                         {(resource.linkPreview?.description ||
                             resource.content) && (
-                            <p className="text-[12px] text-app-text-muted leading-relaxed">
+                            <p
+                                className={`text-[11px] text-app-text-muted/80 leading-relaxed ${resource.linkPreview?.image ? "line-clamp-2" : "line-clamp-4"}`}
+                            >
                                 {resource.linkPreview?.description ||
                                     resource.content}
                             </p>
                         )}
+                    </div>
 
-                        {/* Tags */}
-                        {resource.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                                {resource.tags.map((tag) => (
-                                    <span
-                                        key={tag}
-                                        className="text-[10px] px-1.5 py-0.5 rounded-md bg-app-surface-elevated/50 text-app-text-muted border border-app-border/50"
-                                    >
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
+                    <div className="mt-auto flex items-center justify-between">
+                        <span className="text-[9px] text-app-text-muted/40 font-medium">
+                            {siteName}
+                        </span>
 
-                        {/* Actions row */}
-                        <div className="flex items-center justify-between pt-1">
-                            <span className="text-[10px] text-app-text-muted/50">
-                                {timeAgo(resource.createdAt)}
-                            </span>
-                            <div
-                                className="flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
+                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button
+                                onClick={handleOpenLink}
+                                className="p-1.5 rounded-lg hover:bg-blue-500/10 text-blue-400 transition-colors"
+                                title="Open link"
                             >
-                                <button
-                                    onClick={() => onTogglePin(resource.id)}
-                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                                    title={
-                                        resource.isPinned
-                                            ? "Unpin"
-                                            : "Pin to top"
-                                    }
-                                >
-                                    {resource.isPinned ? (
-                                        <PinOff
-                                            size={12}
-                                            className="text-app-accent"
-                                        />
-                                    ) : (
-                                        <Pin
-                                            size={12}
-                                            className="text-app-text-muted"
-                                        />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setEditTitle(resource.title);
-                                        setEditContent(resource.content);
-                                        setIsEditing(true);
-                                    }}
-                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                                    title="Edit"
-                                >
-                                    <Pencil
+                                <ExternalLink size={12} />
+                            </button>
+                            <button
+                                onClick={() => onTogglePin(resource.id)}
+                                className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
+                            >
+                                {resource.isPinned ? (
+                                    <PinOff
+                                        size={12}
+                                        className="text-app-accent"
+                                    />
+                                ) : (
+                                    <Pin
                                         size={12}
                                         className="text-app-text-muted"
                                     />
-                                </button>
-                                {onViewDetails && (
-                                    <button
-                                        onClick={() => onViewDetails(resource)}
-                                        className="p-1.5 rounded-lg hover:bg-app-accent/10 transition-colors"
-                                        title="Full details"
-                                    >
-                                        <Eye
-                                            size={12}
-                                            className="text-app-text-muted hover:text-app-accent"
-                                        />
-                                    </button>
                                 )}
-                                <button
-                                    onClick={() => onDelete(resource.id)}
-                                    className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-                                    title="Delete"
-                                >
-                                    <Trash2
-                                        size={12}
-                                        className="text-app-text-muted hover:text-red-400"
-                                    />
-                                </button>
-                            </div>
+                            </button>
+                            <button
+                                onClick={() => onViewDetails?.(resource)}
+                                className="p-1.5 rounded-lg hover:bg-app-accent/10 text-app-text-muted hover:text-app-accent transition-colors"
+                                title="Full details"
+                            >
+                                <Eye size={12} />
+                            </button>
+                            <button
+                                onClick={() => setIsEditing(true)}
+                                className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
+                            >
+                                <Pencil
+                                    size={12}
+                                    className="text-app-text-muted"
+                                />
+                            </button>
+                            <button
+                                onClick={() => onDelete(resource.id)}
+                                className="p-1.5 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+                            >
+                                <Trash2 size={12} />
+                            </button>
                         </div>
                     </div>
-                )}
+                </div>
             </div>
         );
     }
@@ -309,17 +321,20 @@ export default function ResourceCard({
             imageUrl.startsWith("http://") ||
             imageUrl.startsWith("https://") ||
             imageUrl.startsWith("data:image/");
+
         return (
-            <div className="group rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-200 overflow-hidden">
-                {/* Image preview */}
-                {hasValidImage ? (
-                    <div
-                        className="relative w-full h-40 bg-app-surface-elevated/30 cursor-pointer"
-                        onClick={() => setIsExpanded(!isExpanded)}
-                    >
+            <div
+                className={`group relative rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-300 overflow-hidden h-full ${gridSpan}`}
+            >
+                {/* Full Image */}
+                <div
+                    className={`relative w-full ${aspectRatio === "tall" ? "h-full" : "aspect-video md:aspect-auto h-full min-h-[160px]"} bg-app-surface-elevated/30 overflow-hidden`}
+                >
+                    {hasValidImage ? (
                         <img
                             src={imageUrl}
                             alt={resource.title}
+                            onLoad={handleImageLoad}
                             className="w-full h-full object-cover"
                             onError={(e) => {
                                 const el = e.target as HTMLImageElement;
@@ -330,96 +345,23 @@ export default function ResourceCard({
                                         "flex";
                             }}
                         />
-                        <div
-                            className="absolute inset-0 flex-col items-center justify-center gap-1.5 text-app-text-muted/40"
-                            style={{ display: "none" }}
-                        >
-                            <ImageIcon size={28} />
-                            <span className="text-[10px]">
-                                Image failed to load
-                            </span>
+                    ) : (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-app-text-muted/20">
+                            <ImageIcon size={32} />
+                            <span className="text-[10px]">No image</span>
                         </div>
-                        {resource.isPinned && (
-                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center">
-                                <Pin
-                                    size={10}
-                                    className="text-app-accent fill-app-accent"
-                                />
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div
-                        className="relative w-full h-28 bg-app-surface-elevated/20 flex flex-col items-center justify-center gap-1.5 cursor-pointer"
-                        onClick={() => setIsExpanded(!isExpanded)}
-                    >
-                        <ImageIcon
-                            size={24}
-                            className="text-app-text-muted/25"
-                        />
-                        <span className="text-[10px] text-app-text-muted/40">
-                            No image
-                        </span>
-                        {resource.isPinned && (
-                            <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/30 flex items-center justify-center">
-                                <Pin
-                                    size={10}
-                                    className="text-app-accent fill-app-accent"
-                                />
-                            </div>
-                        )}
-                    </div>
-                )}
+                    )}
 
-                {/* Info bar */}
-                <div
-                    className="flex items-center gap-3 px-4 py-2.5 cursor-pointer"
-                    onClick={() => setIsExpanded(!isExpanded)}
-                >
-                    <div className="shrink-0 w-6 h-6 rounded-lg bg-cyan-500/10 border border-cyan-500/15 flex items-center justify-center">
-                        <ImageIcon size={11} className="text-cyan-400" />
-                    </div>
-                    <h4 className="flex-1 text-[12px] font-semibold text-app-text-main truncate">
-                        {resource.title}
-                    </h4>
-                </div>
-
-                {/* Expanded details */}
-                {isExpanded && (
-                    <div className="px-4 pb-3 space-y-2 border-t border-app-border/20 pt-3">
-                        {resource.content && (
-                            <p className="text-[12px] text-app-text-muted leading-relaxed">
-                                {resource.content}
-                            </p>
-                        )}
-                        {resource.tags.length > 0 && (
-                            <div className="flex flex-wrap gap-1">
-                                {resource.tags.map((tag) => (
-                                    <span
-                                        key={tag}
-                                        className="text-[10px] px-1.5 py-0.5 rounded-md bg-app-surface-elevated/50 text-app-text-muted border border-app-border/50"
-                                    >
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
-                        <div className="flex items-center justify-between pt-1">
-                            <span className="text-[10px] text-app-text-muted/50">
-                                {timeAgo(resource.createdAt)}
-                            </span>
-                            <div
-                                className="flex items-center gap-1"
-                                onClick={(e) => e.stopPropagation()}
-                            >
+                    {/* Overlay info */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <h4 className="text-[12px] font-bold text-white truncate">
+                                {resource.title}
+                            </h4>
+                            <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => onTogglePin(resource.id)}
-                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                                    title={
-                                        resource.isPinned
-                                            ? "Unpin"
-                                            : "Pin to top"
-                                    }
+                                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
                                 >
                                     {resource.isPinned ? (
                                         <PinOff
@@ -427,52 +369,42 @@ export default function ResourceCard({
                                             className="text-app-accent"
                                         />
                                     ) : (
-                                        <Pin
-                                            size={12}
-                                            className="text-app-text-muted"
-                                        />
+                                        <Pin size={12} />
                                     )}
                                 </button>
                                 <button
-                                    onClick={() => {
-                                        setEditTitle(resource.title);
-                                        setEditContent(resource.content);
-                                        setIsEditing(true);
-                                    }}
-                                    className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                                    title="Edit"
+                                    onClick={() => onViewDetails?.(resource)}
+                                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                                    title="Full details"
                                 >
-                                    <Pencil
-                                        size={12}
-                                        className="text-app-text-muted"
-                                    />
+                                    <Eye size={12} />
                                 </button>
-                                {onViewDetails && (
-                                    <button
-                                        onClick={() => onViewDetails(resource)}
-                                        className="p-1.5 rounded-lg hover:bg-app-accent/10 transition-colors"
-                                        title="Full details"
-                                    >
-                                        <Eye
-                                            size={12}
-                                            className="text-app-text-muted hover:text-app-accent"
-                                        />
-                                    </button>
-                                )}
+                                <button
+                                    onClick={() => setIsEditing(true)}
+                                    className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-colors"
+                                >
+                                    <Pencil size={12} />
+                                </button>
                                 <button
                                     onClick={() => onDelete(resource.id)}
-                                    className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-                                    title="Delete"
+                                    className="p-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/40 text-red-200 transition-colors"
                                 >
-                                    <Trash2
-                                        size={12}
-                                        className="text-app-text-muted hover:text-red-400"
-                                    />
+                                    <Trash2 size={12} />
                                 </button>
                             </div>
                         </div>
                     </div>
-                )}
+
+                    {/* Permanent Pin Indicator */}
+                    {resource.isPinned && (
+                        <div className="absolute top-2 right-2 w-6 h-6 rounded-full bg-black/40 backdrop-blur-sm flex items-center justify-center">
+                            <Pin
+                                size={10}
+                                className="text-app-accent fill-app-accent"
+                            />
+                        </div>
+                    )}
+                </div>
             </div>
         );
     }
@@ -480,14 +412,13 @@ export default function ResourceCard({
     // ─── Standard card (note, milestone, idea, decision) ─────────────────
     return (
         <div
-            className="group rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-200 overflow-hidden cursor-pointer"
-            onClick={() => setIsExpanded(!isExpanded)}
+            className={`group flex flex-col rounded-2xl border border-app-border bg-app-surface/30 backdrop-blur-sm hover:bg-app-surface/50 hover:border-app-border/80 transition-all duration-200 overflow-hidden h-full ${gridSpan}`}
         >
-            <div className="p-4">
+            <div className="flex-1 p-4 flex flex-col">
                 {/* Type badge + pin indicator */}
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-3">
                     <span
-                        className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${config.bg}`}
+                        className={`inline-flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.1em] px-2 py-0.5 rounded-full border ${config.bg}`}
                     >
                         <TypeIcon size={10} className={config.color} />
                         <span className={config.color}>{config.label}</span>
@@ -501,38 +432,20 @@ export default function ResourceCard({
                 </div>
 
                 {/* Title */}
-                <h4 className="text-[13px] font-semibold text-app-text-main leading-snug mb-1 line-clamp-2">
+                <h4 className="text-[13px] font-bold text-app-text-main leading-snug mb-2 group-hover:text-app-accent transition-colors">
                     {resource.title}
                 </h4>
 
                 {/* Content preview */}
                 {resource.content && (
-                    <p
-                        className={`text-[12px] text-app-text-muted leading-relaxed ${
-                            isExpanded ? "" : "line-clamp-3"
-                        } mb-2`}
-                    >
+                    <p className="text-[12px] text-app-text-muted/80 leading-relaxed line-clamp-[8] mb-4">
                         {resource.content}
                     </p>
                 )}
 
-                {/* Tags */}
-                {resource.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mb-2">
-                        {resource.tags.map((tag) => (
-                            <span
-                                key={tag}
-                                className="text-[10px] px-1.5 py-0.5 rounded-md bg-app-surface-elevated/50 text-app-text-muted border border-app-border/50"
-                            >
-                                {tag}
-                            </span>
-                        ))}
-                    </div>
-                )}
-
                 {/* Footer: timestamp + actions */}
-                <div className="flex items-center justify-between mt-1 pt-2 border-t border-app-border/30">
-                    <span className="text-[10px] text-app-text-muted/60">
+                <div className="mt-auto flex items-center justify-between pt-3 border-t border-app-border/30">
+                    <span className="text-[9px] font-medium text-app-text-muted/40 uppercase tracking-wider">
                         {timeAgo(resource.createdAt)}
                     </span>
 
@@ -544,7 +457,6 @@ export default function ResourceCard({
                         <button
                             onClick={() => onTogglePin(resource.id)}
                             className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                            title={resource.isPinned ? "Unpin" : "Pin to top"}
                         >
                             {resource.isPinned ? (
                                 <PinOff size={12} className="text-app-accent" />
@@ -556,32 +468,24 @@ export default function ResourceCard({
                             )}
                         </button>
                         <button
-                            onClick={() => {
-                                setEditTitle(resource.title);
-                                setEditContent(resource.content);
-                                setIsEditing(true);
-                            }}
+                            onClick={() => onViewDetails?.(resource)}
+                            className="p-1.5 rounded-lg hover:bg-app-accent/10 transition-colors"
+                            title="Full details"
+                        >
+                            <Eye
+                                size={12}
+                                className="text-app-text-muted hover:text-app-accent"
+                            />
+                        </button>
+                        <button
+                            onClick={() => setIsEditing(true)}
                             className="p-1.5 rounded-lg hover:bg-app-hover transition-colors"
-                            title="Edit"
                         >
                             <Pencil size={12} className="text-app-text-muted" />
                         </button>
-                        {onViewDetails && (
-                            <button
-                                onClick={() => onViewDetails(resource)}
-                                className="p-1.5 rounded-lg hover:bg-app-accent/10 transition-colors"
-                                title="Full details"
-                            >
-                                <Eye
-                                    size={12}
-                                    className="text-app-text-muted hover:text-app-accent"
-                                />
-                            </button>
-                        )}
                         <button
                             onClick={() => onDelete(resource.id)}
                             className="p-1.5 rounded-lg hover:bg-red-500/10 transition-colors"
-                            title="Delete"
                         >
                             <Trash2
                                 size={12}

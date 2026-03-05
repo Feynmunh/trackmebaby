@@ -7,6 +7,7 @@ import {
     Lightbulb,
     Link2,
     Scale,
+    ShieldAlert,
     Target,
 } from "lucide-react";
 import type { VaultResourceType } from "../../../shared/types.ts";
@@ -51,7 +52,20 @@ export const TYPE_CONFIG: Record<
         color: "text-cyan-400",
         bg: "bg-cyan-500/10 border-cyan-500/20",
     },
+    blocker: {
+        icon: ShieldAlert,
+        label: "Blocker",
+        color: "text-orange-400",
+        bg: "bg-orange-500/10 border-orange-500/20",
+    },
 };
+
+export const TYPE_OPTIONS = (
+    Object.keys(TYPE_CONFIG) as VaultResourceType[]
+).map((type) => ({
+    type,
+    ...TYPE_CONFIG[type],
+}));
 
 /** Labels for type-specific empty states */
 export const TYPE_EMPTY_LABELS: Record<VaultResourceType, string> = {
@@ -61,4 +75,5 @@ export const TYPE_EMPTY_LABELS: Record<VaultResourceType, string> = {
     idea: "You haven't captured any ideas yet",
     decision: "You haven't recorded any decisions yet",
     image: "You haven't added any images yet",
+    blocker: "You haven't reported any blockers yet",
 };

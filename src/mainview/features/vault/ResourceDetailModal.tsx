@@ -21,7 +21,7 @@ import type {
     VaultResourceType,
 } from "../../../shared/types.ts";
 import { openExternalUrl } from "../../rpc.ts";
-import { TYPE_CONFIG } from "./constants.ts";
+import { TYPE_CONFIG, TYPE_OPTIONS } from "./constants.ts";
 
 interface ResourceDetailModalProps {
     resource: VaultResource;
@@ -34,7 +34,6 @@ interface ResourceDetailModalProps {
             title?: string;
             content?: string;
             type?: VaultResourceType;
-            tags?: string[];
         },
     ) => void;
 }
@@ -49,6 +48,7 @@ export default function ResourceDetailModal({
     const [isEditing, setIsEditing] = useState(false);
     const [editTitle, setEditTitle] = useState(resource.title);
     const [editContent, setEditContent] = useState(resource.content);
+    const [editType, setEditType] = useState<VaultResourceType>(resource.type);
     const panelRef = useRef<HTMLDivElement>(null);
 
     const config = TYPE_CONFIG[resource.type];
@@ -77,9 +77,13 @@ export default function ResourceDetailModal({
     );
 
     const handleSaveEdit = useCallback(() => {
-        onEdit(resource.id, { title: editTitle, content: editContent });
+        onEdit(resource.id, {
+            title: editTitle,
+            content: editContent,
+            type: editType,
+        });
         setIsEditing(false);
-    }, [resource.id, editTitle, editContent, onEdit]);
+    }, [resource.id, editTitle, editContent, editType, onEdit]);
 
     const handleOpenLink = useCallback(() => {
         if (resource.url) {
@@ -120,17 +124,52 @@ export default function ResourceDetailModal({
                 {/* ── Header bar ── */}
                 <div className="flex items-center justify-between px-5 py-3 border-b border-app-border/20 shrink-0">
                     <div className="flex items-center gap-2.5">
-                        <span
-                            className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${config.bg}`}
-                        >
-                            <TypeIcon size={11} className={config.color} />
-                            <span className={config.color}>{config.label}</span>
-                        </span>
-                        {resource.isPinned && (
-                            <span className="inline-flex items-center gap-1 text-[10px] text-app-accent font-semibold">
-                                <Pin size={10} className="fill-app-accent" />
-                                Pinned
-                            </span>
+                        {isEditing ? (
+                            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+                                {TYPE_OPTIONS.map((opt) => {
+                                    const Icon = opt.icon;
+                                    const isSelected = editType === opt.type;
+                                    return (
+                                        <button
+                                            key={opt.type}
+                                            onClick={() =>
+                                                setEditType(opt.type)
+                                            }
+                                            className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap ${
+                                                isSelected
+                                                    ? `${opt.bg} ${opt.color} border-current/20`
+                                                    : "text-app-text-muted/40 border-transparent hover:bg-app-surface-elevated/50"
+                                            }`}
+                                        >
+                                            <Icon size={11} />
+                                            {opt.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <>
+                                <span
+                                    className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${config.bg}`}
+                                >
+                                    <TypeIcon
+                                        size={11}
+                                        className={config.color}
+                                    />
+                                    <span className={config.color}>
+                                        {config.label}
+                                    </span>
+                                </span>
+                                {resource.isPinned && (
+                                    <span className="inline-flex items-center gap-1 text-[10px] text-app-accent font-semibold">
+                                        <Pin
+                                            size={10}
+                                            className="fill-app-accent"
+                                        />
+                                        Pinned
+                                    </span>
+                                )}
+                            </>
                         )}
                     </div>
                     <button
@@ -284,25 +323,6 @@ export default function ResourceDetailModal({
                         </div>
                     ) : null}
 
-                    {/* Tags */}
-                    {resource.tags.length > 0 && (
-                        <div>
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-app-text-muted/40 block mb-1.5">
-                                Tags
-                            </span>
-                            <div className="flex flex-wrap gap-1.5">
-                                {resource.tags.map((tag) => (
-                                    <span
-                                        key={tag}
-                                        className="text-[10px] px-2 py-0.5 rounded-full bg-app-surface-elevated/50 text-app-text-muted border border-app-border/40"
-                                    >
-                                        {tag}
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
                     {/* Metadata */}
                     <div className="flex items-center gap-4 pt-2">
                         <span className="inline-flex items-center gap-1.5 text-[10px] text-app-text-muted/50">
@@ -369,6 +389,7 @@ export default function ResourceDetailModal({
                                     onClick={() => {
                                         setEditTitle(resource.title);
                                         setEditContent(resource.content);
+                                        setEditType(resource.type);
                                         setIsEditing(true);
                                     }}
                                     className="inline-flex items-center gap-1.5 px-3.5 py-2 text-[11px] font-medium bg-app-accent/15 text-app-accent border border-app-accent/25 rounded-xl hover:bg-app-accent/25 transition-colors"

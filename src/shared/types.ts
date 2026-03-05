@@ -140,7 +140,8 @@ export type VaultResourceType =
     | "milestone"
     | "idea"
     | "decision"
-    | "image";
+    | "image"
+    | "blocker";
 
 export interface LinkPreview {
     title: string | null;

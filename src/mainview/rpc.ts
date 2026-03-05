@@ -264,6 +264,13 @@ export async function deleteProject(
     return requestApi.deleteProject({ projectId });
 }
 
+export async function readClipboardImage(): Promise<{
+    dataUrl: string | null;
+    error?: string;
+}> {
+    return requestApi.readClipboardImage({});
+}
+
 // --- Resource Vault ---
 
 export async function getVaultResources(
@@ -279,7 +286,6 @@ export async function addVaultResource(params: {
     title: string;
     content: string;
     url?: string;
-    tags?: string[];
 }): Promise<VaultResource> {
     return requestApi.addVaultResource(params);
 }
@@ -289,7 +295,6 @@ export async function updateVaultResource(params: {
     title?: string;
     content?: string;
     type?: VaultResourceType;
-    tags?: string[];
 }): Promise<{ success: boolean }> {
     return requestApi.updateVaultResource(params);
 }

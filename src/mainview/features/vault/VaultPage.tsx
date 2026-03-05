@@ -9,6 +9,7 @@ import {
     Lightbulb,
     Link2,
     Scale,
+    ShieldAlert,
     Target,
 } from "lucide-react";
 import { useState } from "react";
@@ -33,6 +34,7 @@ const FILTER_OPTIONS: {
     { id: "milestone", label: "Milestones", icon: Target },
     { id: "idea", label: "Ideas", icon: Lightbulb },
     { id: "decision", label: "Decisions", icon: Scale },
+    { id: "blocker", label: "Blockers", icon: ShieldAlert },
     { id: "image", label: "Images", icon: ImageIcon },
 ];
 
@@ -59,17 +61,12 @@ export default function VaultPage({ projectId }: VaultPageProps) {
         useState<VaultResource | null>(null);
 
     return (
-        <div className="mb-12 space-y-4">
+        <div className="mb-12 space-y-4 relative">
             {/* ── Header ── */}
             <div className="flex items-center justify-between">
                 <h3 className="text-[10px] font-bold text-app-text-muted uppercase tracking-[0.2em] flex items-center gap-1.5">
                     <Archive size={13} strokeWidth={2.2} />
                     Resource Vault
-                    {resources.length > 0 && (
-                        <span className="ml-1.5 text-[9px] font-bold bg-app-surface-elevated/50 text-app-text-muted/70 px-1.5 py-0.5 rounded-full">
-                            {resources.length}
-                        </span>
-                    )}
                 </h3>
             </div>
 
@@ -81,6 +78,12 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                 {FILTER_OPTIONS.map((filter) => {
                     const isActive = activeFilter === filter.id;
                     const Icon = filter.icon;
+                    const count =
+                        filter.id === "all"
+                            ? resources.length
+                            : resources.filter((r) => r.type === filter.id)
+                                  .length;
+
                     return (
                         <button
                             key={filter.id}
@@ -93,6 +96,15 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                         >
                             {Icon && <Icon size={11} />}
                             {filter.label}
+                            <span
+                                className={`ml-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full ${
+                                    isActive
+                                        ? "bg-app-accent/20 text-app-accent"
+                                        : "bg-app-surface-elevated/50 text-app-text-muted/50"
+                                }`}
+                            >
+                                {count}
+                            </span>
                         </button>
                     );
                 })}
@@ -145,37 +157,18 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                         Pinned
                         <span className="flex-1 h-px bg-app-text-muted/10" />
                     </h4>
-                    {/* Links render as compact list, others as grid */}
-                    <div className="flex flex-col gap-2">
-                        {pinnedResources
-                            .filter((r) => r.type === "link")
-                            .map((resource) => (
-                                <ResourceCard
-                                    key={resource.id}
-                                    resource={resource}
-                                    onTogglePin={togglePin}
-                                    onDelete={removeResource}
-                                    onEdit={editResource}
-                                    onViewDetails={setSelectedResource}
-                                />
-                            ))}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 auto-rows-[60px] grid-flow-dense">
+                        {pinnedResources.map((resource) => (
+                            <ResourceCard
+                                key={resource.id}
+                                resource={resource}
+                                onTogglePin={togglePin}
+                                onDelete={removeResource}
+                                onEdit={editResource}
+                                onViewDetails={setSelectedResource}
+                            />
+                        ))}
                     </div>
-                    {pinnedResources.some((r) => r.type !== "link") && (
-                        <div className="grid grid-cols-2 gap-3 mt-2">
-                            {pinnedResources
-                                .filter((r) => r.type !== "link")
-                                .map((resource) => (
-                                    <ResourceCard
-                                        key={resource.id}
-                                        resource={resource}
-                                        onTogglePin={togglePin}
-                                        onDelete={removeResource}
-                                        onEdit={editResource}
-                                        onViewDetails={setSelectedResource}
-                                    />
-                                ))}
-                        </div>
-                    )}
                 </div>
             )}
 
@@ -189,62 +182,18 @@ export default function VaultPage({ projectId }: VaultPageProps) {
                             <span className="flex-1 h-px bg-app-text-muted/10" />
                         </h4>
                     )}
-                    {/* Links as compact stacked list */}
-                    {unpinnedResources.some((r) => r.type === "link") && (
-                        <div className="flex flex-col gap-2 mb-3">
-                            {unpinnedResources
-                                .filter((r) => r.type === "link")
-                                .map((resource) => (
-                                    <ResourceCard
-                                        key={resource.id}
-                                        resource={resource}
-                                        onTogglePin={togglePin}
-                                        onDelete={removeResource}
-                                        onEdit={editResource}
-                                        onViewDetails={setSelectedResource}
-                                    />
-                                ))}
-                        </div>
-                    )}
-                    {/* Images as 2-col gallery */}
-                    {unpinnedResources.some((r) => r.type === "image") && (
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                            {unpinnedResources
-                                .filter((r) => r.type === "image")
-                                .map((resource) => (
-                                    <ResourceCard
-                                        key={resource.id}
-                                        resource={resource}
-                                        onTogglePin={togglePin}
-                                        onDelete={removeResource}
-                                        onEdit={editResource}
-                                        onViewDetails={setSelectedResource}
-                                    />
-                                ))}
-                        </div>
-                    )}
-                    {/* Other types as 2-col grid */}
-                    {unpinnedResources.some(
-                        (r) => r.type !== "link" && r.type !== "image",
-                    ) && (
-                        <div className="grid grid-cols-2 gap-3">
-                            {unpinnedResources
-                                .filter(
-                                    (r) =>
-                                        r.type !== "link" && r.type !== "image",
-                                )
-                                .map((resource) => (
-                                    <ResourceCard
-                                        key={resource.id}
-                                        resource={resource}
-                                        onTogglePin={togglePin}
-                                        onDelete={removeResource}
-                                        onEdit={editResource}
-                                        onViewDetails={setSelectedResource}
-                                    />
-                                ))}
-                        </div>
-                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 auto-rows-[60px] grid-flow-dense">
+                        {unpinnedResources.map((resource) => (
+                            <ResourceCard
+                                key={resource.id}
+                                resource={resource}
+                                onTogglePin={togglePin}
+                                onDelete={removeResource}
+                                onEdit={editResource}
+                                onViewDetails={setSelectedResource}
+                            />
+                        ))}
+                    </div>
                 </div>
             )}
 
