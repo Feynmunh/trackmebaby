@@ -6,7 +6,7 @@ import { ToastProvider } from "./components/ui/Toast.tsx";
 import { GitHubAuthProvider } from "./contexts/GitHubAuthContext.tsx";
 import AITab from "./features/ai/AITab.tsx";
 import SettingsPanel from "./features/settings/SettingsPanel.tsx";
-import { getPlatform } from "./rpc";
+import { getPlatform, setWindowTheme } from "./rpc";
 import CardsTab from "./tabs/CardsTab";
 
 type TabId = "cards" | "ai" | "settings";
@@ -151,6 +151,9 @@ function App() {
             } else {
                 root.classList.remove("dark");
             }
+
+            // Sync native Windows title bar colour
+            setWindowTheme(isDark).catch(() => {});
         };
 
         updateTheme();

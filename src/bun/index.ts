@@ -19,6 +19,10 @@ import { closeDatabase, getDatabase } from "./db/database.ts";
 import { createRPC } from "./rpc/bridge.ts";
 import { AISecretStore } from "./services/ai/index.ts";
 import { GitTrackerService } from "./services/git-tracker.ts";
+import {
+    isSystemDarkMode,
+    setTitleBarDarkMode,
+} from "./services/windows-titlebar.ts";
 import { ProjectScanner } from "./services/project-scanner.ts";
 import { SettingsService } from "./services/settings.ts";
 import { WardenService } from "./services/warden.ts";
@@ -160,6 +164,13 @@ async function createWindow(): Promise<void> {
         mainWindow.on("close", () => {
             mainWindow = null;
         });
+
+        // Apply the correct title bar colour immediately on Windows
+        if (isWindows) {
+            isSystemDarkMode()
+                .then((isDark) => setTitleBarDarkMode("trackmebaby", isDark))
+                .catch(() => {});
+        }
     } catch (err) {
         console.error("[trackmebaby] Failed to create window:", err);
     } finally {

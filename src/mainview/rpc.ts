@@ -241,6 +241,12 @@ export async function windowClose(): Promise<{ success: boolean }> {
     return requestApi.windowClose({});
 }
 
+export async function setWindowTheme(
+    isDark: boolean,
+): Promise<{ success: boolean }> {
+    return requestApi.setWindowTheme({ isDark });
+}
+
 export async function windowGetPosition(): Promise<{ x: number; y: number }> {
     return requestApi.windowGetPosition({});
 }
