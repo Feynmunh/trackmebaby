@@ -50,6 +50,7 @@ export default function ResourceCard({
     const [editContent, setEditContent] = useState(resource.content);
     const [editType, setEditType] = useState<VaultResourceType>(resource.type);
     const [faviconFailed, setFaviconFailed] = useState(false);
+    const [imageError, setImageError] = useState(false);
     const [aspectRatio, setAspectRatio] = useState<"square" | "wide" | "tall">(
         "square",
     );
@@ -330,25 +331,22 @@ export default function ResourceCard({
                 <div
                     className={`relative w-full ${aspectRatio === "tall" ? "h-full" : "aspect-video md:aspect-auto h-full min-h-[160px]"} bg-app-surface-elevated/30 overflow-hidden`}
                 >
-                    {hasValidImage ? (
+                    {hasValidImage && !imageError ? (
                         <img
                             src={imageUrl}
                             alt={resource.title}
                             onLoad={handleImageLoad}
                             className="w-full h-full object-cover"
-                            onError={(e) => {
-                                const el = e.target as HTMLImageElement;
-                                el.style.display = "none";
-                                const fallback = el.nextElementSibling;
-                                if (fallback)
-                                    (fallback as HTMLElement).style.display =
-                                        "flex";
-                            }}
+                            onError={() => setImageError(true)}
                         />
                     ) : (
                         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-app-text-muted/20">
                             <ImageIcon size={32} />
-                            <span className="text-[10px]">No image</span>
+                            <span className="text-[10px]">
+                                {imageError
+                                    ? "Image failed to load"
+                                    : "No image"}
+                            </span>
                         </div>
                     )}
 

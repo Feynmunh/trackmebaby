@@ -65,16 +65,16 @@ export default function AddResourceForm({
 
     const handlePaste = useCallback(
         async (e: React.ClipboardEvent) => {
-            // Extract items and files synchronously before any awaits
-            const items = e.clipboardData
-                ? Array.from(e.clipboardData.items)
-                : [];
-            const files = e.clipboardData
-                ? Array.from(e.clipboardData.files)
-                : [];
+            const clipboardData = e.clipboardData;
+            if (!clipboardData) return;
+
+            // Extract items and files
+            const items = Array.from(clipboardData.items);
+            const files = Array.from(clipboardData.files);
 
             let imageFound = false;
 
+            // Priority 1: Standard Image Items
             if (items.length > 0) {
                 for (const item of items) {
                     if (item.type.startsWith("image/")) {
@@ -85,7 +85,10 @@ export default function AddResourceForm({
                         }
                     }
                 }
-            } else if (files.length > 0) {
+            }
+
+            // Priority 2: Standard Image Files
+            if (!imageFound && files.length > 0) {
                 for (const file of files) {
                     if (file.type.startsWith("image/")) {
                         void processImageFile(file);
@@ -94,8 +97,18 @@ export default function AddResourceForm({
                 }
             }
 
-            // Fallback for where clipboardData.items is often empty (especially on Linux)
-            if (!imageFound) {
+            // If we found an image via standard APIs, prevent default to avoid
+            // also pasting the text metadata or causing double-triggers.
+            if (imageFound) {
+                e.preventDefault();
+                return;
+            }
+
+            // Priority 3: Native RPC fallback (for OS-specific gaps)
+            // Guard: If there is clear plain text, skip the expensive native fallback
+            // unless we specifically want to prioritize image extraction.
+            const hasText = clipboardData.types.includes("text/plain");
+            if (!hasText) {
                 try {
                     const result = await readClipboardImage();
                     if (result.dataUrl) {
@@ -104,6 +117,8 @@ export default function AddResourceForm({
                             name: `pasted-image-${Date.now()}.png`,
                         });
                         imageFound = true;
+                        // Since this is async, preventDefault was already decided
+                        // by the browser, but we've staged our image.
                     }
                 } catch (err) {
                     console.error("[Vault] Native RPC fallback failed:", err);
@@ -175,10 +190,7 @@ export default function AddResourceForm({
     );
 
     return (
-        <div
-            className="flex flex-col bg-app-surface-elevated/40 border border-app-border/50 rounded-2xl transition-all focus-within:border-app-accent/30 overflow-hidden"
-            onPaste={handlePaste}
-        >
+        <div className="flex flex-col bg-app-surface-elevated/40 border border-app-border/50 rounded-2xl transition-all focus-within:border-app-accent/30 overflow-hidden">
             {/* ── Staged Image Attachment ── */}
             {stagedImage && (
                 <div className="p-3 pb-0 animate-in fade-in slide-in-from-top-2 duration-200">
