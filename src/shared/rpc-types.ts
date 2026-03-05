@@ -190,6 +190,10 @@ export type TrackmeBabyRPC = {
                 params: { projectId: string };
                 response: { success: boolean };
             };
+            readClipboardImage: {
+                params: Record<string, never>;
+                response: { dataUrl: string | null; error?: string };
+            };
             // --- Resource Vault ---
             getVaultResources: {
                 params: {
@@ -205,7 +209,6 @@ export type TrackmeBabyRPC = {
                     title: string;
                     content: string;
                     url?: string;
-                    tags?: string[];
                 };
                 response: VaultResource;
             };
@@ -215,7 +218,6 @@ export type TrackmeBabyRPC = {
                     title?: string;
                     content?: string;
                     type?: VaultResourceType;
-                    tags?: string[];
                 };
                 response: { success: boolean };
             };

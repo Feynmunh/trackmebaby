@@ -21,7 +21,10 @@ import { registerGitHandlers } from "./features/git/registrar.ts";
 import { registerGitHubHandlers } from "./features/github/registrar.ts";
 import { registerProjectHandlers } from "./features/projects/registrar.ts";
 import { registerSettingsHandlers } from "./features/settings/registrar.ts";
-import { registerSystemHandlers } from "./features/system/registrar.ts";
+import {
+    registerSystemMessageHandlers,
+    registerSystemRequestHandlers,
+} from "./features/system/registrar.ts";
 import { registerVaultHandlers } from "./features/vault/registrar.ts";
 import { registerWardenHandlers } from "./features/warden/registrar.ts";
 import { registerWindowHandlers } from "./features/window/registrar.ts";
@@ -75,8 +78,9 @@ export function createRPC(
                 ...registerWardenHandlers({ db, wardenService }),
                 ...registerVaultHandlers({ db }),
                 ...registerWindowHandlers({ getMainWindow }),
+                ...registerSystemRequestHandlers(),
             },
-            messages: registerSystemHandlers(),
+            messages: registerSystemMessageHandlers(),
         },
     });
 

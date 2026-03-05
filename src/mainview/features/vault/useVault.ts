@@ -30,7 +30,6 @@ interface UseVaultReturn {
         title: string;
         content: string;
         url?: string;
-        tags?: string[];
     }) => Promise<void>;
     editResource: (
         id: string,
@@ -38,7 +37,6 @@ interface UseVaultReturn {
             title?: string;
             content?: string;
             type?: VaultResourceType;
-            tags?: string[];
         },
     ) => Promise<void>;
     removeResource: (id: string) => Promise<void>;
@@ -51,7 +49,6 @@ interface UseVaultReturn {
         type: VaultResourceType;
         title: string;
         content: string;
-        tags: string[];
     } | null>;
     refresh: () => Promise<void>;
 }
@@ -102,7 +99,6 @@ export function useVault(projectId: string): UseVaultReturn {
             title: string;
             content: string;
             url?: string;
-            tags?: string[];
         }) => {
             try {
                 const newResource = await addVaultResource({
@@ -139,7 +135,6 @@ export function useVault(projectId: string): UseVaultReturn {
                 title?: string;
                 content?: string;
                 type?: VaultResourceType;
-                tags?: string[];
             },
         ) => {
             try {
@@ -211,61 +206,96 @@ export function useVault(projectId: string): UseVaultReturn {
             type: VaultResourceType;
             title: string;
             content: string;
-            tags: string[];
         } | null> => {
             try {
                 const response = await queryAI(
-                    `You are a smart resource categorizer. Given the following raw input, determine the best resource type and structure it.
+                    `You are an expert technical project assistant. Your task is to categorize a developer's raw thought and generate a highly concise, descriptive title.
 
-Input: "${rawInput}"
+Input:
+"""
+${rawInput}
+"""
 
-Respond with ONLY a JSON object (no markdown, no explanation):
+Instructions:
+1. Determine the most accurate category from the permitted list.
+2. Generate a clear, specific title (maximum 50 characters). Do not use generic titles like "New Idea" or "Bug Report". Extract the core subject.
+
+Respond STRICTLY with ONLY a valid JSON object. No markdown code blocks, no backticks, no explanations.
 {
-  "type": "link" | "note" | "milestone" | "idea" | "decision" | "image",
-  "title": "A clear, concise title",
-  "content": "Expanded description or summary",
-  "tags": ["relevant", "tags"]
+  "type": "note" | "milestone" | "idea" | "decision" | "blocker",
+  "title": "Specific, concise title"
 }
 
-Rules:
-- If it's a URL, type should be "link"
-- If it looks like a goal or achievement, use "milestone"
-- If it's a creative thought, use "idea"
-- If it's a choice or resolution, use "decision"
-- If it references an image URL (ending in .png, .jpg, .gif, etc.), use "image"
-- Otherwise default to "note"`,
+Category Guidelines:
+- "milestone": Deadlines, version goals, or significant achievements.
+- "idea": Potential features, "what if" scenarios, or improvements.
+- "decision": Architectural choices, conventions, or resolved debates.
+- "blocker": Bugs, broken features, or obstacles preventing progress.
+- "note": General facts, commands, or anything else.`,
                 );
 
-                // Try to parse JSON from the response
-                const jsonMatch = response.match(/\{[\s\S]*\}/);
-                if (!jsonMatch) return null;
+                // Aggressive JSON extraction to handle rogue markdown or conversational filler
+                const cleanedResponse = response
+                    .replace(/```(?:json)?\n?/gi, "")
+                    .replace(/```/g, "")
+                    .trim();
+                const jsonMatch = cleanedResponse.match(/\{[\s\S]*\}/);
 
-                const parsed = JSON.parse(jsonMatch[0]) as {
-                    type?: string;
-                    title?: string;
+                if (!jsonMatch) {
+                    console.warn(
+                        "[Vault] AI response did not contain JSON:",
+                        response,
+                    );
+                    return null;
+                }
+
+                let parsed: {
+                    type?: VaultResourceType;
                     content?: string;
-                    tags?: string[];
-                };
+                    title?: string;
+                } | null = null;
+                try {
+                    parsed = JSON.parse(jsonMatch[0]);
+                } catch (_e) {
+                    console.error(
+                        "[Vault] Failed to parse AI JSON:",
+                        jsonMatch[0],
+                    );
+                }
+
+                if (!parsed) {
+                    return null;
+                }
 
                 const validTypes = [
-                    "link",
                     "note",
                     "milestone",
                     "idea",
                     "decision",
-                    "image",
+                    "blocker",
                 ];
-                const type = validTypes.includes(parsed.type ?? "")
-                    ? (parsed.type as VaultResourceType)
+
+                const type = validTypes.includes(
+                    parsed.type?.toLowerCase() ?? "",
+                )
+                    ? (parsed.type?.toLowerCase() as VaultResourceType)
                     : "note";
+
+                // Clean up title: remove accidental quotes, fallback to first line if missing
+                let title =
+                    parsed.title?.replace(/^["']|["']$/g, "").trim() ||
+                    rawInput.split("\n")[0].trim();
+                if (title.length > 80) {
+                    title = title.slice(0, 77) + "...";
+                }
 
                 return {
                     type,
-                    title: parsed.title || rawInput.slice(0, 60),
-                    content: parsed.content || rawInput,
-                    tags: Array.isArray(parsed.tags) ? parsed.tags : [],
+                    title,
+                    content: rawInput, // Strict verbatim content
                 };
-            } catch {
+            } catch (err) {
+                console.error("[Vault] AI enhancement failed:", err);
                 return null;
             }
         },

@@ -22,7 +22,7 @@ interface VaultResourceRow {
     url: string | null;
     link_preview: string | null;
     is_pinned: number;
-    tags: string | null;
+    tags: string;
     created_at: string;
     updated_at: string;
 }
@@ -93,7 +93,7 @@ export function insertVaultResource(
     title: string,
     content: string,
     url?: string | null,
-    tags?: string[],
+    tags: string[] = [],
 ): VaultResource {
     const id = Bun.randomUUIDv7();
     const now = nowIso();
@@ -109,7 +109,7 @@ export function insertVaultResource(
         title,
         content,
         url ?? null,
-        JSON.stringify(tags ?? []),
+        JSON.stringify(tags),
         now,
         now,
     );
@@ -123,7 +123,7 @@ export function insertVaultResource(
         url: url ?? null,
         linkPreview: null,
         isPinned: false,
-        tags: tags ?? [],
+        tags,
         createdAt: now,
         updatedAt: now,
     };

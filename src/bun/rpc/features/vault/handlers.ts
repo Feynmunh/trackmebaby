@@ -24,6 +24,7 @@ const VALID_VAULT_TYPES: ReadonlySet<string> = new Set([
     "idea",
     "decision",
     "image",
+    "blocker",
 ]);
 
 function isValidVaultType(type: string): type is VaultResourceType {
@@ -62,14 +63,12 @@ export function createVaultHandlers(deps: VaultHandlersDeps) {
             title,
             content,
             url,
-            tags,
         }: {
             projectId: string;
             type: VaultResourceType;
             title: string;
             content: string;
             url?: string;
-            tags?: string[];
         }) => {
             if (!isValidVaultType(type)) {
                 throw new Error(`Invalid vault resource type: "${type}"`);
@@ -99,7 +98,6 @@ export function createVaultHandlers(deps: VaultHandlersDeps) {
                 title,
                 content,
                 url,
-                tags,
             );
 
             // For links, fetch OG preview asynchronously (don't block the response)
@@ -130,13 +128,11 @@ export function createVaultHandlers(deps: VaultHandlersDeps) {
             title,
             content,
             type,
-            tags,
         }: {
             id: string;
             title?: string;
             content?: string;
             type?: VaultResourceType;
-            tags?: string[];
         }) => {
             if (type !== undefined && !isValidVaultType(type)) {
                 throw new Error(`Invalid vault resource type: "${type}"`);
@@ -145,7 +141,6 @@ export function createVaultHandlers(deps: VaultHandlersDeps) {
                 title,
                 content,
                 type,
-                tags,
             });
             return { success };
         },
