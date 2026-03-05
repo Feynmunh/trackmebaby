@@ -8,11 +8,14 @@ import type {
     ActivityEvent,
     ActivitySummary,
     AIQueryOptions,
+    ChatMessageRecord,
+    Conversation,
     GitHubData,
     GitSnapshot,
     LinkPreview,
     Project,
     ProjectStats,
+    ScreenContext,
     Settings,
     VaultResource,
     VaultResourceType,
@@ -45,6 +48,46 @@ export type TrackmeBabyRPC = {
             };
             queryAI: {
                 params: { question: string; options?: AIQueryOptions };
+                response: string;
+            };
+            // --- AI Chat Conversations ---
+            createConversation: {
+                params: { title?: string };
+                response: Conversation;
+            };
+            getConversations: {
+                params: Record<string, never>;
+                response: Conversation[];
+            };
+            getConversationMessages: {
+                params: { conversationId: string };
+                response: ChatMessageRecord[];
+            };
+            deleteConversation: {
+                params: { conversationId: string };
+                response: { success: boolean };
+            };
+            renameConversation: {
+                params: { conversationId: string; title: string };
+                response: { success: boolean };
+            };
+            sendChatMessage: {
+                params: {
+                    conversationId: string;
+                    content: string;
+                    taggedProjectIds?: string[];
+                    screenContext?: ScreenContext;
+                };
+                response: {
+                    userMessage: ChatMessageRecord;
+                    assistantMessage: ChatMessageRecord;
+                };
+            };
+            getScreenContext: {
+                params: {
+                    activeTab: string;
+                    selectedProjectId?: string;
+                };
                 response: string;
             };
             getSettings: {

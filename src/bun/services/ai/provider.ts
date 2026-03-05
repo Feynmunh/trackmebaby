@@ -8,11 +8,25 @@ export interface AIQueryOptions {
     jsonMode?: boolean;
 }
 
+export interface ChatTurn {
+    role: "user" | "assistant";
+    content: string;
+}
+
 export interface AIProvider {
     query(
         context: string,
         question: string,
         systemPrompt?: string,
+        options?: AIQueryOptions,
+    ): Promise<string>;
+
+    /**
+     * Multi-turn conversation query with full message history.
+     */
+    queryMultiTurn(
+        systemPrompt: string,
+        messages: ChatTurn[],
         options?: AIQueryOptions,
     ): Promise<string>;
 

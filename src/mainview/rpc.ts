@@ -9,11 +9,14 @@ import type {
     ActivityEvent,
     ActivitySummary,
     AIQueryOptions,
+    ChatMessageRecord,
+    Conversation,
     GitHubData,
     GitSnapshot,
     LinkPreview,
     Project,
     ProjectStats,
+    ScreenContext,
     Settings,
     VaultResource,
     VaultResourceType,
@@ -133,6 +136,56 @@ export async function queryAI(
     options?: AIQueryOptions,
 ): Promise<string> {
     return requestApi.queryAI({ question, options });
+}
+
+// --- AI Chat Conversations ---
+
+export async function createConversation(
+    title?: string,
+): Promise<Conversation> {
+    return requestApi.createConversation({ title });
+}
+
+export async function getConversations(): Promise<Conversation[]> {
+    return requestApi.getConversations({});
+}
+
+export async function getConversationMessages(
+    conversationId: string,
+): Promise<ChatMessageRecord[]> {
+    return requestApi.getConversationMessages({ conversationId });
+}
+
+export async function deleteConversation(
+    conversationId: string,
+): Promise<{ success: boolean }> {
+    return requestApi.deleteConversation({ conversationId });
+}
+
+export async function renameConversation(
+    conversationId: string,
+    title: string,
+): Promise<{ success: boolean }> {
+    return requestApi.renameConversation({ conversationId, title });
+}
+
+export async function sendChatMessage(params: {
+    conversationId: string;
+    content: string;
+    taggedProjectIds?: string[];
+    screenContext?: ScreenContext;
+}): Promise<{
+    userMessage: ChatMessageRecord;
+    assistantMessage: ChatMessageRecord;
+}> {
+    return requestApi.sendChatMessage(params);
+}
+
+export async function getScreenContext(
+    activeTab: string,
+    selectedProjectId?: string,
+): Promise<string> {
+    return requestApi.getScreenContext({ activeTab, selectedProjectId });
 }
 
 export async function getSettings(): Promise<Settings> {

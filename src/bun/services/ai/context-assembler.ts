@@ -6,7 +6,9 @@ import {
     getAllRecentEvents,
     getLatestGitSnapshot,
     getProjectById,
+    getProjectStatsCache,
     getProjects,
+    getRecentEvents,
 } from "../../db/queries.ts";
 import { runGit } from "../git-command.ts";
 
@@ -36,8 +38,19 @@ async function assembleProjectContext(
     question: string,
     options?: AIQueryOptions,
 ): Promise<string> {
-    const timeRange = parseTimeRange(question);
+    const isTagged = options?.isTagged === true;
+
+    // For explicitly tagged projects, use a wider window (30 days)
+    // so the AI always gets meaningful context.
+    const timeRange = isTagged
+        ? (() => {
+              const since = new Date();
+              since.setDate(since.getDate() - 30);
+              return { since, label: "Last 30 days" };
+          })()
+        : parseTimeRange(question);
     const since = timeRange.since;
+
     let projects = getProjects(db);
     if (options?.projectId) {
         const project = getProjectById(db, options.projectId);
@@ -70,13 +83,57 @@ async function assembleProjectContext(
         const events = eventsByProject.get(currentProject.id) ?? [];
         const gitSnapshot = getLatestGitSnapshot(db, currentProject.id);
 
-        if (events.length === 0 && !gitSnapshot) continue;
+        // For tagged projects, ALWAYS include context even without recent events.
+        // For general queries, skip projects with no data.
+        if (!isTagged && events.length === 0 && !gitSnapshot) continue;
 
         const projectSection: string[] = [];
 
         projectSection.push(`[PROJECT_METADATA]`);
         projectSection.push(`Name: ${currentProject.name}`);
         projectSection.push(`Path: ${currentProject.path}`);
+        if (currentProject.lastActivityAt) {
+            projectSection.push(
+                `Last activity: ${currentProject.lastActivityAt}`,
+            );
+        }
+        projectSection.push(`Tracked since: ${currentProject.createdAt}`);
+        if (currentProject.worktrees.length > 0) {
+            projectSection.push(
+                `Worktrees: ${currentProject.worktrees.map((w) => w.branch || w.path).join(", ")}`,
+            );
+        }
+
+        // For tagged projects, include cached project stats (branches, commits, repo age)
+        if (isTagged) {
+            const statsCache = getProjectStatsCache(db, currentProject.id);
+            if (statsCache.stats) {
+                const s = statsCache.stats;
+                projectSection.push(`[PROJECT_STATS]`);
+                projectSection.push(`Total commits: ${s.totalCommits}`);
+                projectSection.push(
+                    `Branches (${s.branchCount}): ${s.branches.slice(0, 10).join(", ")}${s.branchCount > 10 ? " ..." : ""}`,
+                );
+                if (s.repoAgeFirstCommit) {
+                    projectSection.push(
+                        `Repository created: ${s.repoAgeFirstCommit}`,
+                    );
+                }
+                if (s.diffSummary) {
+                    projectSection.push(
+                        `Uncommitted diff: ${s.diffSummary.filesChanged} files changed, +${s.diffSummary.insertions} -${s.diffSummary.deletions}`,
+                    );
+                }
+                if (s.recentCommits && s.recentCommits.length > 0) {
+                    projectSection.push(`Recent commits:`);
+                    for (const c of s.recentCommits.slice(0, 5)) {
+                        projectSection.push(
+                            `  - ${c.hash.slice(0, 7)} ${c.message} (${c.author}, ${c.timestamp})`,
+                        );
+                    }
+                }
+            }
+        }
 
         if (gitSnapshot) {
             projectSection.push(`[GIT_STATUS]`);
@@ -86,17 +143,23 @@ async function assembleProjectContext(
                     `Last commit: "${gitSnapshot.lastCommitMessage}"`,
                 );
             }
+            if (gitSnapshot.lastCommitTimestamp) {
+                projectSection.push(
+                    `Commit time: ${gitSnapshot.lastCommitTimestamp}`,
+                );
+            }
             if (gitSnapshot.uncommittedCount > 0) {
                 projectSection.push(
                     `Uncommitted changes: ${gitSnapshot.uncommittedCount} files`,
                 );
-                const files = gitSnapshot.uncommittedFiles.slice(0, 5);
+                const maxFiles = isTagged ? 15 : 5;
+                const files = gitSnapshot.uncommittedFiles.slice(0, maxFiles);
                 for (const f of files) {
                     projectSection.push(`  - ${f}`);
                 }
-                if (gitSnapshot.uncommittedFiles.length > 5) {
+                if (gitSnapshot.uncommittedFiles.length > maxFiles) {
                     projectSection.push(
-                        `  ... and ${gitSnapshot.uncommittedFiles.length - 5} more`,
+                        `  ... and ${gitSnapshot.uncommittedFiles.length - maxFiles} more`,
                     );
                 }
             }
@@ -118,18 +181,45 @@ async function assembleProjectContext(
                 `${creates} created, ${modifies} modified, ${deletes} deleted`,
             );
 
+            const maxPaths = isTagged ? 15 : 8;
             const recentFiles = [
                 ...new Set(events.map((e) => e.filePath)),
-            ].slice(0, 8);
+            ].slice(0, maxPaths);
             projectSection.push(`Recent modified paths:`);
             for (const f of recentFiles) {
                 projectSection.push(`  - ${f}`);
+            }
+        } else if (isTagged) {
+            // For tagged projects with no recent events, try a broader search
+            const allTimeSince = new Date(0);
+            const olderEvents = getRecentEvents(
+                db,
+                currentProject.id,
+                allTimeSince,
+                20,
+            );
+            if (olderEvents.length > 0) {
+                projectSection.push(`[FILE_ACTIVITY_SUMMARY (historical)]`);
+                const recentFiles = [
+                    ...new Set(olderEvents.map((e) => e.filePath)),
+                ].slice(0, 10);
+                projectSection.push(
+                    `${olderEvents.length} tracked events. Recent files:`,
+                );
+                for (const f of recentFiles) {
+                    projectSection.push(`  - ${f}`);
+                }
+            } else {
+                projectSection.push(
+                    `[FILE_ACTIVITY_SUMMARY]\nNo file activity events recorded yet for this project.`,
+                );
             }
         }
 
         sections.push(projectSection.join("\n"));
 
-        if (options?.task === "project_summary") {
+        // Include diffs for tagged projects and project_summary tasks
+        if (isTagged || options?.task === "project_summary") {
             const diff = await loadProjectDiff(currentProject.path);
             if (diff) {
                 sections.push(`[CODE_CHANGES: UNCOMMITTED_DIFF]`);
