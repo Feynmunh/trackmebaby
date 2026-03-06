@@ -51,8 +51,6 @@ export default function DashboardHeader({
                 )}
                 <PillDock
                     baseItemSize={34}
-                    magnification={50}
-                    distance={130}
                     items={[
                         {
                             icon: <Code2 size={15} strokeWidth={2.2} />,

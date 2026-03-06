@@ -57,17 +57,19 @@ export default function Markdown({
                         </a>
                     ),
                     ul: ({ children }) => (
-                        <ul className="list-disc pl-5 space-y-1 my-2">
+                        <ul className="list-disc pl-5 space-y-1.5 my-3 marker:text-app-accent/60">
                             {children}
                         </ul>
                     ),
                     ol: ({ children }) => (
-                        <ol className="list-decimal pl-5 space-y-1 my-2">
+                        <ol className="list-decimal pl-5 space-y-1.5 my-3 marker:text-app-accent/60 marker:font-bold marker:text-[10px]">
                             {children}
                         </ol>
                     ),
                     li: ({ children }) => (
-                        <li className="leading-relaxed">{children}</li>
+                        <li className="pl-1 text-app-text-main/90 font-medium">
+                            {children}
+                        </li>
                     ),
                     code: ({ className, children }) => {
                         const isBlock =
@@ -94,8 +96,44 @@ export default function Markdown({
                             );
                         }
 
+                        // Handle path shortening for inline code
+                        const lowerContent = codeContent.toLowerCase();
+                        const isUrl =
+                            lowerContent.startsWith("http://") ||
+                            lowerContent.startsWith("https://");
+                        const pathLikePrefixes = [
+                            "./",
+                            "../",
+                            "/",
+                            "src/",
+                            "dist/",
+                            "build/",
+                        ];
+                        const hasPathLikePrefix = pathLikePrefixes.some(
+                            (prefix) => codeContent.startsWith(prefix),
+                        );
+                        const segments = codeContent.split(/[/\\]/);
+                        const lastSegment = segments[segments.length - 1] || "";
+                        const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(
+                            lastSegment,
+                        );
+
+                        const isPath =
+                            !isUrl &&
+                            (hasPathLikePrefix ||
+                                ((codeContent.includes("/") ||
+                                    codeContent.includes("\\")) &&
+                                    hasFileExtension));
+
+                        const fileName = isPath
+                            ? lastSegment || codeContent
+                            : codeContent;
+
                         return (
-                            <Tooltip content="Click to copy">
+                            <Tooltip
+                                content={isPath ? codeContent : "Click to copy"}
+                                position="top"
+                            >
                                 <code
                                     onClick={(e) => {
                                         e.stopPropagation();
@@ -103,7 +141,7 @@ export default function Markdown({
                                     }}
                                     className="px-1.5 py-0.5 rounded-md bg-app-surface-elevated text-app-text-main font-mono text-[13px] border border-app-border/50 cursor-pointer hover:border-app-accent/50 transition-colors active:scale-95"
                                 >
-                                    {children}
+                                    {fileName}
                                 </code>
                             </Tooltip>
                         );

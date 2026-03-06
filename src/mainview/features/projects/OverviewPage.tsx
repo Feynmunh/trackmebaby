@@ -147,7 +147,7 @@ export default function OverviewPage({
                 displayVal: githubLoading
                     ? null
                     : !isGitHubAuthenticated
-                      ? "—"
+                      ? "??"
                       : String(iv || "-"),
                 loading: githubLoading,
                 onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
@@ -161,7 +161,7 @@ export default function OverviewPage({
                 displayVal: githubLoading
                     ? null
                     : !isGitHubAuthenticated
-                      ? "—"
+                      ? "??"
                       : String(pv || "-"),
                 loading: githubLoading,
                 onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
@@ -184,7 +184,7 @@ export default function OverviewPage({
                 displayVal: githubLoading
                     ? null
                     : !isGitHubAuthenticated
-                      ? "—"
+                      ? "??"
                       : String(uv ?? "-"),
                 loading: githubLoading,
                 onClick: isGitHubAuthenticated ? onGitHubClick : onGitHubSignIn,
@@ -249,8 +249,13 @@ export default function OverviewPage({
                                         {row.loading ? (
                                             <div className="absolute inset-0 bg-app-border/10 rounded-full animate-pulse" />
                                         ) : row.needsAuth ? (
-                                            <div className="absolute inset-0 flex items-center">
-                                                <div className="w-full h-[1px] bg-app-border/20 border-t border-dashed border-app-text-muted/20" />
+                                            <div className="absolute inset-0 flex items-center group/track">
+                                                <div className="w-full h-[1px] bg-app-border/40 border-t border-dashed border-app-text-muted/40 transition-colors group-hover/track:border-app-accent/60" />
+                                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/track:opacity-100 transition-opacity pointer-events-none">
+                                                    <span className="text-[7px] font-black uppercase tracking-[0.2em] text-app-accent bg-app-surface px-1">
+                                                        Sign In
+                                                    </span>
+                                                </div>
                                             </div>
                                         ) : (
                                             <>
@@ -474,6 +479,7 @@ export default function OverviewPage({
                     loadingIndicator="…"
                     showAuthPrompt={!isGitHubAuthenticated}
                     authPromptLabel="Issues"
+                    authPromptVariant="large"
                     onAuthClick={onGitHubSignIn}
                     authLoading={githubLoading}
                     className={`bg-app-surface/40 backdrop-blur rounded-3xl p-8 border border-app-border shadow-app-sm hover:shadow-app-md transition-all ${!isGitHubAuthenticated ? "cursor-pointer active:scale-[0.98]" : ""}`}
@@ -499,6 +505,7 @@ export default function OverviewPage({
                     loadingIndicator="…"
                     showAuthPrompt={!isGitHubAuthenticated}
                     authPromptLabel="Pull Requests"
+                    authPromptVariant="large"
                     onAuthClick={onGitHubSignIn}
                     authLoading={githubLoading}
                     className={`bg-app-surface/40 backdrop-blur rounded-3xl p-8 border border-app-border shadow-app-sm hover:shadow-app-md transition-all ${!isGitHubAuthenticated ? "cursor-pointer active:scale-[0.98]" : ""}`}

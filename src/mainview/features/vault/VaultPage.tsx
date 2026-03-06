@@ -61,15 +61,7 @@ export default function VaultPage({ projectId }: VaultPageProps) {
         useState<VaultResource | null>(null);
 
     return (
-        <div className="mb-12 space-y-4 relative">
-            {/* ── Header ── */}
-            <div className="flex items-center justify-between">
-                <h3 className="text-[10px] font-bold text-app-text-muted uppercase tracking-[0.2em] flex items-center gap-1.5">
-                    <Archive size={13} strokeWidth={2.2} />
-                    Resource Vault
-                </h3>
-            </div>
-
+        <div className="mb-12 space-y-5 relative">
             {/* ── Quick Add ── */}
             <AddResourceForm onAdd={addResource} onAiEnhance={aiEnhanceInput} />
 
