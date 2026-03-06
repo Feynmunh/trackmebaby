@@ -10,6 +10,7 @@ interface StatCardProps {
     loadingIndicator?: ReactNode;
     showAuthPrompt?: boolean;
     authPromptLabel: string;
+    authPromptVariant?: "compact" | "large";
     onAuthClick?: () => void;
     authLoading?: boolean;
     authValueClassName?: string;
@@ -30,6 +31,7 @@ export default function StatCard({
     loadingIndicator,
     showAuthPrompt = false,
     authPromptLabel,
+    authPromptVariant = "compact",
     onAuthClick,
     authLoading,
     authValueClassName,
@@ -49,6 +51,7 @@ export default function StatCard({
                         <GitHubSignInPrompt
                             onClick={onAuthClick}
                             loading={authLoading}
+                            variant={authPromptVariant}
                         />
                     </div>
                     <div

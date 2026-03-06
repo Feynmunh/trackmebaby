@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { WardenCategory, WardenInsight } from "../../../shared/types.ts";
 import Markdown from "../../components/ui/Markdown.tsx";
+import { useToast } from "../../components/ui/Toast.tsx";
+import Tooltip from "../../components/ui/Tooltip.tsx";
 
 interface InsightCardProps {
     insight: WardenInsight;
@@ -22,12 +24,25 @@ export default function InsightCard({
     onLike,
 }: InsightCardProps) {
     const [internalIsExpanded, setInternalIsExpanded] = useState(false);
+    const { showToast } = useToast();
 
     // Use controlled state if provided, otherwise use internal state
     const isExpanded =
         controlledIsExpanded !== undefined
             ? controlledIsExpanded
             : internalIsExpanded;
+
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard
+            .writeText(text)
+            .then(() => {
+                showToast("Path copied", "success");
+            })
+            .catch((err) => {
+                console.error("[InsightCard] Failed to copy:", err);
+                showToast("Failed to copy path", "error");
+            });
+    };
 
     const handleToggleExpand = () => {
         if (onToggleExpand) {
@@ -55,36 +70,6 @@ export default function InsightCard({
                 </span>
 
                 <div className="flex items-center gap-1">
-                    {/* Expand Toggle (Down Arrow) */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            handleToggleExpand();
-                        }}
-                        aria-expanded={isExpanded}
-                        aria-controls={scopeId}
-                        aria-label={
-                            isExpanded
-                                ? "Collapse file scope"
-                                : "Expand file scope"
-                        }
-                        className={`p-1.5 rounded-md hover:bg-app-hover text-app-text-muted transition-all focus:outline-none ${isExpanded ? "bg-app-hover text-app-text-main rotate-180" : ""}`}
-                        title="Toggle Scope (Arrow Down)"
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2.5"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-3.5 h-3.5"
-                        >
-                            <polyline points="6 9 12 15 18 9"></polyline>
-                        </svg>
-                    </button>
-
                     {/* Like Button (Love) */}
                     {onLike && (
                         <button
@@ -183,17 +168,37 @@ export default function InsightCard({
                                 className="mt-3 bg-app-bg border border-app-border p-3 rounded-md overflow-hidden animate-in fade-in slide-in-from-top-1"
                             >
                                 <ul className="space-y-1.5 overflow-y-auto max-h-40 custom-scrollbar">
-                                    {insight.affectedFiles.map((file, i) => (
-                                        <li
-                                            key={i}
-                                            className="font-mono text-[10px] text-app-text-muted truncate flex items-center gap-2"
-                                        >
-                                            <span className="text-app-accent/50">
-                                                ›
-                                            </span>
-                                            {file}
-                                        </li>
-                                    ))}
+                                    {insight.affectedFiles.map((file, i) => {
+                                        const fileName =
+                                            file.split(/[/\\]/).pop() || file;
+                                        return (
+                                            <li
+                                                key={i}
+                                                className="font-mono text-[10px] text-app-text-muted truncate flex items-center gap-2"
+                                            >
+                                                <span className="text-app-accent/50">
+                                                    ›
+                                                </span>
+                                                <Tooltip
+                                                    content={file}
+                                                    position="top"
+                                                    className="inline-block max-w-full"
+                                                >
+                                                    <span
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            copyToClipboard(
+                                                                file,
+                                                            );
+                                                        }}
+                                                        className="cursor-pointer hover:text-app-text-main transition-colors"
+                                                    >
+                                                        {fileName}
+                                                    </span>
+                                                </Tooltip>
+                                            </li>
+                                        );
+                                    })}
                                 </ul>
                             </div>
                         )}

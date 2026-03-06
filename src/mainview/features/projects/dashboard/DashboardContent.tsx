@@ -121,6 +121,7 @@ export default function DashboardContent({
                         isGitHubAuthenticated={isGitHubAuthenticated}
                         isWidget={true}
                         section="issues"
+                        onSignIn={onGitHubSignIn}
                     />
                 </div>
 
@@ -146,6 +147,7 @@ export default function DashboardContent({
                         isGitHubAuthenticated={isGitHubAuthenticated}
                         isWidget={true}
                         section="prs"
+                        onSignIn={onGitHubSignIn}
                     />
                 </div>
             </div>

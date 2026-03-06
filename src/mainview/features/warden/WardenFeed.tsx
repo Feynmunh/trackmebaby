@@ -197,25 +197,8 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
 
     return (
         <div className="mb-12">
-            {/* Header */}
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <h3 className="text-[10px] font-bold text-app-text-muted uppercase tracking-[0.2em] flex items-center gap-1.5">
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth={2.5}
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="w-3.5 h-3.5"
-                        >
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                        </svg>
-                        Warden
-                    </h3>
-                </div>
+            {/* Header / Actions */}
+            <div className="flex items-center mb-6">
                 <button
                     onClick={() => {
                         void triggerAnalysis();
@@ -240,7 +223,7 @@ export default function WardenFeed({ projectId }: WardenFeedProps) {
                         </div>
                     ) : (
                         <>
-                            <span>Analyze</span>
+                            <span>Analyze Project</span>
                             <span className="text-[10px] opacity-60">↻</span>
                         </>
                     )}

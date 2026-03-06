@@ -18,7 +18,7 @@ Valid category values: security, tech_debt, project_health, suggestion, testing_
 
 CRITICAL CONSTRAINTS for "description":
 - Use markdown for emphasis (**bold** or *italics*).
-- ALWAYS format filenames with backticks like \`filename.ts\`.
+- ALWAYS format filenames with their full relative path from the project root and wrap in backticks like \`src/mainview/components/ui/Toast.tsx\`.
 - Provide direct, insightful sentences.
 
 Avoid repeating insights listed in the [EXISTING_INSIGHTS] or [DISMISSED_INSIGHTS] sections of the context.
