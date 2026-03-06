@@ -1,4 +1,4 @@
-import { motion } from "motion/react";
+import { LayoutGroup, motion } from "motion/react";
 import { type ReactNode } from "react";
 import Tooltip from "../../../components/ui/Tooltip.tsx";
 
@@ -99,27 +99,32 @@ interface PillDockProps {
 export default function PillDock({ items, baseItemSize = 32 }: PillDockProps) {
     return (
         <div className="flex items-center justify-center">
-            <div
-                className="relative flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-app-border/40 bg-app-surface/40 backdrop-blur-sm"
-                role="toolbar"
-                aria-label="Navigation dock"
-            >
-                {items.map((item, i) => (
-                    <div key={item.label} className="flex items-center gap-1.5">
-                        {item.separator && i !== 0 && <DockSep />}
-                        <Tooltip content={item.label} position="bottom">
-                            <DockItem
-                                onClick={item.onClick}
-                                disabled={item.disabled}
-                                baseItemSize={baseItemSize}
-                                isActive={item.isActive}
-                            >
-                                <DockIcon>{item.icon}</DockIcon>
-                            </DockItem>
-                        </Tooltip>
-                    </div>
-                ))}
-            </div>
+            <LayoutGroup id="pill-dock-group">
+                <div
+                    className="relative flex items-center gap-1.5 px-2 py-1.5 rounded-xl border border-app-border/40 bg-app-surface/40 backdrop-blur-sm"
+                    role="toolbar"
+                    aria-label="Navigation dock"
+                >
+                    {items.map((item, i) => (
+                        <div
+                            key={item.label}
+                            className="flex items-center gap-1.5"
+                        >
+                            {item.separator && i !== 0 && <DockSep />}
+                            <Tooltip content={item.label} position="bottom">
+                                <DockItem
+                                    onClick={item.onClick}
+                                    disabled={item.disabled}
+                                    baseItemSize={baseItemSize}
+                                    isActive={item.isActive}
+                                >
+                                    <DockIcon>{item.icon}</DockIcon>
+                                </DockItem>
+                            </Tooltip>
+                        </div>
+                    ))}
+                </div>
+            </LayoutGroup>
         </div>
     );
 }

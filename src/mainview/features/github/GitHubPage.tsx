@@ -35,7 +35,7 @@ export default function GitHubPage({
         isWidget &&
         (section === "environment" || section === "issues" || section === "prs")
     ) {
-        if (!isGitHubAuthenticated || !githubData) {
+        if (!isGitHubAuthenticated) {
             return (
                 <div className="flex flex-col items-center justify-center h-full py-4 text-center select-none">
                     <div className="w-10 h-10 rounded-xl bg-app-surface flex items-center justify-center mb-3 border border-app-border/50">
@@ -61,6 +61,17 @@ export default function GitHubPage({
                     >
                         Sign in to view
                     </button>
+                </div>
+            );
+        }
+
+        if (githubLoading || !githubData) {
+            return (
+                <div className="flex flex-col items-center justify-center h-full py-4 text-center select-none">
+                    <div className="w-6 h-6 border-2 border-app-accent border-t-transparent rounded-full animate-spin mb-3" />
+                    <span className="text-[10px] font-bold text-app-text-muted uppercase tracking-widest opacity-60">
+                        Loading...
+                    </span>
                 </div>
             );
         }

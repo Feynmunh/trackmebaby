@@ -97,11 +97,36 @@ export default function Markdown({
                         }
 
                         // Handle path shortening for inline code
+                        const lowerContent = codeContent.toLowerCase();
+                        const isUrl =
+                            lowerContent.startsWith("http://") ||
+                            lowerContent.startsWith("https://");
+                        const pathLikePrefixes = [
+                            "./",
+                            "../",
+                            "/",
+                            "src/",
+                            "dist/",
+                            "build/",
+                        ];
+                        const hasPathLikePrefix = pathLikePrefixes.some(
+                            (prefix) => codeContent.startsWith(prefix),
+                        );
+                        const segments = codeContent.split(/[/\\]/);
+                        const lastSegment = segments[segments.length - 1] || "";
+                        const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(
+                            lastSegment,
+                        );
+
                         const isPath =
-                            codeContent.includes("/") ||
-                            codeContent.includes("\\");
+                            !isUrl &&
+                            (hasPathLikePrefix ||
+                                ((codeContent.includes("/") ||
+                                    codeContent.includes("\\")) &&
+                                    hasFileExtension));
+
                         const fileName = isPath
-                            ? codeContent.split(/[/\\]/).pop() || codeContent
+                            ? lastSegment || codeContent
                             : codeContent;
 
                         return (

@@ -165,7 +165,7 @@ export default function InsightCard({
                         {isExpanded && (
                             <div
                                 id={scopeId}
-                                className="mt-3 bg-app-bg border border-app-border p-3 rounded-md overflow-hidden animate-in fade-in slide-in-from-top-1"
+                                className="mt-3 bg-app-bg border border-app-border p-3 rounded-md animate-in fade-in slide-in-from-top-1"
                             >
                                 <ul className="space-y-1.5 overflow-y-auto max-h-40 custom-scrollbar">
                                     {insight.affectedFiles.map((file, i) => {
