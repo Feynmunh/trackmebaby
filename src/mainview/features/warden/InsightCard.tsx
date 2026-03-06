@@ -181,7 +181,7 @@ export default function InsightCard({
                                                 </span>
                                                 <Tooltip
                                                     content={file}
-                                                    position="top"
+                                                    position="bottom"
                                                     className="inline-block max-w-full"
                                                 >
                                                     <span

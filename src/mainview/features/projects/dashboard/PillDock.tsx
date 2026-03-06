@@ -41,7 +41,7 @@ function DockItem({
             {isActive && (
                 <motion.div
                     layoutId="pill-dock-active"
-                    className="absolute inset-0 bg-app-accent/10 rounded-lg shadow-[0_0_15px_rgba(var(--app-accent-rgb),0.08)] border border-app-accent/20"
+                    className="absolute inset-0 bg-app-accent/10 rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.08)] border border-app-accent/20"
                     transition={{
                         type: "spring",
                         bounce: 0.2,

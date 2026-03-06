@@ -56,6 +56,7 @@ export default function GitHubPage({
                               : "Environment"}
                     </span>
                     <button
+                        type="button"
                         onClick={onSignIn}
                         className="text-[10px] font-black text-app-accent hover:underline uppercase tracking-widest"
                     >
@@ -325,6 +326,7 @@ export default function GitHubPage({
                     for this project.
                 </p>
                 <button
+                    type="button"
                     onClick={onSignIn}
                     disabled={githubLoading}
                     className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-app-accent text-white text-xs font-black uppercase tracking-[0.2em] shadow-lg shadow-app-accent/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
