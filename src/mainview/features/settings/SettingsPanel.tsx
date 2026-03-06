@@ -104,8 +104,14 @@ export default function SettingsPanel() {
             root.classList.remove("dark");
         }
 
-        const themeColorMeta = document.querySelector('meta[name="theme-color"]');
-        if (themeColorMeta) themeColorMeta.setAttribute('content', isDark ? '#000000' : '#ffffff');
+        const themeColorMeta = document.querySelector(
+            'meta[name="theme-color"]',
+        );
+        if (themeColorMeta)
+            themeColorMeta.setAttribute(
+                "content",
+                isDark ? "#000000" : "#ffffff",
+            );
 
         // Sync native Windows title bar colour
         rpcApi?.setWindowTheme(isDark).catch(() => {});

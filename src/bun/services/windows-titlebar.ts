@@ -37,7 +37,13 @@ export async function setTitleBarDarkMode(
 
     try {
         const proc = Bun.spawn(
-            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", cmd],
+            [
+                "powershell.exe",
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                cmd,
+            ],
             { stdout: "ignore", stderr: "ignore", stdin: "ignore" },
         );
         await proc.exited;

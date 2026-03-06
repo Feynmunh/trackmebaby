@@ -19,14 +19,14 @@ import { closeDatabase, getDatabase } from "./db/database.ts";
 import { createRPC } from "./rpc/bridge.ts";
 import { AISecretStore } from "./services/ai/index.ts";
 import { GitTrackerService } from "./services/git-tracker.ts";
-import {
-    isSystemDarkMode,
-    setTitleBarDarkMode,
-} from "./services/windows-titlebar.ts";
 import { ProjectScanner } from "./services/project-scanner.ts";
 import { SettingsService } from "./services/settings.ts";
 import { WardenService } from "./services/warden.ts";
 import { WatcherService } from "./services/watcher.ts";
+import {
+    isSystemDarkMode,
+    setTitleBarDarkMode,
+} from "./services/windows-titlebar.ts";
 
 // Use Electrobun's userData path for the database
 let dbPath: string | undefined;
