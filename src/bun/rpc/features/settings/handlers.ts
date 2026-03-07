@@ -1,6 +1,6 @@
 import { homedir } from "node:os";
 import { Utils } from "electrobun/bun";
-import type { Settings } from "../../../../shared/types.ts";
+import type { Project, Settings } from "../../../../shared/types.ts";
 import type { ProjectScanner } from "../../../services/project-scanner.ts";
 import type { SettingsService } from "../../../services/settings.ts";
 
@@ -8,12 +8,14 @@ export interface SettingsHandlersDeps {
     settingsService: SettingsService;
     scanner: ProjectScanner;
     resetAIProvider: () => void;
+    onProjectsScanned?: (projects: Project[]) => void;
 }
 
 export function createSettingsHandlers({
     settingsService,
     scanner,
     resetAIProvider,
+    onProjectsScanned,
 }: SettingsHandlersDeps) {
     return {
         getSettings: () => {
@@ -32,6 +34,7 @@ export function createSettingsHandlers({
             }
             const projects = await scanner.scan(expandedPath);
             settingsService.setBasePath(expandedPath);
+            onProjectsScanned?.(projects);
             return projects;
         },
         selectFolder: async ({ defaultPath }: { defaultPath?: string }) => {

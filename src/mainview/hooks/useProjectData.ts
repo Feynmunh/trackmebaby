@@ -26,6 +26,7 @@ let rpcApi: {
     onProjectView: (
         projectId: string,
     ) => Promise<{ success: boolean; insightCount: number; reason: string }>;
+    onProjectsUpdated: (cb: (projects: Project[]) => void) => () => void;
 } | null = null;
 
 async function loadRpcApi(): Promise<void> {
@@ -121,6 +122,7 @@ export function useProjectData(): UseProjectDataResult {
 
         try {
             const projs = await rpcApi.getProjects();
+            logger.info("loadProjects fetched", { count: projs.length });
             const sortedProjs = [...projs].sort(
                 (a, b) =>
                     new Date(b.lastActivityAt ?? 0).getTime() -
@@ -248,6 +250,24 @@ export function useProjectData(): UseProjectDataResult {
 
     useEffect(() => {
         loadProjects();
+    }, [loadProjects]);
+
+    // Subscribe to push-based project updates (e.g. from Settings tab scan)
+    useEffect(() => {
+        let unsub: (() => void) | undefined;
+        let mounted = true;
+
+        loadRpcApi().then(() => {
+            if (!mounted || !rpcApi?.onProjectsUpdated) return;
+            unsub = rpcApi.onProjectsUpdated(() => {
+                loadProjects();
+            });
+        });
+
+        return () => {
+            mounted = false;
+            unsub?.();
+        };
     }, [loadProjects]);
 
     useEffect(() => {

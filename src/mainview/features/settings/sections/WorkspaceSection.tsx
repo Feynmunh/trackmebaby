@@ -11,11 +11,13 @@ import {
 interface WorkspaceSectionProps {
     settings: Settings;
     onChange: (settings: Settings) => void;
+    onProjectsChanged?: () => void;
 }
 
 export default function WorkspaceSection({
     settings,
     onChange,
+    onProjectsChanged,
 }: WorkspaceSectionProps) {
     const [platform, setPlatform] = useState<string>("");
     const [scanning, setScanning] = useState(false);
@@ -55,9 +57,7 @@ export default function WorkspaceSection({
         try {
             await updateSettings({ basePath: settings.basePath });
             await scanProjects(settings.basePath);
-            // Small delay to ensure DB is flushed
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            window.location.reload();
+            onProjectsChanged?.();
         } finally {
             setScanning(false);
         }

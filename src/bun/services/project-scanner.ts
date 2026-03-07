@@ -12,7 +12,7 @@ import { basename, join } from "node:path";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 import type { Project, Worktree } from "../../shared/types.ts";
-import { isProjectPathDeleted } from "../db/queries/projects.ts";
+import { clearDeletedProjectsUnder } from "../db/queries/projects.ts";
 import { upsertProject } from "../db/queries.ts";
 import { runGit } from "./git-command.ts";
 import { getUncommittedFileStatus } from "./git-utils.ts";
@@ -56,9 +56,39 @@ export class ProjectScanner {
             return [];
         }
 
+        // Clear previously-deleted markers so re-scans restore projects
+        const cleared = clearDeletedProjectsUnder(this.db, basePath);
+        if (cleared > 0) {
+            this.logger.info("cleared deleted_projects entries for rescan", {
+                basePath,
+                cleared,
+            });
+        }
+
         const repoPaths: string[] = [];
         const worktreePaths = new Set<string>(); // Track worktree dirs to skip
+
+        // Check if basePath itself is a git repo (handles user selecting a single repo)
+        try {
+            const baseEntries = await readdir(basePath, {
+                withFileTypes: true,
+            });
+            const baseGit = baseEntries.find((e) => e.name === ".git");
+            if (baseGit?.isDirectory() || baseGit?.isFile()) {
+                this.logger.info("basePath is itself a git repo", { basePath });
+                repoPaths.push(basePath);
+            }
+        } catch {
+            // If we can't read basePath, scanDir below will also fail gracefully
+        }
+
         await this.scanDir(basePath, 0, repoPaths);
+
+        this.logger.info("scanDir found repo candidates", {
+            basePath,
+            count: repoPaths.length,
+            paths: repoPaths,
+        });
 
         // First pass: discover all worktrees so we can exclude them
         for (const repoPath of repoPaths) {
@@ -70,11 +100,10 @@ export class ProjectScanner {
             }
         }
 
-        // Second pass: register projects (skip worktree directories and deleted projects)
+        // Second pass: register projects (skip worktree directories)
         const projects: Project[] = [];
         for (const repoPath of repoPaths) {
             if (worktreePaths.has(repoPath)) continue; // This is a worktree, skip
-            if (isProjectPathDeleted(this.db, repoPath)) continue; // User deleted this project
 
             const name = basename(repoPath);
 
