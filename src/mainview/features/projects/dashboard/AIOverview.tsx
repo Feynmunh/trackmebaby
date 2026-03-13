@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { timeAgo } from "../../../../shared/time.ts";
 import type { GitSnapshot, Project } from "../../../../shared/types.ts";
 import Markdown from "../../../components/ui/Markdown.tsx";
-import { queryAI } from "../../../rpc.ts";
+import { onProjectView, queryAI } from "../../../rpc.ts";
+import ProjectTodoList from "../components/ProjectTodoList.tsx";
 import DiffView from "./DiffView.tsx";
 
 interface AIOverviewProps {
@@ -34,6 +35,9 @@ export default function AIOverview({
             setSummaryError(null);
             setSummary(null);
             try {
+                // Trigger Warden analysis automatically (includes Todo generation)
+                onProjectView(project.id).catch(console.error);
+
                 const prompt = "Summarize my recent activity in this project.";
 
                 const response = await queryAI(prompt, {
@@ -64,82 +68,84 @@ export default function AIOverview({
 
     const hasUncommitted = (gitSnapshot?.uncommittedCount ?? 0) > 0;
 
-    if (!summary && !loading && !hasUncommitted) return null;
+    const renderPulseCard = () => {
+        if (!summary && !loading && !hasUncommitted) return null;
 
-    if (compact) {
-        return (
-            <div className="flex flex-col">
-                <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-[9px] font-bold text-app-text-muted uppercase tracking-[0.2em]">
-                        Project Pulse
-                    </h3>
-                    {loading && (
-                        <div className="flex gap-1">
-                            <span
-                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
-                                style={{ animationDelay: "0ms" }}
-                            />
-                            <span
-                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
-                                style={{ animationDelay: "150ms" }}
-                            />
-                            <span
-                                className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
-                                style={{ animationDelay: "300ms" }}
-                            />
-                        </div>
-                    )}
-                </div>
-                <div>
-                    {loading ? (
-                        <div className="space-y-1.5">
-                            <div className="h-3 bg-app-border/40 rounded w-[90%] animate-pulse" />
-                            <div className="h-3 bg-app-border/40 rounded w-[65%] animate-pulse" />
-                        </div>
-                    ) : summary ? (
-                        <p className="text-[12px] leading-relaxed text-app-text-main/90 font-medium line-clamp-3">
-                            {summary}
-                        </p>
-                    ) : (
-                        <p className="text-[11px] text-app-text-muted italic">
-                            {summaryError ?? "AI summary unavailable."}
-                        </p>
-                    )}
-                </div>
-                {hasUncommitted && gitSnapshot && (
-                    <div className="mt-2">
-                        <button
-                            onClick={() => setShowDiffs(!showDiffs)}
-                            className={`p-0 text-[10px] font-semibold tracking-tight leading-none text-left transition-colors group ${
-                                showDiffs
-                                    ? "text-orange-500"
-                                    : "text-app-text-muted hover:text-orange-500"
-                            }`}
-                        >
-                            <span className="underline underline-offset-4 decoration-current/30 group-hover:decoration-orange-500/50">
-                                {gitSnapshot.uncommittedCount} file
-                                {gitSnapshot.uncommittedCount !== 1 ? "s" : ""}{" "}
-                                changed
-                            </span>
-                        </button>
-                        {showDiffs && (
-                            <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <DiffView
-                                    project={project}
-                                    gitSnapshot={gitSnapshot}
-                                    refreshKey={refreshKey}
-                                    onClose={() => setShowDiffs(false)}
+        if (compact) {
+            return (
+                <div className="flex flex-col">
+                    <div className="flex items-center gap-2 mb-2">
+                        <h3 className="text-[9px] font-bold text-app-text-muted uppercase tracking-[0.2em]">
+                            Project Pulse
+                        </h3>
+                        {loading && (
+                            <div className="flex gap-1">
+                                <span
+                                    className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
+                                    style={{ animationDelay: "0ms" }}
+                                />
+                                <span
+                                    className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
+                                    style={{ animationDelay: "150ms" }}
+                                />
+                                <span
+                                    className="w-1 h-1 rounded-full bg-app-text-muted/30 animate-bounce"
+                                    style={{ animationDelay: "300ms" }}
                                 />
                             </div>
                         )}
                     </div>
-                )}
-            </div>
-        );
-    }
+                    <div>
+                        {loading ? (
+                            <div className="space-y-1.5">
+                                <div className="h-3 bg-app-border/40 rounded w-[90%] animate-pulse" />
+                                <div className="h-3 bg-app-border/40 rounded w-[65%] animate-pulse" />
+                            </div>
+                        ) : summary ? (
+                            <p className="text-[12px] leading-relaxed text-app-text-main/90 font-medium line-clamp-3">
+                                {summary}
+                            </p>
+                        ) : (
+                            <p className="text-[11px] text-app-text-muted italic">
+                                {summaryError ?? "AI summary unavailable."}
+                            </p>
+                        )}
+                    </div>
+                    {hasUncommitted && gitSnapshot && (
+                        <div className="mt-2">
+                            <button
+                                onClick={() => setShowDiffs(!showDiffs)}
+                                className={`p-0 text-[10px] font-semibold tracking-tight leading-none text-left transition-colors group ${
+                                    showDiffs
+                                        ? "text-orange-500"
+                                        : "text-app-text-muted hover:text-orange-500"
+                                }`}
+                            >
+                                <span className="underline underline-offset-4 decoration-current/30 group-hover:decoration-orange-500/50">
+                                    {gitSnapshot.uncommittedCount} file
+                                    {gitSnapshot.uncommittedCount !== 1
+                                        ? "s"
+                                        : ""}{" "}
+                                    changed
+                                </span>
+                            </button>
+                            {showDiffs && (
+                                <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <DiffView
+                                        project={project}
+                                        gitSnapshot={gitSnapshot}
+                                        refreshKey={refreshKey}
+                                        onClose={() => setShowDiffs(false)}
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            );
+        }
 
-    return (
-        <div>
+        return (
             <div
                 className={`rounded-2xl border-2 border-orange-500/70 bg-app-surface/30 px-4 pt-3 relative overflow-hidden transition-all duration-300 ${
                     hasUncommitted && gitSnapshot ? "pb-10" : "pb-3"
@@ -231,9 +237,15 @@ export default function AIOverview({
                     </div>
                 )}
             </div>
+        );
+    };
 
-            {/* Diffs View */}
-            {showDiffs && gitSnapshot && (
+    return (
+        <div>
+            {renderPulseCard()}
+
+            {/* Diffs View (if not absolute positioned inside the card) */}
+            {showDiffs && gitSnapshot && !compact && (
                 <div className="mt-3 animate-in fade-in slide-in-from-top-4 duration-500">
                     <DiffView
                         project={project}
@@ -242,6 +254,13 @@ export default function AIOverview({
                         onClose={() => setShowDiffs(false)}
                     />
                 </div>
+            )}
+
+            {!compact && (
+                <ProjectTodoList
+                    projectId={project.id}
+                    refreshKey={refreshKey}
+                />
             )}
         </div>
     );

@@ -74,8 +74,8 @@ export default function DashboardContent({
     }
 
     return (
-        <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-3 px-6 py-3">
-            {/* ── AI Pulse cell — owns its own card border ── */}
+        <main className="flex-1 overflow-y-auto custom-scrollbar flex flex-col gap-16 px-6 py-4">
+            {/* AI Analysis & Next Steps */}
             <div className="shrink-0">
                 <AIOverview
                     project={project}
@@ -86,8 +86,8 @@ export default function DashboardContent({
                 />
             </div>
 
-            {/* ── 2x2 GRID ── */}
-            <div className="grid grid-cols-2 gap-3 pb-3">
+            {/* 2x2 GRID */}
+            <div className="grid grid-cols-2 gap-3 pb-6">
                 {/* TOP LEFT: Vitality bars cell */}
                 <div className="rounded-2xl border border-app-border bg-app-surface/30 px-4 py-3">
                     <OverviewPage
