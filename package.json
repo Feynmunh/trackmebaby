@@ -7,7 +7,7 @@
         "dev:ui": "vite --port 5173",
         "dev:native": "electrobun dev --watch",
         "build": "vite build && electrobun build",
-        "build:prod": "vite build && electrobun build --channel prod",
+        "build:prod": "vite build && electrobun build --env=stable",
         "preview": "bun run build && electrobun dev",
         "start": "bun run dev",
         "lint": "biome check .",

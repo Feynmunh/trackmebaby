@@ -59,6 +59,14 @@ src/
 4. **Git tracker**: Polls git status (branch, commits, uncommitted files) every 60s.
 5. **AI chat**: Ask questions about your work — activity context is assembled automatically.
 
+## Installation
+
+Download the latest version for your platform from the [Releases](https://github.com/vrm-v/trackmebaby/releases) page.
+
+- **Linux:** Download the `.tar.gz`, extract it, and run the `launcher` binary.
+- **macOS:** Download the `.tar.gz`, extract it to your Applications folder. (Note: Since this is an unsigned app, you may need to Right-Click -> Open the first time).
+- **Windows:** Download the `.zip`, extract it, and run `launcher.exe`.
+
 ## Development
 
 ```bash

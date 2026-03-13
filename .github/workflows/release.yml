@@ -1,0 +1,126 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            arch: x64
+          - os: macos-latest
+            platform: macos
+            arch: arm64
+          - os: windows-latest
+            platform: win
+            arch: x64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install Linux Build Dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            libgtk-3-dev \
+            libayatana-appindicator3-dev \
+            build-essential \
+            pkg-config
+
+      - name: Install Dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build Production App
+        run: bun run build:prod
+
+      - name: Package Artifact (macOS)
+        if: matrix.platform == 'macos'
+        shell: bash
+        run: |
+          # macOS produces a .app folder. We need to zip it for distribution.
+          cd build/stable-macos-arm64
+          tar -czf ../../trackmebaby-macos-arm64.tar.gz trackmebaby.app
+
+      - name: Package Artifact (Linux)
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: |
+          # Electrobun creates trackmebaby-Setup.tar.gz in the root artifact folder or build folder.
+          # Based on source, it puts it in build/stable-linux-x64/
+          cp build/stable-linux-x64/trackmebaby-Setup.tar.gz ./trackmebaby-linux-x64-installer.tar.gz
+
+      - name: Package Artifact (Windows)
+        if: matrix.platform == 'win'
+        shell: pwsh
+        run: |
+          # Electrobun creates trackmebaby-Setup.exe in build/stable-win-x64/
+          cp build/stable-win-x64/trackmebaby-Setup.exe ./trackmebaby-windows-setup.exe
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: trackmebaby-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            trackmebaby-macos-arm64.tar.gz
+            trackmebaby-linux-x64-installer.tar.gz
+            trackmebaby-windows-setup.exe
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: get_version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Extract changelog
+        id: changelog_reader
+        uses: mindsers/changelog-reader-action@v2
+        with:
+          version: ${{ steps.get_version.outputs.version }}
+          path: ./CHANGELOG.md
+
+      - name: Get title from changelog
+        id: get_title
+        run: |
+          VERSION="${{ steps.get_version.outputs.version }}"
+          # AudioRAG style: Extract title part after the date (## [0.1.0] - 2026-03-13 - Title)
+          TITLE=$(grep "^## \[$VERSION\]" CHANGELOG.md | awk -F ' - ' '{print $3}')
+          echo "title=$TITLE" >> $GITHUB_OUTPUT
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: v${{ steps.get_version.outputs.version }}${{ steps.get_title.outputs.title != '' && format(' - {0}', steps.get_title.outputs.title) || '' }}
+          body: ${{ steps.changelog_reader.outputs.changes }}
+          files: dist/*
+          generate_release_notes: false # We are using our own changelog reader
+          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
