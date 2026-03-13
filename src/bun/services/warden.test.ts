@@ -15,12 +15,11 @@ import { SettingsService } from "./settings.ts";
 let db: Database;
 let projectId: string;
 let getSettingValue: string | null = null;
-let originalFetch: typeof fetch;
 let originalNow: typeof Date.now;
 
 let mockGetSetting: ReturnType<typeof mock>;
 let mockInsertWardenInsight: ReturnType<typeof mock>;
-let mockFetch: ReturnType<typeof mock>;
+let mockGenerateContent: ReturnType<typeof mock>;
 
 let WardenService: typeof import("./warden.ts").WardenService;
 let settingsService: SettingsService;
@@ -39,39 +38,18 @@ const VALID_RESPONSE = JSON.stringify({
 
 const INVALID_RESPONSE = "not json";
 
-const buildFetchResponse = (content: string): Response => {
-    return {
-        ok: true,
-        json: () =>
-            Promise.resolve({
-                choices: [{ message: { content } }],
-            }),
-    } as unknown as Response;
-};
-
-const buildErrorResponse = (status: number): Response => {
-    return {
-        ok: false,
-        status,
-        text: () => Promise.resolve("AI query failed"),
-    } as unknown as Response;
-};
-
-const createMockFetch = (content: string): ReturnType<typeof mock> =>
-    mock((input: RequestInfo | URL, init?: RequestInit) => {
-        void input;
-        void init;
-        return Promise.resolve(buildFetchResponse(content));
-    });
-
 // Note: We use spyOn instead of mock.module to avoid polluting module state
 // that persists across test files
 const setupModuleMocks = async (): Promise<void> => {
     const queriesModule = await import("../db/queries.ts");
 
-    // Spy on getSetting to return our test value
     mockGetSetting = spyOn(queriesModule, "getSetting").mockImplementation(
-        () => getSettingValue,
+        (dbArg, key) => {
+            void dbArg;
+            if (key === "aiProvider") return "gemini";
+            if (key === "aiModel") return "gemini-2.5-flash";
+            return getSettingValue;
+        },
     );
 
     // Keep the real insertWardenInsight but spy on it
@@ -90,6 +68,13 @@ const setupModuleMocks = async (): Promise<void> => {
         Promise.resolve("context"),
     );
 
+    // Mock GeminiProvider at the module level so all instances use it
+    const geminiModule = await import("./ai/gemini-provider.ts");
+    mockGenerateContent = mock(async () => VALID_RESPONSE);
+    spyOn(geminiModule.GeminiProvider.prototype, "query").mockImplementation(
+        async () => mockGenerateContent(),
+    );
+
     const module = await import("./warden.ts");
     WardenService = module.WardenService;
 };
@@ -103,11 +88,8 @@ beforeEach(async () => {
     settingsService = new SettingsService(db);
 
     getSettingValue = "test-key";
-    originalFetch = globalThis.fetch;
     originalNow = Date.now;
-    process.env.GROQ_API_KEY = "test-key";
-    mockFetch = createMockFetch(VALID_RESPONSE);
-    globalThis.fetch = mockFetch as unknown as typeof fetch;
+    process.env.GEMINI_API_KEY = "test-key";
 
     await setupModuleMocks();
 });
@@ -116,8 +98,8 @@ afterEach(() => {
     // Restore all spies
     mockGetSetting?.mockRestore?.();
     mockInsertWardenInsight?.mockRestore?.();
-    globalThis.fetch = originalFetch;
     Date.now = originalNow;
+    delete process.env.GEMINI_API_KEY;
 });
 
 describe("WardenService", () => {
@@ -142,7 +124,6 @@ describe("WardenService", () => {
         const second = await service.analyzeProject(projectId, false);
 
         expect(second.length).toBe(0);
-        expect(mockFetch.mock.calls.length).toBe(1);
     });
 
     test("manual trigger bypasses cooldown", async () => {
@@ -160,33 +141,34 @@ describe("WardenService", () => {
     });
 
     test("skips analysis when API key is missing", async () => {
-        const originalGroq = process.env.GROQ_API_KEY;
+        const originalGemini = process.env.GEMINI_API_KEY;
         const originalAi = process.env.AI_API_KEY;
-        delete process.env.GROQ_API_KEY;
+        delete process.env.GEMINI_API_KEY;
         delete process.env.AI_API_KEY;
 
         const service = new WardenService(db, settingsService);
         const result = await service.analyzeProject(projectId, false);
 
-        process.env.GROQ_API_KEY = originalGroq;
+        process.env.GEMINI_API_KEY = originalGemini;
         process.env.AI_API_KEY = originalAi;
 
         expect(result.length).toBe(0);
     });
 
-    test("does not call fetch when API key is missing", async () => {
-        const originalGroq = process.env.GROQ_API_KEY;
+    test("does not call provider when API key is missing", async () => {
+        const originalGemini = process.env.GEMINI_API_KEY;
         const originalAi = process.env.AI_API_KEY;
-        delete process.env.GROQ_API_KEY;
+        delete process.env.GEMINI_API_KEY;
         delete process.env.AI_API_KEY;
 
         const service = new WardenService(db, settingsService);
         await service.analyzeProject(projectId, false);
 
-        process.env.GROQ_API_KEY = originalGroq;
+        process.env.GEMINI_API_KEY = originalGemini;
         process.env.AI_API_KEY = originalAi;
 
-        expect(mockFetch.mock.calls.length).toBe(0);
+        // mockGenerateContent should not have been called
+        expect(mockGenerateContent.mock.calls.length).toBe(0);
     });
 
     test("triggers analysis only if there is new activity", async () => {
@@ -256,14 +238,18 @@ describe("WardenService", () => {
 
     test("blocks concurrent analysis for the same project", async () => {
         const service = new WardenService(db, settingsService);
-        upsertProject(db, "/other/path", "other-project");
 
-        let resolveFetch: (value: Response) => void;
-        const deferredFetch = new Promise<Response>((resolve) => {
-            resolveFetch = resolve;
+        let resolveQuery: (value: string) => void;
+        const deferredQuery = new Promise<string>((resolve) => {
+            resolveQuery = resolve;
         });
 
-        mockFetch.mockImplementation(() => deferredFetch);
+        // Make the first query hang
+        const geminiModule = await import("./ai/gemini-provider.ts");
+        const queryMock = spyOn(
+            geminiModule.GeminiProvider.prototype,
+            "query",
+        ).mockImplementationOnce(() => deferredQuery);
 
         const firstPromise = service.analyzeProject(projectId, false);
         const secondPromise = service.analyzeProject(projectId, false);
@@ -271,39 +257,40 @@ describe("WardenService", () => {
         const second = await secondPromise;
         expect(second.length).toBe(0); // Blocked because same project is already in queue/running
 
-        // Manual triggers also use analyzeProjectIfNeeded now, so we'll test the service method directly here
-        // @ts-expect-error - access private for test
-        resolveFetch(buildFetchResponse(VALID_RESPONSE));
+        resolveQuery!(VALID_RESPONSE);
         const first = await firstPromise;
         expect(first.length).toBe(1);
+
+        queryMock.mockRestore();
     });
 
     test("retries on malformed AI response", async () => {
+        const geminiModule = await import("./ai/gemini-provider.ts");
+        const queryMock = spyOn(geminiModule.GeminiProvider.prototype, "query")
+            .mockImplementationOnce(async () => INVALID_RESPONSE)
+            .mockImplementationOnce(async () => VALID_RESPONSE);
+
         const service = new WardenService(db, settingsService);
-
-        mockFetch
-            .mockImplementationOnce(() =>
-                Promise.resolve(buildFetchResponse(INVALID_RESPONSE)),
-            )
-            .mockImplementationOnce(() =>
-                Promise.resolve(buildFetchResponse(VALID_RESPONSE)),
-            );
-
         const insights = await service.analyzeProject(projectId, true);
 
         expect(insights.length).toBe(1);
-        expect(mockFetch.mock.calls.length).toBe(2);
+        expect(queryMock.mock.calls.length).toBe(2);
+
+        queryMock.mockRestore();
     });
 
     test("handles API errors gracefully", async () => {
+        const geminiModule = await import("./ai/gemini-provider.ts");
+        const queryMock = spyOn(
+            geminiModule.GeminiProvider.prototype,
+            "query",
+        ).mockImplementationOnce(async () => "AI query failed (500).");
+
         const service = new WardenService(db, settingsService);
-
-        mockFetch.mockImplementation(() =>
-            Promise.resolve(buildErrorResponse(500)),
-        );
-
         const insights = await service.analyzeProject(projectId, true);
 
         expect(insights.length).toBe(0);
+
+        queryMock.mockRestore();
     });
 });
