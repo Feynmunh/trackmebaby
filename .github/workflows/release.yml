@@ -5,6 +5,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.1.0). If empty, version from package.json is used.'
+        required: false
+        type: string
 
 jobs:
   build:
@@ -31,7 +36,8 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          # Pin version to match CI for reproducibility
+          bun-version: 1.3.x
 
       - name: Install Linux Build Dependencies
         if: matrix.platform == 'linux'
@@ -44,6 +50,12 @@ jobs:
             build-essential \
             pkg-config
 
+      - name: Clean build artifacts
+        shell: bash
+        run: |
+          rm -rf build/
+          rm -rf artifacts/
+
       - name: Install Dependencies
         run: bun install --frozen-lockfile
 
@@ -54,24 +66,41 @@ jobs:
         if: matrix.platform == 'macos'
         shell: bash
         run: |
-          # macOS produces a .app folder. We need to zip it for distribution.
-          cd build/stable-macos-arm64
-          tar -czf ../../trackmebaby-macos-arm64.tar.gz trackmebaby.app
+          # Package the .app folder into a tarball
+          # Discover the actual path to handle potential naming variations
+          APP_PATH=$(find build/stable-macos-* -name "*.app" -type d | head -n 1)
+          if [ -z "$APP_PATH" ]; then
+            echo "Error: Could not find .app bundle in build directory"
+            exit 1
+          fi
+          APP_DIR=$(dirname "$APP_PATH")
+          APP_NAME=$(basename "$APP_PATH")
+          cd "$APP_DIR"
+          tar -czf ../../trackmebaby-macos-arm64.tar.gz "$APP_NAME"
 
       - name: Package Artifact (Linux)
         if: matrix.platform == 'linux'
         shell: bash
         run: |
-          # Electrobun creates trackmebaby-Setup.tar.gz in the root artifact folder or build folder.
-          # Based on source, it puts it in build/stable-linux-x64/
-          cp build/stable-linux-x64/trackmebaby-Setup.tar.gz ./trackmebaby-linux-x64-installer.tar.gz
+          # Find the setup tarball created by Electrobun
+          SETUP_PATH=$(find build/stable-linux-* -name "*-Setup.tar.gz" | head -n 1)
+          if [ -z "$SETUP_PATH" ]; then
+            echo "Error: Could not find Linux setup tarball"
+            exit 1
+          fi
+          cp "$SETUP_PATH" ./trackmebaby-linux-x64-installer.tar.gz
 
       - name: Package Artifact (Windows)
         if: matrix.platform == 'win'
-        shell: pwsh
+        shell: bash # Use bash on windows runner for consistent find usage
         run: |
-          # Electrobun creates trackmebaby-Setup.exe in build/stable-win-x64/
-          cp build/stable-win-x64/trackmebaby-Setup.exe ./trackmebaby-windows-setup.exe
+          # Find the setup exe created by Electrobun
+          SETUP_PATH=$(find build/stable-win-* -name "*-Setup.exe" | head -n 1)
+          if [ -z "$SETUP_PATH" ]; then
+            echo "Error: Could not find Windows setup exe"
+            exit 1
+          fi
+          cp "$SETUP_PATH" ./trackmebaby-windows-setup.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -91,9 +120,24 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Get version from tag
+      - name: Get version
         id: get_version
-        run: echo "version=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+        shell: bash
+        run: |
+          # Handle tag from push or manual input
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.tag }}" != "" ]]; then
+            TAG="${{ github.event.inputs.tag }}"
+          elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            TAG="${GITHUB_REF#refs/tags/}"
+          else
+            # Fallback to package.json version if no tag provided
+            TAG="v$(cat package.json | jq -r .version)"
+          fi
+          
+          # Remove 'v' prefix for changelog reader
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Extract changelog
         id: changelog_reader
@@ -104,9 +148,10 @@ jobs:
 
       - name: Get title from changelog
         id: get_title
+        shell: bash
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
-          # AudioRAG style: Extract title part after the date (## [0.1.0] - 2026-03-13 - Title)
+          # Extract title part after the date
           TITLE=$(grep "^## \[$VERSION\]" CHANGELOG.md | awk -F ' - ' '{print $3}')
           echo "title=$TITLE" >> $GITHUB_OUTPUT
 
@@ -119,8 +164,9 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: v${{ steps.get_version.outputs.version }}${{ steps.get_title.outputs.title != '' && format(' - {0}', steps.get_title.outputs.title) || '' }}
+          tag_name: ${{ steps.get_version.outputs.tag }}
+          name: ${{ steps.get_version.outputs.tag }}${{ steps.get_title.outputs.title != '' && format(' - {0}', steps.get_title.outputs.title) || '' }}
           body: ${{ steps.changelog_reader.outputs.changes }}
           files: dist/*
-          generate_release_notes: false # We are using our own changelog reader
-          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+          generate_release_notes: false
+          prerelease: ${{ contains(steps.get_version.outputs.tag, '-alpha') || contains(steps.get_version.outputs.tag, '-beta') || contains(steps.get_version.outputs.tag, '-rc') }}
