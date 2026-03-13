@@ -79,7 +79,8 @@ jobs:
           APP_DIR=$(dirname "$APP_PATH")
           APP_NAME=$(basename "$APP_PATH")
           cd "$APP_DIR"
-          tar -czf ../../trackmebaby-macos-arm64.tar.gz "$APP_NAME"
+          # Dynamic filename based on matrix architecture
+          tar -czf ../../trackmebaby-macos-${{ matrix.arch }}.tar.gz "$APP_NAME"
 
       - name: Package Artifact (Linux)
         if: matrix.platform == 'linux'
@@ -110,7 +111,7 @@ jobs:
         with:
           name: trackmebaby-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
-            trackmebaby-macos-arm64.tar.gz
+            trackmebaby-macos-${{ matrix.arch }}.tar.gz
             trackmebaby-linux-x64-installer.tar.gz
             trackmebaby-windows-setup.exe
 
@@ -137,7 +138,8 @@ jobs:
             TAG="${GITHUB_REF#refs/tags/}"
           else
             # Fallback to package.json version if no tag provided
-            TAG="v$(cat package.json | jq -r .version)"
+            # Use node to parse version to avoid jq dependency on minimal runners
+            TAG="v$(node -p "require('./package.json').version")"
           fi
           
           # Remove 'v' prefix for changelog reader
