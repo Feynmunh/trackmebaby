@@ -32,6 +32,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Ensure manual releases checkout the correct tag/ref
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -119,6 +122,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Ensure changelog extraction uses the correct tag/ref
+          ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Get version
         id: get_version
