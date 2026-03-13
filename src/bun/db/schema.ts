@@ -6,7 +6,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const SCHEMA_VERSION = 7;
+const SCHEMA_VERSION = 8;
 const logger = createLogger("db");
 
 export function runMigrations(db: Database): void {
@@ -47,11 +47,33 @@ export function runMigrations(db: Database): void {
     if (version < 7) {
         applyMigration7(db);
     }
+    if (version < 8) {
+        applyMigration8(db);
+    }
     if (version < SCHEMA_VERSION) {
         db.exec(
             `INSERT OR REPLACE INTO schema_version (version) VALUES (${SCHEMA_VERSION})`,
         );
     }
+}
+
+function applyMigration8(db: Database): void {
+    db.exec(`
+    CREATE TABLE IF NOT EXISTS project_todos (
+      id TEXT PRIMARY KEY,
+      project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+      task TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      source TEXT NOT NULL DEFAULT 'manual',
+      created_at TEXT NOT NULL,
+      completed_at TEXT,
+      deleted_at TEXT
+    )
+  `);
+    db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_project_todos_project_status
+      ON project_todos(project_id, status, created_at DESC)
+  `);
 }
 
 function applyMigration1(db: Database): void {

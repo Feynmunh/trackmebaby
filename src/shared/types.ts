@@ -221,3 +221,19 @@ export interface WardenInsight {
     createdAt: string;
     resolvedAt: string | null;
 }
+
+// ─── Project Todos ───────────────────────────────────────────────────────────
+
+export type ProjectTodoStatus = "pending" | "completed";
+export type ProjectTodoSource = "manual" | "auto";
+
+export interface ProjectTodo {
+    id: string;
+    projectId: string;
+    task: string;
+    status: ProjectTodoStatus;
+    source: ProjectTodoSource;
+    created_at: string;
+    completed_at: string | null;
+    deleted_at: string | null;
+}

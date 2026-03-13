@@ -1,9 +1,14 @@
 import type { Database } from "bun:sqlite";
 import {
+    deleteCompletedProjectTodos,
     deleteProject,
+    deleteProjectTodo,
     getActivitySummary,
     getProjects,
+    getProjectTodos,
     getRecentEvents,
+    insertProjectTodo,
+    updateProjectTodoStatus,
 } from "../../../db/queries.ts";
 
 export interface ProjectHandlersDeps {
@@ -42,6 +47,38 @@ export function createProjectHandlers({ db }: ProjectHandlersDeps) {
         },
         deleteProject: ({ projectId }: { projectId: string }) => {
             deleteProject(db, projectId);
+            return { success: true };
+        },
+        getProjectTodos: ({ projectId }: { projectId: string }) => {
+            return getProjectTodos(db, projectId);
+        },
+        addProjectTodo: ({
+            projectId,
+            task,
+            source,
+        }: {
+            projectId: string;
+            task: string;
+            source?: "manual" | "auto";
+        }) => {
+            return insertProjectTodo(db, projectId, task, source);
+        },
+        updateProjectTodoStatus: ({
+            id,
+            status,
+        }: {
+            id: string;
+            status: "pending" | "completed";
+        }) => {
+            updateProjectTodoStatus(db, id, status);
+            return { success: true };
+        },
+        deleteProjectTodo: ({ id }: { id: string }) => {
+            deleteProjectTodo(db, id);
+            return { success: true };
+        },
+        deleteCompletedProjectTodos: ({ projectId }: { projectId: string }) => {
+            deleteCompletedProjectTodos(db, projectId);
             return { success: true };
         },
     };

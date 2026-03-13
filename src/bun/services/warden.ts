@@ -11,7 +11,9 @@ import {
     getProjectById,
     hasEventsSince,
     hasGitSnapshots,
+    insertProjectTodo,
     insertWardenInsight,
+    updateProjectTodoStatus,
 } from "../db/queries.ts";
 import {
     type AIProvider,
@@ -44,6 +46,7 @@ export class WardenService {
     private readonly COOLDOWN_MS = 5 * 60 * 1000;
     private readonly MANUAL_COOLDOWN_MS = 15 * 1000; // 15 seconds for manual
     private readonly FIRST_RUN_COOLDOWN_MS = 30 * 1000; // 30 seconds for first run
+    private readonly MIN_ACTIVITY_COOLDOWN_MS = 60 * 1000; // 60s minimum even with new activity
     private readonly MAX_RETRIES = 1;
     private readonly WARDEN_MAX_TOKENS = 2048;
     private readonly MAX_CONCURRENT = 2;
@@ -66,7 +69,7 @@ export class WardenService {
         const settings = this.settingsService.getAll();
         return createAIProvider({
             provider: settings.aiProvider,
-            apiKey: getSavedApiKey(),
+            apiKey: getSavedApiKey(settings.aiProvider),
             model: settings.aiModel,
         });
     }
@@ -75,7 +78,8 @@ export class WardenService {
         projectId: string,
         isManual: boolean = false,
     ): Promise<WardenInsight[]> {
-        const apiKey = getSavedApiKey();
+        const settings = this.settingsService.getAll();
+        const apiKey = getSavedApiKey(settings.aiProvider);
         if (!apiKey) {
             console.log("[Warden] No API key configured, skipping analysis");
             return [];
@@ -121,7 +125,8 @@ export class WardenService {
         projectId: string,
         isManual: boolean = false,
     ): Promise<{ success: boolean; insightCount: number; reason: string }> {
-        const apiKey = getSavedApiKey();
+        const settings = this.settingsService.getAll();
+        const apiKey = getSavedApiKey(settings.aiProvider);
         if (!apiKey) {
             return { success: false, insightCount: 0, reason: "NO_API_KEY" };
         }
@@ -147,15 +152,13 @@ export class WardenService {
             return { success: false, insightCount: 0, reason: "QUEUED" };
         }
 
-        // Cooldown check using in-memory lastRunAt (handles failures!)
+        // Cooldown check
         const lastRun = this.lastRunAt.get(projectId) ?? 0;
         const now = Date.now();
         const cooldown = isManual ? this.MANUAL_COOLDOWN_MS : this.COOLDOWN_MS;
-        if (now - lastRun < cooldown) {
-            return { success: false, insightCount: 0, reason: "COOLDOWN" };
-        }
+        const isCooldownActive = now - lastRun < cooldown;
 
-        // Check if project has ANY activity (file events OR git commits)
+        // Check if project has ANY activity
         const hasFileActivity = project.lastActivityAt !== null;
         const hasGitActivity = hasGitSnapshots(this.db, projectId);
         if (!hasFileActivity && !hasGitActivity) {
@@ -174,10 +177,12 @@ export class WardenService {
             .get(projectId) as { last_created: string | null } | null;
         const lastInsightCreated = lastInsightRow?.last_created;
 
-        // First-run case: never analyzed before
+        // First-run case
         if (!lastInsightCreated) {
-            // First-run specific cooldown
-            if (now - lastRun < this.FIRST_RUN_COOLDOWN_MS) {
+            if (
+                isCooldownActive &&
+                now - lastRun < this.FIRST_RUN_COOLDOWN_MS
+            ) {
                 return {
                     success: false,
                     insightCount: 0,
@@ -185,11 +190,7 @@ export class WardenService {
                 };
             }
             void this.analyzeProject(projectId, isManual);
-            return {
-                success: true,
-                insightCount: 0,
-                reason: "FIRST_RUN",
-            };
+            return { success: true, insightCount: 0, reason: "FIRST_RUN" };
         }
 
         // Check for new activity since last analysis
@@ -200,20 +201,34 @@ export class WardenService {
             lastAnalyzedAt,
         );
 
-        if (!hasNewEvents && !hasNewCommits) {
+        // If there is new activity, trigger analysis but still enforce a minimum interval
+        // to prevent excessive API calls during active development
+        if (hasNewEvents || hasNewCommits) {
+            const timeSinceLastRun = now - lastRun;
+            if (timeSinceLastRun < this.MIN_ACTIVITY_COOLDOWN_MS) {
+                return {
+                    success: false,
+                    insightCount: 0,
+                    reason: "ACTIVITY_COOLDOWN",
+                };
+            }
+            void this.analyzeProject(projectId, isManual);
             return {
-                success: false,
+                success: true,
                 insightCount: 0,
-                reason: "NO_NEW_ACTIVITY",
+                reason: "NEW_ACTIVITY",
             };
         }
 
-        // Run analysis (fire and forget, result comes via RPC message)
-        void this.analyzeProject(projectId, isManual);
+        // If no new activity, respect the cooldown
+        if (isCooldownActive) {
+            return { success: false, insightCount: 0, reason: "COOLDOWN" };
+        }
+
         return {
-            success: true,
+            success: false,
             insightCount: 0,
-            reason: "NEW_ACTIVITY",
+            reason: "NO_NEW_ACTIVITY",
         };
     }
 
@@ -283,7 +298,21 @@ export class WardenService {
             );
 
             // Query AI with retry on JSON parse failure
-            const parsedInsights = await this.queryWithRetry(provider, context);
+            const {
+                insights: parsedInsights,
+                todos,
+                completedTodoIds,
+            } = await this.queryWithRetry(provider, context);
+
+            // Handle completed todos
+            for (const todoId of completedTodoIds) {
+                updateProjectTodoStatus(this.db, todoId, "completed");
+            }
+
+            // Handle new auto-generated todos
+            for (const todo of todos) {
+                insertProjectTodo(this.db, projectId, todo.task, "auto");
+            }
 
             // Validate affectedFiles: strip paths that don't exist on disk or are outside projectRoot
             for (const insight of parsedInsights) {
@@ -355,7 +384,7 @@ export class WardenService {
         for (let attempt = 0; attempt <= this.MAX_RETRIES; attempt++) {
             const aiText = await provider.query(
                 context,
-                "Analyze this project activity for potential issues.",
+                "Analyze this project activity for potential issues and suggest actionable next steps.",
                 WARDEN_SYSTEM_PROMPT,
                 { maxTokens: this.WARDEN_MAX_TOKENS, jsonMode: true },
             );
@@ -365,14 +394,18 @@ export class WardenService {
                 aiText.includes("AI query failed") ||
                 aiText.includes("Rate limit reached") ||
                 aiText.includes("Invalid API key") ||
-                aiText.startsWith("Please add your GROQ_API_KEY")
+                aiText.startsWith("Please add your GEMINI_API_KEY")
             ) {
                 throw new Error(aiText);
             }
 
-            const insights = parseWardenResponse(aiText);
-            if (insights.length > 0) {
-                return insights;
+            const response = parseWardenResponse(aiText);
+            if (
+                response.insights.length > 0 ||
+                response.todos.length > 0 ||
+                response.completedTodoIds.length > 0
+            ) {
+                return response;
             }
 
             // Parse returned empty (malformed JSON) — retry once
@@ -382,6 +415,6 @@ export class WardenService {
                 );
             }
         }
-        return [];
+        return { insights: [], todos: [], completedTodoIds: [] };
     }
 }

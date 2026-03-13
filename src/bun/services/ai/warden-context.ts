@@ -14,7 +14,7 @@ export async function assembleWardenContext(
     projectId: string,
     projectPath?: string | null,
 ): Promise<string> {
-    const header = buildHeaderSection(projectId);
+    const header = buildHeaderSection(db, projectId);
 
     // Build all sections with try/catch isolation
     const buildSection = (
@@ -38,6 +38,12 @@ export async function assembleWardenContext(
     const activity = buildSection("File activity", () =>
         buildFileActivitySection(db, projectId),
     );
+    const diffs = await buildSectionAsync("Recent changes content", () =>
+        projectPath ? buildDiffsSection(projectPath) : Promise.resolve(null),
+    );
+    const todos = buildSection("Pending todos", () =>
+        buildPendingTodosSection(db, projectId),
+    );
     const insights = buildSection("Existing insights", () =>
         buildExistingInsightsSection(db, projectId),
     );
@@ -51,13 +57,16 @@ export async function assembleWardenContext(
     //   2. Project files (grounding — prevents hallucinated paths)
     //   3. Uncommitted changes (current state)
     //   4. File activity (trends)
-    //   5. Commits (history — lowest priority, most verbose)
+    //   5. Pending todos (actionable)
+    //   6. Commits (history — lowest priority, most verbose)
     const prioritized: string[] = [header];
     const budgetSections = [
         insights, // highest priority — dedup + memory
         files, // grounding
+        diffs, // CRITICAL for corroborating TODOs
         uncommitted,
         activity,
+        todos,
         commits, // lowest priority — can be truncated
     ];
 
@@ -81,11 +90,19 @@ export async function assembleWardenContext(
     return prioritized.join("\n\n");
 }
 
-function buildHeaderSection(projectId: string): string {
+function buildHeaderSection(db: Database, projectId: string): string {
+    const lastInsightRow = db
+        .query(
+            "SELECT MAX(created_at) as last_created FROM warden_insights WHERE project_id = ?",
+        )
+        .get(projectId) as { last_created: string | null } | null;
+    const lastAnalyzedAt = lastInsightRow?.last_created ?? "never";
+
     return [
         "[WARDEN_ANALYSIS_CONTEXT]",
         `Project ID: ${projectId}`,
         `Generated: ${new Date().toISOString()}`,
+        `Last Analysis: ${lastAnalyzedAt}`,
     ].join("\n");
 }
 
@@ -172,6 +189,26 @@ function buildFileActivitySection(
                 `  - ${filePath} (active ${activeDays} of 7 days)`,
         ),
     ];
+
+    return lines.join("\n");
+}
+
+function buildPendingTodosSection(
+    db: Database,
+    projectId: string,
+): string | null {
+    const todos = db
+        .query(
+            "SELECT id, task, created_at FROM project_todos WHERE project_id = ? AND status = 'pending' AND deleted_at IS NULL",
+        )
+        .all(projectId) as { id: string; task: string; created_at: string }[];
+
+    if (todos.length === 0) return null;
+
+    const lines = ["[PENDING_TODOS]"];
+    for (const todo of todos) {
+        lines.push(`- [${todo.id}] (Created: ${todo.created_at}) ${todo.task}`);
+    }
 
     return lines.join("\n");
 }
@@ -290,5 +327,51 @@ function buildProjectFilesSection(projectPath: string): string | null {
         `${files.length} source files found (max ${MAX_PROJECT_FILES}):`,
         ...files.map((f) => `  - ${f}`),
     ];
+    return lines.join("\n");
+}
+
+async function buildSectionAsync(
+    name: string,
+    builder: () => Promise<string | null>,
+): Promise<string | null> {
+    try {
+        return await builder();
+    } catch (err: unknown) {
+        console.error(`[Warden Context] ${name} failed:`, err);
+        return null;
+    }
+}
+
+async function buildDiffsSection(projectPath: string): Promise<string | null> {
+    const lines = ["[RECENT_CODE_CHANGES]"];
+
+    // Get uncommitted diffs
+    try {
+        const uncommittedRaw =
+            await Bun.$`git -C ${projectPath} diff --unified=1`.text();
+        if (uncommittedRaw && uncommittedRaw.trim().length > 0) {
+            lines.push("--- UNCOMMITTED CHANGES ---");
+            lines.push(uncommittedRaw.substring(0, 4000));
+            if (uncommittedRaw.length > 4000) lines.push("...(diff truncated)");
+        }
+    } catch (err) {
+        console.error("[Warden Context] Uncommitted diff failed:", err);
+    }
+
+    // Get last commit diff
+    try {
+        const lastCommitRaw =
+            await Bun.$`git -C ${projectPath} diff HEAD~1 HEAD --unified=1`.text();
+        if (lastCommitRaw && lastCommitRaw.trim().length > 0) {
+            lines.push("--- LAST COMMIT (HEAD) ---");
+            lines.push(lastCommitRaw.substring(0, 3000));
+            if (lastCommitRaw.length > 3000) lines.push("...(diff truncated)");
+        }
+    } catch (err) {
+        // Expected in single-commit or shallow-clone repos
+        console.error("[Warden Context] Last commit diff failed:", err);
+    }
+
+    if (lines.length === 1) return null;
     return lines.join("\n");
 }

@@ -15,6 +15,8 @@ import type {
     LinkPreview,
     Project,
     ProjectStats,
+    ProjectTodo,
+    ProjectTodoStatus,
     ScreenContext,
     Settings,
     VaultResource,
@@ -185,6 +187,30 @@ export type TrackmeBabyRPC = {
                     insightCount: number;
                     reason: string;
                 };
+            };
+            getProjectTodos: {
+                params: { projectId: string };
+                response: ProjectTodo[];
+            };
+            addProjectTodo: {
+                params: {
+                    projectId: string;
+                    task: string;
+                    source?: "manual" | "auto";
+                };
+                response: ProjectTodo;
+            };
+            updateProjectTodoStatus: {
+                params: { id: string; status: ProjectTodoStatus };
+                response: { success: boolean };
+            };
+            deleteProjectTodo: {
+                params: { id: string };
+                response: { success: boolean };
+            };
+            deleteCompletedProjectTodos: {
+                params: { projectId: string };
+                response: { success: boolean };
             };
             deleteProject: {
                 params: { projectId: string };

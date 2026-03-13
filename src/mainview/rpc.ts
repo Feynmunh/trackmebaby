@@ -16,6 +16,8 @@ import type {
     LinkPreview,
     Project,
     ProjectStats,
+    ProjectTodo,
+    ProjectTodoStatus,
     ScreenContext,
     Settings,
     VaultResource,
@@ -315,6 +317,41 @@ export async function deleteProject(
     projectId: string,
 ): Promise<{ success: boolean }> {
     return requestApi.deleteProject({ projectId });
+}
+
+// --- Project Todos ---
+
+export async function getProjectTodos(
+    projectId: string,
+): Promise<ProjectTodo[]> {
+    return requestApi.getProjectTodos({ projectId });
+}
+
+export async function addProjectTodo(params: {
+    projectId: string;
+    task: string;
+    source?: "manual" | "auto";
+}): Promise<ProjectTodo> {
+    return requestApi.addProjectTodo(params);
+}
+
+export async function updateProjectTodoStatus(
+    id: string,
+    status: ProjectTodoStatus,
+): Promise<{ success: boolean }> {
+    return requestApi.updateProjectTodoStatus({ id, status });
+}
+
+export async function deleteProjectTodo(
+    id: string,
+): Promise<{ success: boolean }> {
+    return requestApi.deleteProjectTodo({ id });
+}
+
+export async function deleteCompletedProjectTodos(
+    projectId: string,
+): Promise<{ success: boolean }> {
+    return requestApi.deleteCompletedProjectTodos({ projectId });
 }
 
 export async function readClipboardImage(): Promise<{

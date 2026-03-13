@@ -48,7 +48,7 @@ export function createRPC(
             const settings = settingsService.getAll();
             aiProvider = createAIProvider({
                 provider: settings.aiProvider,
-                apiKey: getSavedApiKey(),
+                apiKey: getSavedApiKey(settings.aiProvider),
                 model: settings.aiModel,
             });
         }
