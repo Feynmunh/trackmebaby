@@ -28,6 +28,7 @@ src/
 │   │       ├── chat.ts         # AI chat history
 │   │       ├── events.ts       # File events
 │   │       ├── git.ts          # Git metadata
+│   │       ├── project-cache.ts # Cached project metadata
 │   │       ├── projects.ts     # Projects
 │   │       ├── settings.ts     # App settings
 │   │       ├── todos.ts        # Todo items
@@ -98,8 +99,9 @@ bun install
 # Development (build + dev server)
 bun run dev
 
-# Development with HMR
-bun run dev:hmr
+# Development with HMR (concurrent UI + native)
+bun run dev:ui      # Vite HMR only (port 5173)
+bun run dev:native  # Electrobun dev with --watch
 
 # Production build
 bun run build:prod
@@ -126,7 +128,7 @@ If you modify `src/shared/types.ts` or `src/shared/rpc-types.ts`:
 
 ## Configuration
 
-Set your projects folder in Settings, or via environment variables:
+Set your projects folder in the Settings panel, or configure AI providers via environment variables:
 
 ```bash
 export GROQ_API_KEY="your-api-key-here"

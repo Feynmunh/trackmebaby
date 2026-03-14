@@ -1,6 +1,6 @@
 # Backend Services — trackmebaby
 
-All backend services in trackmebaby are located in `src/bun/services/`. These services are implemented as TypeScript classes and use constructor dependency injection for the database and configuration values.
+All backend services in trackmebaby are located in `src/bun/services/`. Most are implemented as TypeScript classes using constructor dependency injection. A few are standalone functions (e.g., link preview).
 
 ## Service Overview
 
@@ -13,7 +13,7 @@ All backend services in trackmebaby are located in `src/bun/services/`. These se
 | SettingsService | settings.ts | Manages typed application settings stored in SQLite |
 | GitHubService | github.ts | Handles GitHub API integration, issues, and PRs |
 | AutostartService | autostart.ts | Manages OS autostart registration |
-| LinkPreviewService | link-preview.ts | Fetches URL metadata for previews |
+| linkPreview (function) | link-preview.ts | Fetches URL metadata for previews |
 
 ## Service Details
 
@@ -86,13 +86,13 @@ Manages OS-level autostart registration.
 - Platform-specific implementations for Linux, macOS, and Windows.
 - Uses platform-appropriate autostart mechanisms (launch agents, registry, etc.).
 
-### LinkPreviewService()
+### linkPreview(url)
 
-Fetches metadata from URLs to display previews.
+A standalone function that fetches metadata from URLs for preview cards.
 
 - Extracts title, description, and favicon from web pages.
-- Used when sharing links in chat or vault features.
-- Respects rate limits and caches results.
+- Used by the Vault RPC handlers to display link previews.
+- Applies timeout and response size limits; persistence happens via vault resources.
 
 ## Service Pattern
 

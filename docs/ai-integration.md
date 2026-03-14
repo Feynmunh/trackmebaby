@@ -1,6 +1,6 @@
 # AI Integration — trackmebaby
 
-trackmebaby uses AI to power two primary features: natural language chat about developer activity and Warden project health analysis. The system is designed to be lightweight, using fetch-based API calls instead of bulky npm SDKs. Groq with LLaMA 3.3 70B and Google Gemini are the supported providers.
+trackmebaby uses AI to power two primary features: natural language chat about developer activity and Warden project health analysis. The system is designed to be lightweight, using fetch-based API calls instead of bulky npm SDKs. Groq with LLaMA 3.3 70B, Google Gemini, and OpenAI-compatible APIs are the supported providers.
 
 ## Architecture
 
@@ -45,7 +45,7 @@ The factory in `index.ts` manages provider instantiation.
 - `createAIProvider({ provider, apiKey, model })`: Returns an `AIProvider` instance.
 - `getSavedApiKey()`: Retrieves the API key from environment variables (`GROQ_API_KEY`, `GEMINI_API_KEY`, or `AI_API_KEY`).
 
-The factory pattern supports multiple providers: Groq and Google Gemini.
+The factory pattern supports multiple providers: Groq, Google Gemini, and OpenAI-compatible APIs (via GroqProvider).
 
 ## Context Assembly for Chat
 

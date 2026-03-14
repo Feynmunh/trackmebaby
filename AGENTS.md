@@ -18,14 +18,14 @@ bun install
 ### Development
 ```bash
 bun run dev          # Build + dev server
-bun run dev:hmr     # Concurrent: HMR server + electrobun dev
-bun run hmr         # Vite HMR only (port 5173)
+bun run dev:ui      # Vite HMR only (port 5173)
+bun run dev:native  # Electrobun dev with --watch
 ```
 
 ### Production
 ```bash
 bun run build       # Vite + electrobun build
-bun run build:prod # Production (--channel prod)
+bun run build:prod # Production (--env=stable)
 bun run start       # Alias for dev
 ```
 
@@ -52,23 +52,26 @@ Tests use `bun:test` with `*.test.ts` naming in same directory as source.
 - **Target:** ES2020 | **Strict:** Yes | **Module:** ESNext (bundler)
 - **JSX:** react-jsx | **No unused locals/params** | **No fallthrough in switch**
 
-### Import Order (recommended)
-1. External libs (electrobun, react)
-2. Internal imports (explicit `.ts` extensions)
-3. Node.js built-ins (`node:path`, `node:fs`)
+### Import Order (flexible)
+- External libs first (electrobun, react)
+- Internal imports (frontend may omit `.ts` extensions)
+- Node.js built-ins (`node:path`, `node:fs`) - can be mixed with internal imports
 
 ```typescript
-import { BrowserWindow, Tray } from "electrobun/bun";
-import { useState } from "react";
+// Backend (explicit .ts)
 import { getDatabase } from "./db/database.ts";
 import { join } from "node:path";
+
+// Frontend (omit .ts)
+import { useState } from "react";
+import { getSettings } from "./settings";
 ```
 
 ### Naming Conventions
 
 | Type | Convention | Example |
 |------|------------|---------|
-| Files | snake_case | `watcher_service.ts` |
+| Files | kebab-case | `git-tracker.ts`, `link-preview.ts` |
 | Classes | PascalCase | `WatcherService` |
 | Functions/variables | camelCase | `getDatabase()`, `activeCount` |
 | Interfaces/types | PascalCase | `WatcherEvent` |
@@ -101,7 +104,7 @@ src/
 │   │   ├── schema.ts      # Migrations
 │   │   └── queries.ts     # Typed CRUD, UUIDv7 keys
 │   ├── rpc/bridge.ts       # Electrobun RPC handlers
-│   └── services/           # watcher, git-tracker, project-scanner, settings, ai
+│   └── services/           # watcher, git-tracker, project-scanner, warden, github, settings, ai, autostart, link-preview
 ├── mainview/               # Frontend (React)
 │   ├── App.tsx            # Tab shell
 │   ├── rpc.ts             # Frontend RPC client
