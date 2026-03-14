@@ -59,6 +59,14 @@ src/
 4. **Git tracker**: Polls git status (branch, commits, uncommitted files) every 60s.
 5. **AI chat**: Ask questions about your work — activity context is assembled automatically.
 
+## Installation
+
+Download the latest version for your platform from the [Releases](https://github.com/Feynmunh/trackmebaby/releases) page.
+
+- **Linux:** Download the `.tar.gz` installer, extract it, and run the `installer` file.
+- **macOS:** Download the `.tar.gz`, extract it, then drag/move the `trackmebaby.app` into your Applications folder. (Note: Since this is an unsigned app, you may need to Right-click -> Open the first time).
+- **Windows:** Download the setup executable and run it to install.
+
 ## Development
 
 ```bash

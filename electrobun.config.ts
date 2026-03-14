@@ -1,8 +1,13 @@
+import fs from "node:fs";
 import type { ElectrobunConfig } from "electrobun";
 import {
     ELECTROBUN_RUNTIME,
     ELECTROBUN_STATIC_BUILD,
 } from "./electrobun.static.config.ts";
+
+const packageJson = JSON.parse(
+    fs.readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 type ElectrobunConfigWithWatch = ElectrobunConfig & {
     build: ElectrobunConfig["build"] & { watch?: string[] };
@@ -12,7 +17,7 @@ export default {
     app: {
         name: "trackmebaby",
         identifier: "dev.trackmebaby.app",
-        version: "0.1.0",
+        version: packageJson.version,
     },
     runtime: ELECTROBUN_RUNTIME,
     build: {

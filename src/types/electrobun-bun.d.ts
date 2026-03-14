@@ -1,3 +1,4 @@
+/// <reference types="node" />
 declare module "electrobun/bun" {
     export type RPCSchema<TSchema> = TSchema;
 
@@ -113,4 +114,20 @@ declare module "electrobun/bun" {
 
     const Electrobun: ElectrobunStatic;
     export default Electrobun;
+}
+
+declare module "electrobun" {
+    export interface ElectrobunConfig {
+        app: {
+            name: string;
+            identifier: string;
+            version: string;
+        };
+        runtime: {
+            exitOnLastWindowClosed: boolean;
+        };
+        build: {
+            copy?: Record<string, string>;
+        };
+    }
 }
