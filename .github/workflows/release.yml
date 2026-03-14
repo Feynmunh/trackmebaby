@@ -28,18 +28,19 @@ jobs:
             arch: x64
 
     runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Ensure manual releases checkout the correct tag/ref
+          # Use normalized tag or default ref
           ref: ${{ github.event.inputs.tag || github.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          # Pin version to match CI for reproducibility
           bun-version: 1.3.x
 
       - name: Install Linux Build Dependencies
@@ -70,41 +71,37 @@ jobs:
         shell: bash
         run: |
           # Package the .app folder into a tarball
-          # Discover the actual path to handle potential naming variations
-          APP_PATH=$(find build/stable-macos-* -name "*.app" -type d | head -n 1)
+          APP_PATH=$(find build -path '*/stable-macos-*' -name "*.app" -type d | head -n 1)
           if [ -z "$APP_PATH" ]; then
-            echo "Error: Could not find .app bundle in build directory"
+            echo "::error ::Could not find .app bundle in build directory"
             exit 1
           fi
           APP_DIR=$(dirname "$APP_PATH")
           APP_NAME=$(basename "$APP_PATH")
           cd "$APP_DIR"
-          # Dynamic filename based on matrix architecture
           tar -czf ../../trackmebaby-macos-${{ matrix.arch }}.tar.gz "$APP_NAME"
 
       - name: Package Artifact (Linux)
         if: matrix.platform == 'linux'
         shell: bash
         run: |
-          # Find the setup tarball created by Electrobun
-          SETUP_PATH=$(find build/stable-linux-* -name "*-Setup.tar.gz" | head -n 1)
+          SETUP_PATH=$(find build -path '*/stable-linux-*' -name "*-Setup.tar.gz" | head -n 1)
           if [ -z "$SETUP_PATH" ]; then
-            echo "Error: Could not find Linux setup tarball"
+            echo "::error ::Could not find Linux setup tarball"
             exit 1
           fi
-          cp "$SETUP_PATH" ./trackmebaby-linux-x64-installer.tar.gz
+          cp "$SETUP_PATH" ./trackmebaby-linux-${{ matrix.arch }}-installer.tar.gz
 
       - name: Package Artifact (Windows)
         if: matrix.platform == 'win'
-        shell: bash # Use bash on windows runner for consistent find usage
+        shell: bash
         run: |
-          # Find the setup exe created by Electrobun
-          SETUP_PATH=$(find build/stable-win-* -name "*-Setup.exe" | head -n 1)
+          SETUP_PATH=$(find build -path '*/stable-win-*' -name "*-Setup.exe" | head -n 1)
           if [ -z "$SETUP_PATH" ]; then
-            echo "Error: Could not find Windows setup exe"
+            echo "::error ::Could not find Windows setup exe"
             exit 1
           fi
-          cp "$SETUP_PATH" ./trackmebaby-windows-setup.exe
+          cp "$SETUP_PATH" ./trackmebaby-windows-${{ matrix.arch }}-setup.exe
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -112,8 +109,8 @@ jobs:
           name: trackmebaby-${{ matrix.platform }}-${{ matrix.arch }}
           path: |
             trackmebaby-macos-${{ matrix.arch }}.tar.gz
-            trackmebaby-linux-x64-installer.tar.gz
-            trackmebaby-windows-setup.exe
+            trackmebaby-linux-${{ matrix.arch }}-installer.tar.gz
+            trackmebaby-windows-${{ matrix.arch }}-setup.exe
 
   release:
     needs: build
@@ -124,25 +121,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Ensure changelog extraction uses the correct tag/ref
           ref: ${{ github.event.inputs.tag || github.ref }}
 
-      - name: Get version
+      - name: Get version and normalize tag
         id: get_version
         shell: bash
         run: |
-          # Handle tag from push or manual input
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.tag }}" != "" ]]; then
-            TAG="${{ github.event.inputs.tag }}"
+            INPUT_TAG="${{ github.event.inputs.tag }}"
+            # Add 'v' prefix if user omitted it
+            [[ ! $INPUT_TAG == v* ]] && TAG="v$INPUT_TAG" || TAG="$INPUT_TAG"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
           else
-            # Fallback to package.json version if no tag provided
-            # Use node to parse version to avoid jq dependency on minimal runners
+            # Extract from package.json using node (no jq dep)
             TAG="v$(node -p "require('./package.json').version")"
           fi
           
-          # Remove 'v' prefix for changelog reader
           VERSION="${TAG#v}"
           echo "tag=$TAG" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
@@ -159,8 +154,10 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
-          # Extract title part after the date
           TITLE=$(grep "^## \[$VERSION\]" CHANGELOG.md | awk -F ' - ' '{print $3}')
+          if [ -z "$TITLE" ]; then
+            echo "::warning ::No title found in CHANGELOG.md for version $VERSION"
+          fi
           echo "title=$TITLE" >> $GITHUB_OUTPUT
 
       - name: Download all artifacts
