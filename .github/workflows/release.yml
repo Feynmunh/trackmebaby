@@ -35,8 +35,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Use normalized tag or default ref
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          # Normalize tag prefix early via expression so checkout succeeds even if 'v' is omitted in manual input
+          ref: >-
+            ${{ 
+              (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '') && 
+              (startsWith(github.event.inputs.tag, 'v') && github.event.inputs.tag || format('v{0}', github.event.inputs.tag)) || 
+              github.ref 
+            }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -70,10 +75,9 @@ jobs:
         if: matrix.platform == 'macos'
         shell: bash
         run: |
-          # Package the .app folder into a tarball
           APP_PATH=$(find build -path '*/stable-macos-*' -name "*.app" -type d | head -n 1)
           if [ -z "$APP_PATH" ]; then
-            echo "::error ::Could not find .app bundle in build directory"
+            echo "::error ::Could not find .app bundle"
             exit 1
           fi
           APP_DIR=$(dirname "$APP_PATH")
@@ -107,10 +111,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trackmebaby-${{ matrix.platform }}-${{ matrix.arch }}
-          path: |
-            trackmebaby-macos-${{ matrix.arch }}.tar.gz
-            trackmebaby-linux-${{ matrix.arch }}-installer.tar.gz
-            trackmebaby-windows-${{ matrix.arch }}-setup.exe
+          # Path uses a platform-specific prefix to only upload the file created by this runner
+          path: trackmebaby-${{ matrix.platform }}-${{ matrix.arch }}*
+          if-no-files-found: error
 
   release:
     needs: build
@@ -121,7 +124,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref }}
+          ref: >-
+            ${{ 
+              (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '') && 
+              (startsWith(github.event.inputs.tag, 'v') && github.event.inputs.tag || format('v{0}', github.event.inputs.tag)) || 
+              github.ref 
+            }}
 
       - name: Get version and normalize tag
         id: get_version
@@ -129,12 +137,10 @@ jobs:
         run: |
           if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ github.event.inputs.tag }}" != "" ]]; then
             INPUT_TAG="${{ github.event.inputs.tag }}"
-            # Add 'v' prefix if user omitted it
             [[ ! $INPUT_TAG == v* ]] && TAG="v$INPUT_TAG" || TAG="$INPUT_TAG"
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
           else
-            # Extract from package.json using node (no jq dep)
             TAG="v$(node -p "require('./package.json').version")"
           fi
           
