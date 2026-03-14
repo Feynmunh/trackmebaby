@@ -52,8 +52,9 @@ GitHub Actions executes the following steps on every pull request or push to the
 The application uses these variables for configuration.
 
 | Variable | Purpose |
-|:---|:---|
+| :--- | :---|
 | `GROQ_API_KEY` | Primary API key for the Groq AI provider |
+| `GEMINI_API_KEY` | API key for Google Gemini AI provider |
 | `AI_API_KEY` | Fallback API key for AI services |
 | `XDG_DATA_HOME` | Overrides the default data directory (defaults to ~/.local/share) |
 

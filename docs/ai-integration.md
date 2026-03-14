@@ -1,6 +1,6 @@
 # AI Integration — trackmebaby
 
-trackmebaby uses AI to power two primary features: natural language chat about developer activity and Warden project health analysis. The system is designed to be lightweight, using fetch-based API calls instead of bulky npm SDKs. Groq with LLaMA 3.3 70B is the default provider.
+trackmebaby uses AI to power two primary features: natural language chat about developer activity and Warden project health analysis. The system is designed to be lightweight, using fetch-based API calls instead of bulky npm SDKs. Groq with LLaMA 3.3 70B and Google Gemini are the supported providers.
 
 ## Architecture
 
@@ -10,6 +10,7 @@ The AI logic lives in `src/bun/services/ai/`.
 src/bun/services/ai/
 ├── provider.ts           # AIProvider interface definition
 ├── groq-provider.ts      # Groq implementation (fetch-based)
+├── gemini-provider.ts   # Google Gemini implementation (fetch-based)
 ├── index.ts              # Provider factory + API key helper
 ├── config.ts             # Environment variable helpers
 ├── context-assembler.ts  # Builds activity context for chat queries
@@ -42,9 +43,9 @@ The `GroqProvider` implements the interface using native `fetch()` against Groq'
 The factory in `index.ts` manages provider instantiation.
 
 - `createAIProvider({ provider, apiKey, model })`: Returns an `AIProvider` instance.
-- `getSavedApiKey()`: Retrieves the API key from environment variables (`GROQ_API_KEY` or `AI_API_KEY`).
+- `getSavedApiKey()`: Retrieves the API key from environment variables (`GROQ_API_KEY`, `GEMINI_API_KEY`, or `AI_API_KEY`).
 
-The factory pattern is ready for expansion if other providers like OpenAI or Anthropic are added.
+The factory pattern supports multiple providers: Groq and Google Gemini.
 
 ## Context Assembly for Chat
 

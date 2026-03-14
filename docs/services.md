@@ -12,6 +12,8 @@ All backend services in trackmebaby are located in `src/bun/services/`. These se
 | WardenService | warden.ts | Provides AI-powered code health analysis and insights |
 | SettingsService | settings.ts | Manages typed application settings stored in SQLite |
 | GitHubService | github.ts | Handles GitHub API integration, issues, and PRs |
+| AutostartService | autostart.ts | Manages OS autostart registration |
+| LinkPreviewService | link-preview.ts | Fetches URL metadata for previews |
 
 ## Service Details
 
@@ -75,6 +77,22 @@ Integrates GitHub data into the project dashboard.
 - Fetches open issues and pull requests for projects with a GitHub remote.
 - Uses ETag-based caching to minimize API usage and respect rate limits.
 - Core logic resides in the `github/` subdirectory, with `api.ts` for network calls and `oauth.ts` for authentication.
+
+### AutostartService()
+
+Manages OS-level autostart registration.
+
+- Allows the app to start automatically when the user logs in.
+- Platform-specific implementations for Linux, macOS, and Windows.
+- Uses platform-appropriate autostart mechanisms (launch agents, registry, etc.).
+
+### LinkPreviewService()
+
+Fetches metadata from URLs to display previews.
+
+- Extracts title, description, and favicon from web pages.
+- Used when sharing links in chat or vault features.
+- Respects rate limits and caches results.
 
 ## Service Pattern
 
