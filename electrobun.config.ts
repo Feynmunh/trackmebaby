@@ -1,9 +1,13 @@
+import fs from "node:fs";
 import type { ElectrobunConfig } from "electrobun";
 import {
     ELECTROBUN_RUNTIME,
     ELECTROBUN_STATIC_BUILD,
 } from "./electrobun.static.config.ts";
-import packageJson from "./package.json";
+
+const packageJson = JSON.parse(
+    fs.readFileSync(new URL("./package.json", import.meta.url), "utf8"),
+) as { version: string };
 
 type ElectrobunConfigWithWatch = ElectrobunConfig & {
     build: ElectrobunConfig["build"] & { watch?: string[] };
