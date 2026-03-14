@@ -75,15 +75,16 @@ jobs:
         if: matrix.platform == 'macos'
         shell: bash
         run: |
+          # Package the .app folder into a tarball
           APP_PATH=$(find build -path '*/stable-macos-*' -name "*.app" -type d | head -n 1)
           if [ -z "$APP_PATH" ]; then
             echo "::error ::Could not find .app bundle"
             exit 1
           fi
+          # Use absolute paths and -C flag for robust packaging regardless of folder depth
           APP_DIR=$(dirname "$APP_PATH")
           APP_NAME=$(basename "$APP_PATH")
-          cd "$APP_DIR"
-          tar -czf ../../trackmebaby-macos-${{ matrix.arch }}.tar.gz "$APP_NAME"
+          tar -C "$APP_DIR" -czf "$GITHUB_WORKSPACE/trackmebaby-macos-${{ matrix.arch }}.tar.gz" "$APP_NAME"
 
       - name: Package Artifact (Linux)
         if: matrix.platform == 'linux'
@@ -94,7 +95,7 @@ jobs:
             echo "::error ::Could not find Linux setup tarball"
             exit 1
           fi
-          cp "$SETUP_PATH" ./trackmebaby-linux-${{ matrix.arch }}-installer.tar.gz
+          cp "$SETUP_PATH" "$GITHUB_WORKSPACE/trackmebaby-linux-${{ matrix.arch }}-installer.tar.gz"
 
       - name: Package Artifact (Windows)
         if: matrix.platform == 'win'
@@ -105,7 +106,7 @@ jobs:
             echo "::error ::Could not find Windows setup exe"
             exit 1
           fi
-          cp "$SETUP_PATH" ./trackmebaby-windows-${{ matrix.arch }}-setup.exe
+          cp "$SETUP_PATH" "$GITHUB_WORKSPACE/trackmebaby-windows-${{ matrix.arch }}-setup.exe"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -160,7 +161,9 @@ jobs:
         shell: bash
         run: |
           VERSION="${{ steps.get_version.outputs.version }}"
-          TITLE=$(grep "^## \[$VERSION\]" CHANGELOG.md | awk -F ' - ' '{print $3}')
+          # Precise Fix: Use awk for surgical string comparison instead of regex matching.
+          # This prevents false positives and dots-as-regex metacharacter issues.
+          TITLE=$(awk -F ' - ' -v ver="$VERSION" '$1 == "## [" ver "]" {print $3; exit}' CHANGELOG.md)
           if [ -z "$TITLE" ]; then
             echo "::warning ::No title found in CHANGELOG.md for version $VERSION"
           fi
