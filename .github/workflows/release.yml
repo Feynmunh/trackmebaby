@@ -90,7 +90,10 @@ jobs:
         if: matrix.platform == 'linux'
         shell: bash
         run: |
-          SETUP_PATH=$(find build -path '*/stable-linux-*' -name "*-Setup.tar.gz" | head -n 1)
+          SETUP_PATH=$(find artifacts -name "stable-linux-*-*-Setup.tar.gz" | head -n 1)
+          if [ -z "$SETUP_PATH" ]; then
+            SETUP_PATH=$(find build -path '*/stable-linux-*' -name "*-Setup.tar.gz" | head -n 1)
+          fi
           if [ -z "$SETUP_PATH" ]; then
             echo "::error ::Could not find Linux setup tarball"
             exit 1
@@ -101,7 +104,10 @@ jobs:
         if: matrix.platform == 'win'
         shell: bash
         run: |
-          SETUP_PATH=$(find build -path '*/stable-win-*' -name "*-Setup.exe" | head -n 1)
+          SETUP_PATH=$(find artifacts -name "stable-win-*-*-Setup.exe" | head -n 1)
+          if [ -z "$SETUP_PATH" ]; then
+            SETUP_PATH=$(find build -path '*/stable-win-*' -name "*-Setup.exe" | head -n 1)
+          fi
           if [ -z "$SETUP_PATH" ]; then
             echo "::error ::Could not find Windows setup exe"
             exit 1
