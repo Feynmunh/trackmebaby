@@ -106,7 +106,8 @@ jobs:
             echo "::error ::Could not find Windows setup exe"
             exit 1
           fi
-          cp "$SETUP_PATH" "$GITHUB_WORKSPACE/trackmebaby-windows-${{ matrix.arch }}-setup.exe"
+          # Align naming with matrix platform (win) as recommended in review
+          cp "$SETUP_PATH" "$GITHUB_WORKSPACE/trackmebaby-win-${{ matrix.arch }}-setup.exe"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -142,7 +143,8 @@ jobs:
           elif [[ "${{ github.ref }}" == refs/tags/* ]]; then
             TAG="${GITHUB_REF#refs/tags/}"
           else
-            TAG="v$(node -p "require('./package.json').version")"
+            # Extract from package.json using node (no jq dep). Fixed quoting for bash safety as recommended.
+            TAG="v$(node -p 'require("./package.json").version')"
           fi
           
           VERSION="${TAG#v}"
