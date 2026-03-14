@@ -35,7 +35,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          # Normalize tag prefix early via expression so checkout succeeds even if 'v' is omitted in manual input
+          ref: >-
+            ${{ 
+              (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '') && 
+              (startsWith(github.event.inputs.tag, 'v') && github.event.inputs.tag || format('v{0}', github.event.inputs.tag)) || 
+              github.ref 
+            }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -120,7 +126,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          # Normalize tag prefix early via expression so checkout succeeds even if 'v' is omitted in manual input
+          ref: >-
+            ${{ 
+              (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '') && 
+              (startsWith(github.event.inputs.tag, 'v') && github.event.inputs.tag || format('v{0}', github.event.inputs.tag)) || 
+              github.ref 
+            }}
 
       - name: Get version and normalize tag
         id: get_version
@@ -137,8 +149,10 @@ jobs:
           fi
           
           VERSION="${TAG#v}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$COMMIT_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Extract changelog
         id: changelog_reader
@@ -158,7 +172,7 @@ jobs:
           if [ -z "$TITLE" ]; then
             echo "::warning ::No title found in CHANGELOG.md for version $VERSION"
           fi
-          echo "title=$TITLE" >> $GITHUB_OUTPUT
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4
@@ -170,7 +184,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
-          target_commitish: ${{ github.sha }}
+          target_commitish: ${{ steps.get_version.outputs.commit_sha }}
           name: ${{ steps.get_version.outputs.tag }}${{ steps.get_title.outputs.title != '' && format(' - {0}', steps.get_title.outputs.title) || '' }}
           body: ${{ steps.changelog_reader.outputs.changes }}
           files: dist/*
