@@ -7,8 +7,8 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Tag to release (e.g., v0.1.0). If empty, version from package.json is used.'
-        required: false
+        description: 'Tag to release (e.g., v0.1.0). (Required for manual runs)'
+        required: true
         type: string
 
 jobs:
@@ -35,13 +35,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # Normalize tag prefix early via expression so checkout succeeds even if 'v' is omitted in manual input
-          ref: >-
-            ${{ 
-              (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '') && 
-              (startsWith(github.event.inputs.tag, 'v') && github.event.inputs.tag || format('v{0}', github.event.inputs.tag)) || 
-              github.ref 
-            }}
+          ref: ${{ github.ref }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -126,12 +120,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: >-
-            ${{ 
-              (github.event_name == 'workflow_dispatch' && github.event.inputs.tag != '') && 
-              (startsWith(github.event.inputs.tag, 'v') && github.event.inputs.tag || format('v{0}', github.event.inputs.tag)) || 
-              github.ref 
-            }}
+          ref: ${{ github.ref }}
 
       - name: Get version and normalize tag
         id: get_version
@@ -181,6 +170,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.get_version.outputs.tag }}
+          target_commitish: ${{ github.sha }}
           name: ${{ steps.get_version.outputs.tag }}${{ steps.get_title.outputs.title != '' && format(' - {0}', steps.get_title.outputs.title) || '' }}
           body: ${{ steps.changelog_reader.outputs.changes }}
           files: dist/*

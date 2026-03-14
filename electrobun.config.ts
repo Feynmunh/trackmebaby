@@ -3,6 +3,7 @@ import {
     ELECTROBUN_RUNTIME,
     ELECTROBUN_STATIC_BUILD,
 } from "./electrobun.static.config.ts";
+import packageJson from "./package.json";
 
 type ElectrobunConfigWithWatch = ElectrobunConfig & {
     build: ElectrobunConfig["build"] & { watch?: string[] };
@@ -12,7 +13,7 @@ export default {
     app: {
         name: "trackmebaby",
         identifier: "dev.trackmebaby.app",
-        version: "0.1.0",
+        version: packageJson.version,
     },
     runtime: ELECTROBUN_RUNTIME,
     build: {
