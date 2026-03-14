@@ -91,6 +91,28 @@ Download the latest version for your platform from the [Releases](https://github
 - **macOS:** Download the `.tar.gz`, extract it, then drag/move the `trackmebaby.app` into your Applications folder. (Note: Since this is an unsigned app, you may need to Right-click -> Open the first time).
 - **Windows:** Download the setup executable and run it to install.
 
+### Linux Post-Install
+
+On Linux, the app creates a Desktop shortcut but does not automatically appear in the app menu. This is a [known electrobun issue](https://github.com/blackboardsh/electrobun/issues/144).
+
+**Option 1:** After rebuilding with an icon (see below), the desktop file will be in the app directory:
+
+```bash
+mkdir -p ~/.local/share/applications
+cp ~/.local/share/dev.trackmebaby.app/stable/app/trackmebaby.desktop ~/.local/share/applications/
+update-desktop-database ~/.local/share/applications/
+```
+
+**Option 2:** Right-click the Desktop shortcut → "Allow Launching" — then search for it in your app menu.
+
+### Building with Icon (Linux)
+
+To include an icon in the Linux build (required for the desktop file to be generated):
+
+1. Add an icon to `build/icon.png` (512x512 PNG recommended)
+2. The config at `electrobun.static.config.ts` already includes `linux.icon: "build/icon.png"`
+3. Rebuild: `bun run build:prod`
+
 ## Development
 
 ```bash
@@ -120,13 +142,6 @@ bun test <file>     # Run single test file
 bun test --watch    # Watch mode
 ```
 
-## PR Checklist (Contract Changes)
-
-If you modify `src/shared/types.ts` or `src/shared/rpc-types.ts`:
-- [ ] Note the contract change in the PR summary
-- [ ] Update backend handlers and frontend usage in the same PR
-- [ ] Verify tests and build
-
 ## Configuration
 
 Set your projects folder in the Settings panel, or configure AI providers via environment variables:
@@ -135,12 +150,3 @@ Set your projects folder in the Settings panel, or configure AI providers via en
 export GROQ_API_KEY="your-api-key-here"
 export GEMINI_API_KEY="your-gemini-key-here"
 ```
-
-## Decision Log
-
-| Decision | Rationale |
-|----------|-----------|
-│ `@parcel/watcher-wasm` with `fs.watch` fallback │ Parcel watcher has napi-wasm incompatibility in Bun test env — graceful fallback │
-| `Bun.$` over `simple-git` | Zero deps, read-only shell commands |
-| UUIDv7 over autoincrement | Time-sortable, globally unique |
-| Fetch-based AI over SDKs | No npm dependency, works with any OpenAI-compatible API |
