@@ -18,13 +18,10 @@ const logger = createLogger("ai");
 export function createAIProvider(config: AIProviderConfig): AIProvider {
     switch (config.provider.toLowerCase()) {
         case "groq":
+        case "openai":
             return new GroqProvider(config.apiKey, config.model);
         case "gemini":
             return new GeminiProvider(config.apiKey, config.model);
-        case "openai":
-            // OpenAI uses the same API shape but different URL
-            // For now, use Groq provider with OpenAI compatibility
-            return new GroqProvider(config.apiKey, config.model);
         default:
             logger.warn("unknown ai provider, falling back", {
                 provider: config.provider,
@@ -35,3 +32,4 @@ export function createAIProvider(config: AIProviderConfig): AIProvider {
 
 export { getSavedApiKey } from "./config.ts";
 export type { AIProvider } from "./provider.ts";
+export { type AISecretStorageMode, AISecretStore } from "./secret-store.ts";

@@ -4,7 +4,7 @@ import { createAIHandlers } from "./handlers.ts";
 
 export interface AIRegistrarDeps {
     db: Database;
-    getAIProvider: () => AIProvider;
+    getAIProvider: () => Promise<AIProvider>;
 }
 
 export function registerAIHandlers({ db, getAIProvider }: AIRegistrarDeps) {

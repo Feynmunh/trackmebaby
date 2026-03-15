@@ -51,6 +51,34 @@ export interface Settings {
     watchDebounce: number; // ms, default 500
 }
 
+export type AIKeyStorageMode = "secure" | "local_unencrypted" | "none";
+
+export type AIKeyValidationStatus =
+    | "idle"
+    | "validating"
+    | "valid"
+    | "invalid"
+    | "error"
+    | "skipped";
+
+export interface AISettingsStatus {
+    provider: string;
+    model: string;
+    hasKey: boolean;
+    storageMode: AIKeyStorageMode;
+    keychainAvailable: boolean;
+    validationStatus: AIKeyValidationStatus;
+    message: string | null;
+}
+
+export interface SetAIKeyResult {
+    keySaved: boolean;
+    storageMode: AIKeyStorageMode;
+    keychainAvailable: boolean;
+    validationStatus: AIKeyValidationStatus;
+    message: string;
+}
+
 export interface ChatMessage {
     id: string;
     role: "user" | "assistant";

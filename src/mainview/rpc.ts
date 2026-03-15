@@ -9,6 +9,7 @@ import type {
     ActivityEvent,
     ActivitySummary,
     AIQueryOptions,
+    AISettingsStatus,
     ChatMessageRecord,
     Conversation,
     GitHubData,
@@ -19,6 +20,7 @@ import type {
     ProjectTodo,
     ProjectTodoStatus,
     ScreenContext,
+    SetAIKeyResult,
     Settings,
     VaultResource,
     VaultResourceType,
@@ -198,6 +200,30 @@ export async function updateSettings(
     settings: Partial<Settings>,
 ): Promise<{ success: boolean }> {
     return requestApi.updateSettings({ settings });
+}
+
+export async function getAISettingsStatus(): Promise<AISettingsStatus> {
+    return requestApi.getAISettingsStatus({});
+}
+
+export async function setAIKey(params: {
+    provider: string;
+    apiKey: string;
+    model?: string;
+    validate?: boolean;
+}): Promise<SetAIKeyResult> {
+    return requestApi.setAIKey(params);
+}
+
+export async function validateAIKey(params?: {
+    provider?: string;
+    model?: string;
+}): Promise<{
+    success: boolean;
+    validationStatus: "valid" | "invalid" | "error";
+    message: string;
+}> {
+    return requestApi.validateAIKey(params ?? {});
 }
 
 export async function scanProjects(basePath: string): Promise<Project[]> {

@@ -5,13 +5,16 @@ import {
     getWardenInsights,
     updateWardenInsightStatus,
 } from "../../../db/queries/warden.ts";
-
+import type { AISecretStore } from "../../../services/ai/index.ts";
 import { getSavedApiKey } from "../../../services/ai/index.ts";
+import type { SettingsService } from "../../../services/settings.ts";
 import type { WardenService } from "../../../services/warden.ts";
 
 export interface WardenHandlersDeps {
     db: Database;
     wardenService: WardenService;
+    settingsService: SettingsService;
+    aiSecretStore: AISecretStore;
 }
 
 export function createGetWardenInsightsHandler(db: Database) {
@@ -58,9 +61,13 @@ export function createUpdateWardenInsightStatusHandler(db: Database) {
     };
 }
 
-function createIsAIConfiguredHandler() {
+function createIsAIConfiguredHandler(
+    settingsService: SettingsService,
+    aiSecretStore: AISecretStore,
+) {
     return async () => {
-        const apiKey = await getSavedApiKey();
+        const provider = settingsService.getAIProvider();
+        const apiKey = await getSavedApiKey(aiSecretStore, provider);
         return !!apiKey;
     };
 }
@@ -82,7 +89,10 @@ export function createWardenHandlers(deps: WardenHandlersDeps) {
         updateWardenInsightStatus: createUpdateWardenInsightStatusHandler(
             deps.db,
         ),
-        isAIConfigured: createIsAIConfiguredHandler(),
+        isAIConfigured: createIsAIConfiguredHandler(
+            deps.settingsService,
+            deps.aiSecretStore,
+        ),
         onProjectView: createOnProjectViewHandler(deps.wardenService),
     };
 }

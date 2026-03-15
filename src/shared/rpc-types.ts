@@ -8,6 +8,7 @@ import type {
     ActivityEvent,
     ActivitySummary,
     AIQueryOptions,
+    AISettingsStatus,
     ChatMessageRecord,
     Conversation,
     GitHubData,
@@ -18,6 +19,7 @@ import type {
     ProjectTodo,
     ProjectTodoStatus,
     ScreenContext,
+    SetAIKeyResult,
     Settings,
     VaultResource,
     VaultResourceType,
@@ -99,6 +101,30 @@ export type TrackmeBabyRPC = {
             updateSettings: {
                 params: { settings: Partial<Settings> };
                 response: { success: boolean };
+            };
+            getAISettingsStatus: {
+                params: Record<string, never>;
+                response: AISettingsStatus;
+            };
+            setAIKey: {
+                params: {
+                    provider: string;
+                    apiKey: string;
+                    model?: string;
+                    validate?: boolean;
+                };
+                response: SetAIKeyResult;
+            };
+            validateAIKey: {
+                params: {
+                    provider?: string;
+                    model?: string;
+                };
+                response: {
+                    success: boolean;
+                    validationStatus: "valid" | "invalid" | "error";
+                    message: string;
+                };
             };
             scanProjects: {
                 params: { basePath: string };

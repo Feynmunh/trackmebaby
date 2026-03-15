@@ -89,7 +89,6 @@ beforeEach(async () => {
 
     getSettingValue = "test-key";
     originalNow = Date.now;
-    process.env.GEMINI_API_KEY = "test-key";
 
     await setupModuleMocks();
 });
@@ -99,7 +98,6 @@ afterEach(() => {
     mockGetSetting?.mockRestore?.();
     mockInsertWardenInsight?.mockRestore?.();
     Date.now = originalNow;
-    delete process.env.GEMINI_API_KEY;
 });
 
 describe("WardenService", () => {
@@ -141,31 +139,29 @@ describe("WardenService", () => {
     });
 
     test("skips analysis when API key is missing", async () => {
-        const originalGemini = process.env.GEMINI_API_KEY;
-        const originalAi = process.env.AI_API_KEY;
-        delete process.env.GEMINI_API_KEY;
-        delete process.env.AI_API_KEY;
+        // Clear the mocked API key to simulate no stored key
+        // This works because: AISecretStore tries keychain first (unmocked, throws),
+        // then falls back to DB where mocked getSetting returns null
+        const originalSettingValue = getSettingValue;
+        getSettingValue = null;
 
         const service = new WardenService(db, settingsService);
         const result = await service.analyzeProject(projectId, false);
 
-        process.env.GEMINI_API_KEY = originalGemini;
-        process.env.AI_API_KEY = originalAi;
+        getSettingValue = originalSettingValue;
 
         expect(result.length).toBe(0);
     });
 
     test("does not call provider when API key is missing", async () => {
-        const originalGemini = process.env.GEMINI_API_KEY;
-        const originalAi = process.env.AI_API_KEY;
-        delete process.env.GEMINI_API_KEY;
-        delete process.env.AI_API_KEY;
+        // Clear the mocked API key to simulate no stored key
+        const originalSettingValue = getSettingValue;
+        getSettingValue = null;
 
         const service = new WardenService(db, settingsService);
         await service.analyzeProject(projectId, false);
 
-        process.env.GEMINI_API_KEY = originalGemini;
-        process.env.AI_API_KEY = originalAi;
+        getSettingValue = originalSettingValue;
 
         // mockGenerateContent should not have been called
         expect(mockGenerateContent.mock.calls.length).toBe(0);

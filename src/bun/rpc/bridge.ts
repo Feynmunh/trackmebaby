@@ -8,6 +8,7 @@ import { BrowserView, type BrowserWindow } from "electrobun/bun";
 import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
 import {
     type AIProvider,
+    type AISecretStore,
     createAIProvider,
     getSavedApiKey,
 } from "../services/ai/index.ts";
@@ -29,26 +30,28 @@ import { registerVaultHandlers } from "./features/vault/registrar.ts";
 import { registerWardenHandlers } from "./features/warden/registrar.ts";
 import { registerWindowHandlers } from "./features/window/registrar.ts";
 
-type BrowserWindowInstance = InstanceType<typeof BrowserWindow>;
-
 export function createRPC(
     db: Database,
     settingsService: SettingsService,
     scanner: ProjectScanner,
     gitTracker: GitTrackerService,
     wardenService: WardenService,
-
-    getMainWindow: () => BrowserWindowInstance | null,
+    aiSecretStore: AISecretStore,
+    getMainWindow: () => InstanceType<typeof BrowserWindow> | null,
 ) {
     // Create AI provider from current settings
     let aiProvider: AIProvider | null = null;
 
-    function getAIProvider(): AIProvider {
+    async function getAIProvider(): Promise<AIProvider> {
         if (!aiProvider) {
             const settings = settingsService.getAll();
+            const apiKey = await getSavedApiKey(
+                aiSecretStore,
+                settings.aiProvider,
+            );
             aiProvider = createAIProvider({
                 provider: settings.aiProvider,
-                apiKey: getSavedApiKey(settings.aiProvider),
+                apiKey,
                 model: settings.aiModel,
             });
         }
@@ -61,7 +64,7 @@ export function createRPC(
     const githubService = new GitHubService(db);
 
     const rpc = BrowserView.defineRPC<TrackmeBabyRPC>({
-        maxRequestTime: 15000,
+        maxRequestTime: 30000,
         handlers: {
             requests: {
                 ...registerProjectHandlers({ db }),
@@ -70,12 +73,19 @@ export function createRPC(
                 ...registerSettingsHandlers({
                     settingsService,
                     scanner,
+                    aiSecretStore,
+                    getAIProvider,
                     resetAIProvider: () => {
                         aiProvider = null;
                     },
                 }),
                 ...registerGitHubHandlers({ db, githubService }),
-                ...registerWardenHandlers({ db, wardenService }),
+                ...registerWardenHandlers({
+                    db,
+                    wardenService,
+                    settingsService,
+                    aiSecretStore,
+                }),
                 ...registerVaultHandlers({ db }),
                 ...registerWindowHandlers({ getMainWindow }),
                 ...registerSystemRequestHandlers(),
