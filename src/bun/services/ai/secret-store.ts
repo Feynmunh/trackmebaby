@@ -16,16 +16,27 @@ export class AISecretStore {
     private db: Database;
     private readonly serviceName = "com.trackmebaby.ai";
     private keychainAvailableCache: boolean | null = null;
+    private lastProbeTime = 0;
+    private readonly PROBE_TTL = 30000; // 30 seconds
 
     constructor(db: Database) {
         this.db = db;
     }
 
     async isKeychainAvailable(): Promise<boolean> {
-        if (this.keychainAvailableCache !== null) {
-            return this.keychainAvailableCache;
+        if (this.keychainAvailableCache === true) {
+            return true;
         }
 
+        const now = Date.now();
+        if (
+            this.keychainAvailableCache === false &&
+            now - this.lastProbeTime < this.PROBE_TTL
+        ) {
+            return false;
+        }
+
+        this.lastProbeTime = now;
         try {
             await secrets.get({
                 service: this.serviceName,
@@ -134,18 +145,22 @@ export class AISecretStore {
 
     async clearApiKey(provider: string): Promise<void> {
         const normalizedProvider = this.normalizeProvider(provider);
-        try {
-            await secrets.delete({
-                service: this.serviceName,
-                name: this.getSecretName(normalizedProvider),
-            });
-        } catch {
-            logger.warn(
-                "failed to delete key from keychain, proceeding with DB clear",
-                {
-                    provider: normalizedProvider,
-                },
-            );
+        const keychainAvailable = await this.isKeychainAvailable();
+
+        if (keychainAvailable) {
+            try {
+                await secrets.delete({
+                    service: this.serviceName,
+                    name: this.getSecretName(normalizedProvider),
+                });
+            } catch {
+                logger.warn(
+                    "failed to delete key from keychain, proceeding with DB clear",
+                    {
+                        provider: normalizedProvider,
+                    },
+                );
+            }
         }
         setSetting(
             this.db,

@@ -51,8 +51,8 @@ describe("AISecretStore", () => {
             .mockResolvedValueOnce("secure-key");
         const setSpy = spyOn(secrets, "set").mockResolvedValue(undefined);
 
-        await store.setApiKey("openai", "local-openai");
-        const resolved = await store.getApiKey("openai");
+        await store.setApiKey("groq", "local-groq");
+        const resolved = await store.getApiKey("groq");
 
         expect(resolved).toBe("secure-key");
         getSpy.mockRestore();

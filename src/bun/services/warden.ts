@@ -297,9 +297,22 @@ export class WardenService {
         }
 
         this.isRunning.set(projectId, true);
-        const provider = await this.getAIProvider();
 
         try {
+            const settings = this.settingsService.getAll();
+            const apiKey = await getSavedApiKey(
+                this.secretStore,
+                settings.aiProvider,
+            );
+
+            // Re-verify API key availability before starting work
+            if (!apiKey) {
+                this.isRunning.set(projectId, false);
+                return [];
+            }
+
+            const provider = await this.getAIProvider();
+
             // Clean up old insights before analysis to keep context fresh
             cleanupWardenInsights(this.db, projectId);
 

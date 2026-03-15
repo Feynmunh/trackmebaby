@@ -14,8 +14,8 @@ export async function getSavedApiKey(
         return (await secretStore.getApiKey("gemini")) || "";
     }
 
-    if (normalized === "groq" || normalized === "openai") {
-        return (await secretStore.getApiKey(normalized)) || "";
+    if (normalized === "groq") {
+        return (await secretStore.getApiKey("groq")) || "";
     }
 
     const groqKey = await secretStore.getApiKey("groq");

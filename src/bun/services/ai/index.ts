@@ -18,12 +18,11 @@ const logger = createLogger("ai");
 export function createAIProvider(config: AIProviderConfig): AIProvider {
     switch (config.provider.toLowerCase()) {
         case "groq":
-        case "openai":
             return new GroqProvider(config.apiKey, config.model);
         case "gemini":
             return new GeminiProvider(config.apiKey, config.model);
         default:
-            logger.warn("unknown ai provider, falling back", {
+            logger.warn("unknown ai provider, falling back to groq", {
                 provider: config.provider,
             });
             return new GroqProvider(config.apiKey, config.model);

@@ -74,8 +74,8 @@ export function createSettingsHandlers({
             model?: string;
             validate?: boolean;
         }): Promise<SetAIKeyResult> => {
-            // Handle removal (empty key with validate === false)
-            if (!apiKey.trim() && validate === false) {
+            // Handle removal (empty key)
+            if (!apiKey.trim()) {
                 await aiSecretStore.clearApiKey(provider);
                 resetAIProvider();
                 const keychainAvailable =
@@ -86,17 +86,6 @@ export function createSettingsHandlers({
                     keychainAvailable,
                     validationStatus: "idle",
                     message: "AI configuration removed.",
-                };
-            }
-
-            if (!apiKey.trim()) {
-                return {
-                    keySaved: false,
-                    storageMode: "none",
-                    keychainAvailable:
-                        await aiSecretStore.isKeychainAvailable(),
-                    validationStatus: "invalid",
-                    message: "API key cannot be empty.",
                 };
             }
 
