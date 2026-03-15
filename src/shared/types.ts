@@ -64,7 +64,7 @@ export type AIKeyValidationStatus =
     | "skipped";
 
 export interface AISettingsStatus {
-    provider: string;
+    provider: SupportedAIProvider;
     model: string;
     hasKey: boolean;
     storageMode: AIKeyStorageMode;
