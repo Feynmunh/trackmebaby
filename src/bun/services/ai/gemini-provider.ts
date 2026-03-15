@@ -41,7 +41,7 @@ export class GeminiProvider implements AIProvider {
         options?: AIQueryOptions,
     ): Promise<string> {
         if (!this.apiKey) {
-            return "Please add your GEMINI_API_KEY to your environment to get AI insights.";
+            return "Please add an API key in Settings to get AI insights.";
         }
 
         try {
@@ -70,7 +70,7 @@ export class GeminiProvider implements AIProvider {
                 message.includes("403") ||
                 message.includes("401")
             ) {
-                return "Invalid API key. Please check your GEMINI_API_KEY.";
+                return "Invalid API key. Please check your API key in Settings.";
             }
             if (
                 message.includes("429") ||
@@ -105,7 +105,7 @@ export class GeminiProvider implements AIProvider {
         options?: AIQueryOptions,
     ): Promise<string> {
         if (!this.apiKey) {
-            return "Please add your GEMINI_API_KEY to your environment to get AI insights.";
+            return "Please add an API key in Settings to get AI insights.";
         }
 
         try {
@@ -139,7 +139,7 @@ export class GeminiProvider implements AIProvider {
                 message.includes("403") ||
                 message.includes("401")
             ) {
-                return "Invalid API key. Please check your GEMINI_API_KEY.";
+                return "Invalid API key. Please check your API key in Settings.";
             }
             if (
                 message.includes("429") ||

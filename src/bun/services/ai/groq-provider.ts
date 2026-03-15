@@ -42,7 +42,7 @@ export class GroqProvider implements AIProvider {
         options?: AIQueryOptions,
     ): Promise<string> {
         if (!this.apiKey) {
-            return "Please add your GROQ_API_KEY to your .env file to get AI insights.";
+            return "Please add an API key in Settings to get AI insights.";
         }
 
         try {
@@ -82,7 +82,7 @@ export class GroqProvider implements AIProvider {
                     return "Rate limit reached. Please wait a moment and try again.";
                 }
                 if (response.status === 401 || response.status === 403) {
-                    return "Invalid API key. Please check your GROQ_API_KEY.";
+                    return "Invalid API key. Please check your API key in Settings.";
                 }
                 return `AI query failed (${response.status}).`;
             }
@@ -131,7 +131,7 @@ export class GroqProvider implements AIProvider {
         options?: AIQueryOptions,
     ): Promise<string> {
         if (!this.apiKey) {
-            return "Please add your GROQ_API_KEY to your .env file to get AI insights.";
+            return "Please add an API key in Settings to get AI insights.";
         }
 
         try {
@@ -170,7 +170,7 @@ export class GroqProvider implements AIProvider {
                     return "Rate limit reached. Please wait a moment and try again.";
                 }
                 if (response.status === 401 || response.status === 403) {
-                    return "Invalid API key. Please check your GROQ_API_KEY.";
+                    return "Invalid API key. Please check your API key in Settings.";
                 }
                 return `AI query failed (${response.status}).`;
             }

@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { join, normalize, sep } from "node:path";
+import { normalizeAIModel } from "../../shared/ai-models.ts";
 import type {
     WardenCategory,
     WardenInsight,
@@ -17,8 +18,10 @@ import {
 } from "../db/queries.ts";
 import {
     type AIProvider,
+    AISecretStore,
     createAIProvider,
     getSavedApiKey,
+    resolveAIProvider,
 } from "./ai/index.ts";
 import { assembleWardenContext } from "./ai/warden-context.ts";
 import {
@@ -52,25 +55,30 @@ export class WardenService {
     private readonly MAX_CONCURRENT = 2;
     private activeCount = 0;
     private queue: QueueEntry[] = [];
+    private secretStore: AISecretStore;
 
     constructor(
         db: Database,
         settingsService: SettingsService,
         onInsightsGenerated?: InsightsCallback,
         onAnalysisFailed?: FailureCallback,
+        secretStore?: AISecretStore,
     ) {
         this.db = db;
         this.settingsService = settingsService;
         this.onInsightsGenerated = onInsightsGenerated;
         this.onAnalysisFailed = onAnalysisFailed;
+        this.secretStore = secretStore ?? new AISecretStore(db);
     }
 
-    private getAIProvider(): AIProvider {
+    private async getAIProvider(): Promise<AIProvider> {
         const settings = this.settingsService.getAll();
+        const provider = resolveAIProvider(settings.aiProvider);
+        const apiKey = await getSavedApiKey(this.secretStore, provider);
         return createAIProvider({
-            provider: settings.aiProvider,
-            apiKey: getSavedApiKey(settings.aiProvider),
-            model: settings.aiModel,
+            provider,
+            apiKey,
+            model: normalizeAIModel(provider, settings.aiModel),
         });
     }
 
@@ -79,7 +87,8 @@ export class WardenService {
         isManual: boolean = false,
     ): Promise<WardenInsight[]> {
         const settings = this.settingsService.getAll();
-        const apiKey = getSavedApiKey(settings.aiProvider);
+        const provider = resolveAIProvider(settings.aiProvider);
+        const apiKey = await getSavedApiKey(this.secretStore, provider);
         if (!apiKey) {
             console.log("[Warden] No API key configured, skipping analysis");
             return [];
@@ -126,7 +135,8 @@ export class WardenService {
         isManual: boolean = false,
     ): Promise<{ success: boolean; insightCount: number; reason: string }> {
         const settings = this.settingsService.getAll();
-        const apiKey = getSavedApiKey(settings.aiProvider);
+        const provider = resolveAIProvider(settings.aiProvider);
+        const apiKey = await getSavedApiKey(this.secretStore, provider);
         if (!apiKey) {
             return { success: false, insightCount: 0, reason: "NO_API_KEY" };
         }
@@ -283,9 +293,20 @@ export class WardenService {
         }
 
         this.isRunning.set(projectId, true);
-        const provider = this.getAIProvider();
 
         try {
+            const settings = this.settingsService.getAll();
+            const provider = resolveAIProvider(settings.aiProvider);
+            const apiKey = await getSavedApiKey(this.secretStore, provider);
+
+            // Re-verify API key availability before starting work
+            if (!apiKey) {
+                this.isRunning.set(projectId, false);
+                return [];
+            }
+
+            const aiProvider = await this.getAIProvider();
+
             // Clean up old insights before analysis to keep context fresh
             cleanupWardenInsights(this.db, projectId);
 
@@ -302,7 +323,7 @@ export class WardenService {
                 insights: parsedInsights,
                 todos,
                 completedTodoIds,
-            } = await this.queryWithRetry(provider, context);
+            } = await this.queryWithRetry(aiProvider, context);
 
             // Handle completed todos
             for (const todoId of completedTodoIds) {
@@ -394,7 +415,7 @@ export class WardenService {
                 aiText.includes("AI query failed") ||
                 aiText.includes("Rate limit reached") ||
                 aiText.includes("Invalid API key") ||
-                aiText.startsWith("Please add your GEMINI_API_KEY")
+                aiText.startsWith("Please add an API key")
             ) {
                 throw new Error(aiText);
             }

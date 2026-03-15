@@ -20,7 +20,7 @@ import type { ChatTurn } from "../../../services/ai/provider.ts";
 
 export interface AIHandlersDeps {
     db: Database;
-    getAIProvider: () => AIProvider;
+    getAIProvider: () => Promise<AIProvider>;
 }
 
 const logger = createLogger("rpc");
@@ -87,7 +87,7 @@ export function createAIHandlers({ db, getAIProvider }: AIHandlersDeps) {
             try {
                 const task = options?.task ?? "general";
                 const context = await assembleContext(db, question, options);
-                const provider = getAIProvider();
+                const provider = await getAIProvider();
                 const systemPrompt =
                     task === "file_summary"
                         ? FILE_SUMMARY_SYSTEM_PROMPT
@@ -224,7 +224,7 @@ export function createAIHandlers({ db, getAIProvider }: AIHandlersDeps) {
                 ];
 
                 // 4. Query AI
-                const provider = getAIProvider();
+                const provider = await getAIProvider();
                 const response = await provider.queryMultiTurn(
                     systemPrompt,
                     turns,

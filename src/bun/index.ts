@@ -17,6 +17,7 @@ import Electrobun, {
 import type { WardenInsight } from "../shared/types.ts";
 import { closeDatabase, getDatabase } from "./db/database.ts";
 import { createRPC } from "./rpc/bridge.ts";
+import { AISecretStore } from "./services/ai/index.ts";
 import { GitTrackerService } from "./services/git-tracker.ts";
 import { ProjectScanner } from "./services/project-scanner.ts";
 import { SettingsService } from "./services/settings.ts";
@@ -35,6 +36,7 @@ try {
 
 const db = getDatabase(dbPath);
 const settingsService = new SettingsService(db);
+const aiSecretStore = new AISecretStore(db);
 const scanner = new ProjectScanner(db);
 const watcher = new WatcherService(db, settingsService.getWatchDebounce());
 const gitTracker = new GitTrackerService(db, settingsService.getPollInterval());
@@ -53,6 +55,7 @@ const wardenService = new WardenService(
     (projectId, reason) => {
         onWardenAnalysisFailed?.(projectId, reason);
     },
+    aiSecretStore,
 );
 
 // --- Window Management ---
@@ -68,6 +71,7 @@ const rpc = createRPC(
     scanner,
     gitTracker,
     wardenService,
+    aiSecretStore,
     () => mainWindow,
 );
 

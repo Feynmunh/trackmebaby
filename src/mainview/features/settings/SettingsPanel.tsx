@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { toErrorData } from "../../../shared/error.ts";
 import { createLogger } from "../../../shared/logger.ts";
 import type { Settings } from "../../../shared/types.ts";
+import AISection from "./sections/AISection.tsx";
 import AppearanceSection from "./sections/AppearanceSection.tsx";
 import GitHubAuthSection from "./sections/GitHubAuthSection.tsx";
 import PerformanceSection from "./sections/PerformanceSection.tsx";
@@ -131,6 +132,7 @@ export default function SettingsPanel() {
 
             <div className="space-y-5 pb-8">
                 <AppearanceSection theme={theme} onApplyTheme={applyTheme} />
+                <AISection settings={settings} onChange={setSettings} />
                 <GitHubAuthSection />
                 <WorkspaceSection settings={settings} onChange={setSettings} />
                 <PerformanceSection

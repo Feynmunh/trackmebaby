@@ -2,21 +2,20 @@
  * AI Configuration helpers
  */
 
-export function getSavedApiKey(provider?: string): string {
-    const normalized = provider?.toLowerCase();
+import type { SupportedAIProvider } from "../../../shared/ai-provider.ts";
+import type { AISecretStore } from "./secret-store.ts";
 
-    if (normalized === "gemini") {
-        return process.env.GEMINI_API_KEY || process.env.AI_API_KEY || "";
+export async function getSavedApiKey(
+    secretStore: AISecretStore,
+    provider?: SupportedAIProvider,
+): Promise<string> {
+    if (!provider) {
+        return "";
     }
 
-    if (normalized === "groq" || normalized === "openai") {
-        return process.env.GROQ_API_KEY || process.env.AI_API_KEY || "";
+    if (provider === "gemini") {
+        return (await secretStore.getApiKey("gemini")) || "";
     }
 
-    return (
-        process.env.GROQ_API_KEY ||
-        process.env.GEMINI_API_KEY ||
-        process.env.AI_API_KEY ||
-        ""
-    );
+    return (await secretStore.getApiKey("groq")) || "";
 }

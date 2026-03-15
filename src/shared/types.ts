@@ -3,6 +3,8 @@
  * Single source of truth — used by both Bun (backend) and browser (frontend)
  */
 
+import type { SupportedAIProvider } from "./ai-provider.ts";
+
 export interface Worktree {
     path: string; // Absolute path to worktree directory
     branch: string; // Currently checked-out branch
@@ -45,10 +47,38 @@ export interface GitSnapshot {
 
 export interface Settings {
     basePath: string | null;
-    aiProvider: string;
+    aiProvider: SupportedAIProvider;
     aiModel: string;
     pollInterval: number; // ms, default 60000
     watchDebounce: number; // ms, default 500
+}
+
+export type AIKeyStorageMode = "secure" | "local_unencrypted" | "none";
+
+export type AIKeyValidationStatus =
+    | "idle"
+    | "validating"
+    | "valid"
+    | "invalid"
+    | "error"
+    | "skipped";
+
+export interface AISettingsStatus {
+    provider: SupportedAIProvider;
+    model: string;
+    hasKey: boolean;
+    storageMode: AIKeyStorageMode;
+    keychainAvailable: boolean;
+    validationStatus: AIKeyValidationStatus;
+    message: string | null;
+}
+
+export interface SetAIKeyResult {
+    keySaved: boolean;
+    storageMode: AIKeyStorageMode;
+    keychainAvailable: boolean;
+    validationStatus: AIKeyValidationStatus;
+    message: string;
 }
 
 export interface ChatMessage {
