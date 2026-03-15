@@ -3,6 +3,8 @@
  * Single source of truth — used by both Bun (backend) and browser (frontend)
  */
 
+import type { SupportedAIProvider } from "./ai-provider.ts";
+
 export interface Worktree {
     path: string; // Absolute path to worktree directory
     branch: string; // Currently checked-out branch
@@ -45,7 +47,7 @@ export interface GitSnapshot {
 
 export interface Settings {
     basePath: string | null;
-    aiProvider: string;
+    aiProvider: SupportedAIProvider;
     aiModel: string;
     pollInterval: number; // ms, default 60000
     watchDebounce: number; // ms, default 500

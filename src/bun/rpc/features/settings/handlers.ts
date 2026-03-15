@@ -1,5 +1,9 @@
 import { homedir } from "node:os";
 import { Utils } from "electrobun/bun";
+import {
+    DEFAULT_AI_MODEL_BY_PROVIDER,
+    normalizeAIModel,
+} from "../../../../shared/ai-models.ts";
 import { toErrorData } from "../../../../shared/error.ts";
 import { createLogger } from "../../../../shared/logger.ts";
 import type {
@@ -7,7 +11,11 @@ import type {
     SetAIKeyResult,
     Settings,
 } from "../../../../shared/types.ts";
-import type { AIProvider, AISecretStore } from "../../../services/ai/index.ts";
+import {
+    type AIProvider,
+    type AISecretStore,
+    resolveAIProvider,
+} from "../../../services/ai/index.ts";
 import type { ProjectScanner } from "../../../services/project-scanner.ts";
 import type { SettingsService } from "../../../services/settings.ts";
 
@@ -21,6 +29,9 @@ export interface SettingsHandlersDeps {
 
 const logger = createLogger("rpc-settings");
 
+const INVALID_PROVIDER_MESSAGE =
+    "Unsupported AI provider. Supported providers are: groq, gemini.";
+
 export function createSettingsHandlers({
     settingsService,
     scanner,
@@ -33,9 +44,22 @@ export function createSettingsHandlers({
             return settingsService.getAll();
         },
         updateSettings: ({ settings }: { settings: Partial<Settings> }) => {
+            if (settings.aiProvider !== undefined) {
+                try {
+                    resolveAIProvider(settings.aiProvider);
+                } catch {
+                    throw new Error(INVALID_PROVIDER_MESSAGE);
+                }
+            }
+
+            const current = settingsService.getAll();
+
             const aiSettingsChanged =
-                settings.aiProvider !== undefined ||
-                settings.aiModel !== undefined;
+                (settings.aiProvider !== undefined &&
+                    settings.aiProvider !== current.aiProvider) ||
+                (settings.aiModel !== undefined &&
+                    settings.aiModel !== current.aiModel);
+
             settingsService.updateMany(settings);
             if (aiSettingsChanged) {
                 resetAIProvider();
@@ -44,23 +68,26 @@ export function createSettingsHandlers({
         },
         getAISettingsStatus: async (): Promise<AISettingsStatus> => {
             const settings = settingsService.getAll();
-            const hasKey = await aiSecretStore.hasApiKey(settings.aiProvider);
-            const storageMode = await aiSecretStore.getStorageMode(
-                settings.aiProvider,
-            );
+            const provider = settings.aiProvider;
+            const model = normalizeAIModel(provider, settings.aiModel);
+            const hasKey = await aiSecretStore.hasApiKey(provider);
+            const storageMode = await aiSecretStore.getStorageMode(provider);
             const keychainAvailable = await aiSecretStore.isKeychainAvailable();
 
+            let message: string | null = null;
+            if (storageMode === "local_unencrypted") {
+                message =
+                    "Secure OS keychain is unavailable. Your API key is saved only on this device in the app database (unencrypted).";
+            }
+
             return {
-                provider: settings.aiProvider,
-                model: settings.aiModel,
+                provider,
+                model,
                 hasKey,
                 storageMode,
                 keychainAvailable,
                 validationStatus: "idle",
-                message:
-                    storageMode === "local_unencrypted"
-                        ? "Secure OS keychain is unavailable. Your API key is saved only on this device in the app database (unencrypted)."
-                        : null,
+                message,
             };
         },
         setAIKey: async ({
@@ -74,9 +101,31 @@ export function createSettingsHandlers({
             model?: string;
             validate?: boolean;
         }): Promise<SetAIKeyResult> => {
+            let normalizedProvider: Settings["aiProvider"];
+            try {
+                normalizedProvider = resolveAIProvider(provider);
+            } catch {
+                return {
+                    keySaved: false,
+                    storageMode: "none",
+                    keychainAvailable:
+                        await aiSecretStore.isKeychainAvailable(),
+                    validationStatus: "error",
+                    message: INVALID_PROVIDER_MESSAGE,
+                };
+            }
+            const normalizedModel = normalizeAIModel(
+                normalizedProvider,
+                model ?? DEFAULT_AI_MODEL_BY_PROVIDER[normalizedProvider],
+            );
+
             // Handle removal (empty key)
             if (!apiKey.trim()) {
-                await aiSecretStore.clearApiKey(provider);
+                await aiSecretStore.clearApiKey(normalizedProvider);
+                settingsService.updateMany({
+                    aiProvider: normalizedProvider,
+                    aiModel: normalizedModel,
+                });
                 resetAIProvider();
                 const keychainAvailable =
                     await aiSecretStore.isKeychainAvailable();
@@ -90,11 +139,14 @@ export function createSettingsHandlers({
             }
 
             settingsService.updateMany({
-                aiProvider: provider,
-                ...(model ? { aiModel: model } : {}),
+                aiProvider: normalizedProvider,
+                aiModel: normalizedModel,
             });
 
-            const setResult = await aiSecretStore.setApiKey(provider, apiKey);
+            const setResult = await aiSecretStore.setApiKey(
+                normalizedProvider,
+                apiKey,
+            );
             resetAIProvider();
 
             if (validate === false) {
@@ -117,7 +169,7 @@ export function createSettingsHandlers({
             } catch (err: unknown) {
                 logger.warn("ai key validation failed", {
                     error: toErrorData(err),
-                    provider,
+                    provider: normalizedProvider,
                 });
                 connected = false;
             }

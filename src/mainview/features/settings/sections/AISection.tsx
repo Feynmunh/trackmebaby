@@ -8,6 +8,16 @@ import {
     KeyRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import {
+    AI_MODELS_BY_PROVIDER,
+    normalizeAIModel,
+} from "../../../../shared/ai-models.ts";
+import {
+    isSupportedAIProvider,
+    resolveAIProvider,
+    SUPPORTED_AI_PROVIDERS,
+    type SupportedAIProvider,
+} from "../../../../shared/ai-provider.ts";
 import type { AISettingsStatus, Settings } from "../../../../shared/types.ts";
 import ConfirmationModal from "../../../components/ui/ConfirmationModal.tsx";
 import { getAISettingsStatus, setAIKey } from "../../../rpc.ts";
@@ -17,23 +27,15 @@ interface AISectionProps {
     onChange: (settings: Settings) => void;
 }
 
-const MODEL_BY_PROVIDER: Record<string, string[]> = {
-    groq: [
-        "llama-3.3-70b-versatile",
-        "llama-3.1-8b-instant",
-        "openai/gpt-oss-120b",
-        "openai/gpt-oss-20b",
-    ],
-    gemini: [
-        "gemini-2.5-flash",
-        "gemini-2.5-pro",
-        "gemini-3.1-pro-preview",
-        "gemini-3.1-flash-lite-preview",
-        "gemini-3-flash-preview",
-    ],
-};
+const PROVIDERS: readonly SupportedAIProvider[] = SUPPORTED_AI_PROVIDERS;
 
-const PROVIDERS = ["groq", "gemini"];
+function resolveProviderForUI(provider: string): SupportedAIProvider | null {
+    const normalized = provider.trim().toLowerCase();
+    if (!isSupportedAIProvider(normalized)) {
+        return null;
+    }
+    return resolveAIProvider(normalized);
+}
 
 function providerLabel(provider: string): string {
     switch (provider) {
@@ -56,11 +58,18 @@ export default function AISection({ settings, onChange }: AISectionProps) {
     const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
     // Local state for editing so we don't save to backend while browsing
-    const [localProvider, setLocalProvider] = useState(settings.aiProvider);
-    const [localModel, setLocalModel] = useState(settings.aiModel);
+    const [localProvider, setLocalProvider] = useState<SupportedAIProvider>(
+        resolveProviderForUI(settings.aiProvider) ?? "groq",
+    );
+    const [localModel, setLocalModel] = useState(
+        normalizeAIModel(
+            resolveProviderForUI(settings.aiProvider) ?? "groq",
+            settings.aiModel,
+        ),
+    );
 
     const modelOptions = useMemo(() => {
-        return MODEL_BY_PROVIDER[localProvider] || MODEL_BY_PROVIDER.groq;
+        return AI_MODELS_BY_PROVIDER[localProvider];
     }, [localProvider]);
 
     const resolvedStatus = useMemo(() => {
@@ -87,23 +96,36 @@ export default function AISection({ settings, onChange }: AISectionProps) {
     // Sync local state when entering edit mode or when props change
     useEffect(() => {
         if (!editMode) {
-            setLocalProvider(settings.aiProvider);
-            setLocalModel(settings.aiModel);
+            const provider =
+                resolveProviderForUI(settings.aiProvider) ?? "groq";
+            setLocalProvider(provider);
+            setLocalModel(normalizeAIModel(provider, settings.aiModel));
         }
     }, [editMode, settings.aiProvider, settings.aiModel]);
 
     // Ensure local model is valid for local provider
     useEffect(() => {
         if (!modelOptions.includes(localModel)) {
-            setLocalModel(modelOptions[0]);
+            setLocalModel(normalizeAIModel(localProvider, localModel));
         }
-    }, [modelOptions, localModel]);
+    }, [modelOptions, localModel, localProvider]);
 
     async function loadStatus() {
         try {
             const aiStatus = await getAISettingsStatus();
             setStatus(aiStatus);
             setStatusMessage(aiStatus.message);
+            const provider = resolveProviderForUI(aiStatus.provider);
+            if (provider) {
+                setLocalProvider(provider);
+                setLocalModel(normalizeAIModel(provider, aiStatus.model));
+            } else {
+                setLocalProvider("groq");
+                setLocalModel(normalizeAIModel("groq", ""));
+                setStatusMessage(
+                    "Stored AI provider is invalid. Please select Groq or Gemini and save.",
+                );
+            }
         } catch {
             setStatusMessage(
                 "Could not load AI settings status. You can still save a key.",
@@ -159,20 +181,33 @@ export default function AISection({ settings, onChange }: AISectionProps) {
     async function handleRemove() {
         setShowRemoveConfirm(false);
         setSaving(true);
+        const provider = resolveProviderForUI(settings.aiProvider);
+        if (!provider) {
+            setStatusMessage(
+                "Stored AI provider is invalid. Please select Groq or Gemini.",
+            );
+            setSaving(false);
+            return;
+        }
         try {
             const result = await setAIKey({
-                provider: settings.aiProvider,
+                provider,
                 apiKey: "",
                 validate: false,
             });
             setStatus({
-                provider: settings.aiProvider,
-                model: settings.aiModel,
+                provider,
+                model: normalizeAIModel(provider, settings.aiModel),
                 hasKey: false,
                 storageMode: result.storageMode,
                 keychainAvailable: result.keychainAvailable,
                 validationStatus: result.validationStatus,
                 message: result.message,
+            });
+            onChange({
+                ...settings,
+                aiProvider: provider,
+                aiModel: normalizeAIModel(provider, settings.aiModel),
             });
             setEditMode(false);
             setStatusMessage(result.message);
@@ -187,8 +222,9 @@ export default function AISection({ settings, onChange }: AISectionProps) {
     function handleCancelEdit() {
         setApiKeyInput("");
         setEditMode(false);
-        setLocalProvider(settings.aiProvider);
-        setLocalModel(settings.aiModel);
+        const provider = resolveProviderForUI(settings.aiProvider) ?? "groq";
+        setLocalProvider(provider);
+        setLocalModel(normalizeAIModel(provider, settings.aiModel));
     }
 
     return (
@@ -325,6 +361,7 @@ export default function AISection({ settings, onChange }: AISectionProps) {
                                 <input
                                     id="settings-ai-key"
                                     type={showApiKey ? "text" : "password"}
+                                    autoComplete="new-password"
                                     value={apiKeyInput}
                                     onChange={(e) =>
                                         setApiKeyInput(e.target.value)
@@ -338,6 +375,11 @@ export default function AISection({ settings, onChange }: AISectionProps) {
                                         setShowApiKey((prev) => !prev)
                                     }
                                     className="text-app-text-muted hover:text-app-text-main transition-colors"
+                                    aria-label={
+                                        showApiKey
+                                            ? "Hide API key"
+                                            : "Show API key"
+                                    }
                                     title={showApiKey ? "Hide key" : "Show key"}
                                 >
                                     {showApiKey ? (

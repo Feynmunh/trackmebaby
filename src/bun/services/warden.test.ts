@@ -8,9 +8,10 @@ import {
     spyOn,
     test,
 } from "bun:test";
-import { secrets } from "bun";
 import { upsertProject } from "../db/queries.ts";
 import { runMigrations } from "../db/schema.ts";
+import type { AISecretStore } from "./ai/index.ts";
+import { AISecretStore as AISecretStoreImpl } from "./ai/index.ts";
 import { SettingsService } from "./settings.ts";
 
 let db: Database;
@@ -21,6 +22,7 @@ let originalNow: typeof Date.now;
 let mockGetSetting: ReturnType<typeof mock>;
 let mockInsertWardenInsight: ReturnType<typeof mock>;
 let mockGenerateContent: ReturnType<typeof mock>;
+let secretStoreStub: AISecretStore;
 
 let WardenService: typeof import("./warden.ts").WardenService;
 let settingsService: SettingsService;
@@ -91,6 +93,29 @@ beforeEach(async () => {
     getSettingValue = "test-key";
     originalNow = Date.now;
 
+    secretStoreStub = new AISecretStoreImpl(db);
+    spyOn(secretStoreStub, "getApiKey").mockImplementation(
+        async () => getSettingValue ?? "",
+    );
+    spyOn(secretStoreStub, "hasApiKey").mockImplementation(
+        async () => (getSettingValue ?? "").trim().length > 0,
+    );
+    spyOn(secretStoreStub, "getStorageMode").mockImplementation(async () =>
+        (getSettingValue ?? "").trim().length > 0
+            ? "local_unencrypted"
+            : "none",
+    );
+    spyOn(secretStoreStub, "setApiKey").mockImplementation(async () => ({
+        storageMode: "local_unencrypted",
+        keychainAvailable: false,
+    }));
+    spyOn(secretStoreStub, "clearApiKey").mockImplementation(async () => {
+        getSettingValue = null;
+    });
+    spyOn(secretStoreStub, "isKeychainAvailable").mockImplementation(
+        async () => false,
+    );
+
     await setupModuleMocks();
 });
 
@@ -103,12 +128,24 @@ afterEach(() => {
 
 describe("WardenService", () => {
     test("initializes correctly", () => {
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
         expect(service).toBeDefined();
     });
 
     test("runs analysis and inserts insights", async () => {
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
         const insights = await service.analyzeProject(projectId, false);
 
         expect(insights.length).toBe(1);
@@ -117,7 +154,13 @@ describe("WardenService", () => {
     });
 
     test("respects cooldown period", async () => {
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
 
         await service.analyzeProject(projectId, false);
         const second = await service.analyzeProject(projectId, false);
@@ -126,7 +169,13 @@ describe("WardenService", () => {
     });
 
     test("manual trigger bypasses cooldown", async () => {
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
 
         await service.analyzeProject(projectId, false);
         // Manual bypass still has a 60s cooldown now, so we need to wait or mock time
@@ -140,38 +189,49 @@ describe("WardenService", () => {
     });
 
     test("skips analysis when API key is missing", async () => {
-        const getSpy = spyOn(secrets, "get").mockResolvedValue(null);
-
         const originalSettingValue = getSettingValue;
         getSettingValue = null;
 
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
         const result = await service.analyzeProject(projectId, false);
 
         getSettingValue = originalSettingValue;
-        getSpy.mockRestore();
 
         expect(result.length).toBe(0);
     });
 
     test("does not call provider when API key is missing", async () => {
-        const getSpy = spyOn(secrets, "get").mockResolvedValue(null);
-
         const originalSettingValue = getSettingValue;
         getSettingValue = null;
 
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
         await service.analyzeProject(projectId, false);
 
         getSettingValue = originalSettingValue;
-        getSpy.mockRestore();
 
-        // mockGenerateContent should not have been called
         expect(mockGenerateContent.mock.calls.length).toBe(0);
     });
 
     test("triggers analysis only if there is new activity", async () => {
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
         const analyzeSpy = spyOn(service, "analyzeProject").mockImplementation(
             async () => [],
         );
@@ -236,7 +296,13 @@ describe("WardenService", () => {
     });
 
     test("blocks concurrent analysis for the same project", async () => {
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
 
         let resolveQuery: (value: string) => void;
         const deferredQuery = new Promise<string>((resolve) => {
@@ -269,7 +335,13 @@ describe("WardenService", () => {
             .mockImplementationOnce(async () => INVALID_RESPONSE)
             .mockImplementationOnce(async () => VALID_RESPONSE);
 
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
         const insights = await service.analyzeProject(projectId, true);
 
         expect(insights.length).toBe(1);
@@ -285,7 +357,13 @@ describe("WardenService", () => {
             "query",
         ).mockImplementationOnce(async () => "AI query failed (500).");
 
-        const service = new WardenService(db, settingsService);
+        const service = new WardenService(
+            db,
+            settingsService,
+            undefined,
+            undefined,
+            secretStoreStub,
+        );
         const insights = await service.analyzeProject(projectId, true);
 
         expect(insights.length).toBe(0);

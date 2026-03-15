@@ -2,24 +2,20 @@
  * AI Configuration helpers
  */
 
+import type { SupportedAIProvider } from "../../../shared/ai-provider.ts";
 import type { AISecretStore } from "./secret-store.ts";
 
 export async function getSavedApiKey(
     secretStore: AISecretStore,
-    provider?: string,
+    provider?: SupportedAIProvider,
 ): Promise<string> {
-    const normalized = provider?.toLowerCase();
+    if (!provider) {
+        return "";
+    }
 
-    if (normalized === "gemini") {
+    if (provider === "gemini") {
         return (await secretStore.getApiKey("gemini")) || "";
     }
 
-    if (normalized === "groq") {
-        return (await secretStore.getApiKey("groq")) || "";
-    }
-
-    const groqKey = await secretStore.getApiKey("groq");
-    const geminiKey = await secretStore.getApiKey("gemini");
-
-    return groqKey || geminiKey || "";
+    return (await secretStore.getApiKey("groq")) || "";
 }

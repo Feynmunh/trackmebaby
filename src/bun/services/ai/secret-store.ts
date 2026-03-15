@@ -23,6 +23,16 @@ export class AISecretStore {
         this.db = db;
     }
 
+    private markKeychainAvailable(now: number = Date.now()): void {
+        this.keychainAvailableCache = true;
+        this.lastProbeTime = now;
+    }
+
+    private markKeychainUnavailable(now: number = Date.now()): void {
+        this.keychainAvailableCache = false;
+        this.lastProbeTime = now;
+    }
+
     async isKeychainAvailable(): Promise<boolean> {
         if (this.keychainAvailableCache === true) {
             return true;
@@ -42,16 +52,26 @@ export class AISecretStore {
                 service: this.serviceName,
                 name: "__trackmebaby_probe__",
             });
-            this.keychainAvailableCache = true;
+            this.markKeychainAvailable(now);
             return true;
         } catch {
-            this.keychainAvailableCache = false;
+            this.markKeychainUnavailable(now);
             return false;
         }
     }
 
     async getApiKey(provider: string): Promise<string> {
         const normalizedProvider = this.normalizeProvider(provider);
+
+        const keychainAvailable = await this.isKeychainAvailable();
+        if (!keychainAvailable) {
+            const fallbackKey = getSetting(
+                this.db,
+                this.getFallbackSettingsKey(normalizedProvider),
+            );
+            return fallbackKey ?? "";
+        }
+
         const keychainResult =
             await this.getApiKeyFromKeychain(normalizedProvider);
 
@@ -73,6 +93,19 @@ export class AISecretStore {
 
     async getStorageMode(provider: string): Promise<AISecretStorageMode> {
         const normalizedProvider = this.normalizeProvider(provider);
+
+        const keychainAvailable = await this.isKeychainAvailable();
+        if (!keychainAvailable) {
+            const fallbackKey = getSetting(
+                this.db,
+                this.getFallbackSettingsKey(normalizedProvider),
+            );
+            if (fallbackKey && fallbackKey.trim().length > 0) {
+                return "local_unencrypted";
+            }
+            return "none";
+        }
+
         const keychainResult =
             await this.getApiKeyFromKeychain(normalizedProvider);
 
@@ -105,6 +138,7 @@ export class AISecretStore {
             };
         }
         const keychainAvailable = await this.isKeychainAvailable();
+        let finalKeychainAvailable = keychainAvailable;
 
         if (keychainAvailable) {
             try {
@@ -113,6 +147,7 @@ export class AISecretStore {
                     name: this.getSecretName(normalizedProvider),
                     value: trimmedKey,
                 });
+                this.markKeychainAvailable();
                 setSetting(
                     this.db,
                     this.getFallbackSettingsKey(normalizedProvider),
@@ -123,6 +158,8 @@ export class AISecretStore {
                     keychainAvailable: true,
                 };
             } catch (err: unknown) {
+                this.markKeychainUnavailable();
+                finalKeychainAvailable = false;
                 const message =
                     err instanceof Error ? err.message : String(err);
                 logger.warn("keychain set failed, falling back to DB", {
@@ -139,7 +176,7 @@ export class AISecretStore {
         );
         return {
             storageMode: "local_unencrypted",
-            keychainAvailable: keychainAvailable,
+            keychainAvailable: finalKeychainAvailable,
         };
     }
 
@@ -153,7 +190,9 @@ export class AISecretStore {
                     service: this.serviceName,
                     name: this.getSecretName(normalizedProvider),
                 });
+                this.markKeychainAvailable();
             } catch {
+                this.markKeychainUnavailable();
                 logger.warn(
                     "failed to delete key from keychain, proceeding with DB clear",
                     {
@@ -177,12 +216,13 @@ export class AISecretStore {
                 service: this.serviceName,
                 name: this.getSecretName(provider),
             });
-            this.keychainAvailableCache = true;
+            this.markKeychainAvailable();
             return {
                 ok: true,
                 value: value && value.trim().length > 0 ? value : null,
             };
         } catch {
+            this.markKeychainUnavailable();
             return { ok: false, value: null };
         }
     }

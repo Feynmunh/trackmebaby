@@ -52,7 +52,7 @@ describe("SettingsService", () => {
         const all = settings.getAll();
         expect(all.basePath).toBe("/projects");
         expect(all.aiProvider).toBe("gemini");
-        expect(all.aiModel).toBe("llama-3.3-70b-versatile");
+        expect(all.aiModel).toBe("gemini-2.5-flash");
         expect(all.pollInterval).toBe(60000);
         expect(all.watchDebounce).toBe(500);
     });
@@ -67,8 +67,7 @@ describe("SettingsService", () => {
         expect(settings.getBasePath()).toBe("/home/user/code");
         expect(settings.getAIProvider()).toBe("gemini");
         expect(settings.getPollInterval()).toBe(120000);
-        // Unchanged
-        expect(settings.getAIModel()).toBe("llama-3.3-70b-versatile");
+        expect(settings.getAIModel()).toBe("gemini-2.5-flash");
     });
 
     test("updateMany ignores undefined fields", () => {
@@ -77,6 +76,19 @@ describe("SettingsService", () => {
 
         expect(settings.getAIProvider()).toBe("groq");
         expect(settings.getWatchDebounce()).toBe(250);
+    });
+
+    test("rejects unsupported AI provider", () => {
+        expect(() => settings.setAIProvider("unsupported-provider")).toThrow(
+            "Unsupported AI provider",
+        );
+    });
+
+    test("normalizes unsupported model to provider default", () => {
+        settings.setAIProvider("gemini");
+        settings.setAIModel("llama-3.3-70b-versatile");
+
+        expect(settings.getAIModel()).toBe("gemini-2.5-flash");
     });
 
     test("setPollInterval enforces minimum across updates", () => {

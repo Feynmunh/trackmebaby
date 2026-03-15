@@ -26,11 +26,14 @@ export default function ConfirmationModal({
     const modalRef = useRef<HTMLDivElement>(null);
     const confirmButtonRef = useRef<HTMLButtonElement>(null);
     const cancelButtonRef = useRef<HTMLButtonElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
     const titleId = useId();
     const messageId = useId();
 
     useEffect(() => {
         if (!isOpen) return;
+
+        previousFocusRef.current = document.activeElement as HTMLElement | null;
 
         setTimeout(() => {
             if (isDangerous) {
@@ -67,8 +70,17 @@ export default function ConfirmationModal({
         };
 
         window.addEventListener("keydown", handler);
-        return () => window.removeEventListener("keydown", handler);
+        return () => {
+            window.removeEventListener("keydown", handler);
+        };
     }, [isOpen, onCancel, isDangerous]);
+
+    useEffect(() => {
+        if (!isOpen && previousFocusRef.current) {
+            previousFocusRef.current.focus();
+            previousFocusRef.current = null;
+        }
+    }, [isOpen]);
 
     const handleBackdropClick = useCallback(
         (e: React.MouseEvent) => {

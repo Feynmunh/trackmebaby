@@ -5,12 +5,14 @@
 
 import type { Database } from "bun:sqlite";
 import { BrowserView, type BrowserWindow } from "electrobun/bun";
+import { normalizeAIModel } from "../../shared/ai-models.ts";
 import type { TrackmeBabyRPC } from "../../shared/rpc-types.ts";
 import {
     type AIProvider,
     type AISecretStore,
     createAIProvider,
     getSavedApiKey,
+    resolveAIProvider,
 } from "../services/ai/index.ts";
 import type { GitTrackerService } from "../services/git-tracker.ts";
 import { GitHubService } from "../services/github.ts";
@@ -45,14 +47,12 @@ export function createRPC(
     async function getAIProvider(): Promise<AIProvider> {
         if (!aiProvider) {
             const settings = settingsService.getAll();
-            const apiKey = await getSavedApiKey(
-                aiSecretStore,
-                settings.aiProvider,
-            );
+            const provider = resolveAIProvider(settings.aiProvider);
+            const apiKey = await getSavedApiKey(aiSecretStore, provider);
             aiProvider = createAIProvider({
-                provider: settings.aiProvider,
+                provider,
                 apiKey,
-                model: settings.aiModel,
+                model: normalizeAIModel(provider, settings.aiModel),
             });
         }
         return aiProvider;

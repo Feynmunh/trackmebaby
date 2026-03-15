@@ -2,31 +2,36 @@
  * AI Provider Factory — creates the appropriate provider based on settings
  */
 
-import { createLogger } from "../../../shared/logger.ts";
+import {
+    resolveAIProvider as resolveSupportedAIProvider,
+    type SupportedAIProvider,
+} from "../../../shared/ai-provider.ts";
 import { GeminiProvider } from "./gemini-provider.ts";
 import { GroqProvider } from "./groq-provider.ts";
 import type { AIProvider } from "./provider.ts";
 
 interface AIProviderConfig {
-    provider: string;
+    provider: SupportedAIProvider;
     apiKey: string;
     model: string;
 }
 
-const logger = createLogger("ai");
-
 export function createAIProvider(config: AIProviderConfig): AIProvider {
-    switch (config.provider.toLowerCase()) {
+    switch (config.provider) {
         case "groq":
             return new GroqProvider(config.apiKey, config.model);
         case "gemini":
             return new GeminiProvider(config.apiKey, config.model);
-        default:
-            logger.warn("unknown ai provider, falling back to groq", {
-                provider: config.provider,
-            });
-            return new GroqProvider(config.apiKey, config.model);
     }
+}
+
+export function resolveAIProvider(
+    provider?: string | null,
+): SupportedAIProvider {
+    if (!provider) {
+        throw new Error("AI provider is required");
+    }
+    return resolveSupportedAIProvider(provider);
 }
 
 export { getSavedApiKey } from "./config.ts";

@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import { existsSync } from "node:fs";
 import { join, normalize, sep } from "node:path";
+import { normalizeAIModel } from "../../shared/ai-models.ts";
 import type {
     WardenCategory,
     WardenInsight,
@@ -20,6 +21,7 @@ import {
     AISecretStore,
     createAIProvider,
     getSavedApiKey,
+    resolveAIProvider,
 } from "./ai/index.ts";
 import { assembleWardenContext } from "./ai/warden-context.ts";
 import {
@@ -71,14 +73,12 @@ export class WardenService {
 
     private async getAIProvider(): Promise<AIProvider> {
         const settings = this.settingsService.getAll();
-        const apiKey = await getSavedApiKey(
-            this.secretStore,
-            settings.aiProvider,
-        );
+        const provider = resolveAIProvider(settings.aiProvider);
+        const apiKey = await getSavedApiKey(this.secretStore, provider);
         return createAIProvider({
-            provider: settings.aiProvider,
+            provider,
             apiKey,
-            model: settings.aiModel,
+            model: normalizeAIModel(provider, settings.aiModel),
         });
     }
 
@@ -87,10 +87,8 @@ export class WardenService {
         isManual: boolean = false,
     ): Promise<WardenInsight[]> {
         const settings = this.settingsService.getAll();
-        const apiKey = await getSavedApiKey(
-            this.secretStore,
-            settings.aiProvider,
-        );
+        const provider = resolveAIProvider(settings.aiProvider);
+        const apiKey = await getSavedApiKey(this.secretStore, provider);
         if (!apiKey) {
             console.log("[Warden] No API key configured, skipping analysis");
             return [];
@@ -137,10 +135,8 @@ export class WardenService {
         isManual: boolean = false,
     ): Promise<{ success: boolean; insightCount: number; reason: string }> {
         const settings = this.settingsService.getAll();
-        const apiKey = await getSavedApiKey(
-            this.secretStore,
-            settings.aiProvider,
-        );
+        const provider = resolveAIProvider(settings.aiProvider);
+        const apiKey = await getSavedApiKey(this.secretStore, provider);
         if (!apiKey) {
             return { success: false, insightCount: 0, reason: "NO_API_KEY" };
         }
@@ -300,10 +296,8 @@ export class WardenService {
 
         try {
             const settings = this.settingsService.getAll();
-            const apiKey = await getSavedApiKey(
-                this.secretStore,
-                settings.aiProvider,
-            );
+            const provider = resolveAIProvider(settings.aiProvider);
+            const apiKey = await getSavedApiKey(this.secretStore, provider);
 
             // Re-verify API key availability before starting work
             if (!apiKey) {
@@ -311,7 +305,7 @@ export class WardenService {
                 return [];
             }
 
-            const provider = await this.getAIProvider();
+            const aiProvider = await this.getAIProvider();
 
             // Clean up old insights before analysis to keep context fresh
             cleanupWardenInsights(this.db, projectId);
@@ -329,7 +323,7 @@ export class WardenService {
                 insights: parsedInsights,
                 todos,
                 completedTodoIds,
-            } = await this.queryWithRetry(provider, context);
+            } = await this.queryWithRetry(aiProvider, context);
 
             // Handle completed todos
             for (const todoId of completedTodoIds) {

@@ -3,6 +3,11 @@
  * Provides default values and round-trip persistence
  */
 import type { Database } from "bun:sqlite";
+import { normalizeAIModel } from "../../shared/ai-models.ts";
+import {
+    resolveAIProvider,
+    type SupportedAIProvider,
+} from "../../shared/ai-provider.ts";
 import type { Settings } from "../../shared/types.ts";
 import { getSetting, setSetting } from "../db/queries.ts";
 
@@ -28,12 +33,17 @@ export class SettingsService {
         return getSetting(this.db, "basePath") ?? DEFAULTS.basePath;
     }
 
-    getAIProvider(): string {
-        return getSetting(this.db, "aiProvider") ?? DEFAULTS.aiProvider;
+    getAIProvider(): SupportedAIProvider {
+        const rawProvider = getSetting(this.db, "aiProvider");
+        if (!rawProvider) {
+            return DEFAULTS.aiProvider;
+        }
+        return resolveAIProvider(rawProvider);
     }
 
     getAIModel(): string {
-        return getSetting(this.db, "aiModel") ?? DEFAULTS.aiModel;
+        const provider = this.getAIProvider();
+        return normalizeAIModel(provider, getSetting(this.db, "aiModel"));
     }
 
     getPollInterval(): number {
@@ -53,11 +63,12 @@ export class SettingsService {
     }
 
     setAIProvider(provider: string): void {
-        setSetting(this.db, "aiProvider", provider);
+        setSetting(this.db, "aiProvider", resolveAIProvider(provider));
     }
 
     setAIModel(model: string): void {
-        setSetting(this.db, "aiModel", model);
+        const provider = this.getAIProvider();
+        setSetting(this.db, "aiModel", normalizeAIModel(provider, model));
     }
 
     setPollInterval(ms: number): void {
