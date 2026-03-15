@@ -8,6 +8,7 @@ import {
     spyOn,
     test,
 } from "bun:test";
+import { secrets } from "bun";
 import { upsertProject } from "../db/queries.ts";
 import { runMigrations } from "../db/schema.ts";
 import { SettingsService } from "./settings.ts";
@@ -139,9 +140,8 @@ describe("WardenService", () => {
     });
 
     test("skips analysis when API key is missing", async () => {
-        // Clear the mocked API key to simulate no stored key
-        // This works because: AISecretStore tries keychain first (unmocked, throws),
-        // then falls back to DB where mocked getSetting returns null
+        const getSpy = spyOn(secrets, "get").mockResolvedValue(null);
+
         const originalSettingValue = getSettingValue;
         getSettingValue = null;
 
@@ -149,12 +149,14 @@ describe("WardenService", () => {
         const result = await service.analyzeProject(projectId, false);
 
         getSettingValue = originalSettingValue;
+        getSpy.mockRestore();
 
         expect(result.length).toBe(0);
     });
 
     test("does not call provider when API key is missing", async () => {
-        // Clear the mocked API key to simulate no stored key
+        const getSpy = spyOn(secrets, "get").mockResolvedValue(null);
+
         const originalSettingValue = getSettingValue;
         getSettingValue = null;
 
@@ -162,6 +164,7 @@ describe("WardenService", () => {
         await service.analyzeProject(projectId, false);
 
         getSettingValue = originalSettingValue;
+        getSpy.mockRestore();
 
         // mockGenerateContent should not have been called
         expect(mockGenerateContent.mock.calls.length).toBe(0);

@@ -155,56 +155,6 @@ export function createSettingsHandlers({
                     "API key saved. Could not validate connection. Please check the key and provider, then try again.",
             };
         },
-        validateAIKey: async ({
-            provider,
-            model,
-        }: {
-            provider?: string;
-            model?: string;
-        }) => {
-            if (provider || model) {
-                settingsService.updateMany({
-                    ...(provider ? { aiProvider: provider } : {}),
-                    ...(model ? { aiModel: model } : {}),
-                });
-                resetAIProvider();
-            }
-
-            try {
-                const currentSettings = settingsService.getAll();
-                const hasKey = await aiSecretStore.hasApiKey(
-                    currentSettings.aiProvider,
-                );
-                if (!hasKey) {
-                    return {
-                        success: false,
-                        validationStatus: "invalid" as const,
-                        message: "No API key found for the selected provider.",
-                    };
-                }
-
-                const providerInstance = await getAIProvider();
-                const connected = await providerInstance.testConnection();
-                return connected
-                    ? {
-                          success: true,
-                          validationStatus: "valid" as const,
-                          message: "Connection successful.",
-                      }
-                    : {
-                          success: false,
-                          validationStatus: "invalid" as const,
-                          message:
-                              "Could not validate this API key. Please check credentials and network.",
-                      };
-            } catch {
-                return {
-                    success: false,
-                    validationStatus: "error" as const,
-                    message: "Validation failed due to an unexpected error.",
-                };
-            }
-        },
         scanProjects: async ({ basePath }: { basePath: string }) => {
             // Expand ~ to home directory
             let expandedPath = basePath;

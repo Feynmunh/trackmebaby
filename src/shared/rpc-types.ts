@@ -115,17 +115,6 @@ export type TrackmeBabyRPC = {
                 };
                 response: SetAIKeyResult;
             };
-            validateAIKey: {
-                params: {
-                    provider?: string;
-                    model?: string;
-                };
-                response: {
-                    success: boolean;
-                    validationStatus: "valid" | "invalid" | "error";
-                    message: string;
-                };
-            };
             scanProjects: {
                 params: { basePath: string };
                 response: Project[];

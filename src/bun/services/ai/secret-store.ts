@@ -34,6 +34,7 @@ export class AISecretStore {
             this.keychainAvailableCache = true;
             return true;
         } catch {
+            this.keychainAvailableCache = false;
             return false;
         }
     }
@@ -127,7 +128,7 @@ export class AISecretStore {
         );
         return {
             storageMode: "local_unencrypted",
-            keychainAvailable: false,
+            keychainAvailable: keychainAvailable,
         };
     }
 

@@ -19,6 +19,7 @@ describe("AISecretStore", () => {
         const getSpy = spyOn(secrets, "get").mockRejectedValue(
             new Error("secret service unavailable"),
         );
+        const setSpy = spyOn(secrets, "set").mockResolvedValue(undefined);
 
         const result = await store.setApiKey("groq", "groq-secret");
 
@@ -26,6 +27,7 @@ describe("AISecretStore", () => {
         expect(result.keychainAvailable).toBe(false);
         expect(getSetting(db, "aiApiKey:groq")).toBe("groq-secret");
         getSpy.mockRestore();
+        setSpy.mockRestore();
     });
 
     test("stores key in secure storage when keychain is available", async () => {
@@ -47,11 +49,13 @@ describe("AISecretStore", () => {
         const getSpy = spyOn(secrets, "get")
             .mockResolvedValueOnce(null)
             .mockResolvedValueOnce("secure-key");
+        const setSpy = spyOn(secrets, "set").mockResolvedValue(undefined);
 
         await store.setApiKey("openai", "local-openai");
         const resolved = await store.getApiKey("openai");
 
         expect(resolved).toBe("secure-key");
         getSpy.mockRestore();
+        setSpy.mockRestore();
     });
 });

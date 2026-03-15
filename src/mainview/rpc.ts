@@ -215,17 +215,6 @@ export async function setAIKey(params: {
     return requestApi.setAIKey(params);
 }
 
-export async function validateAIKey(params?: {
-    provider?: string;
-    model?: string;
-}): Promise<{
-    success: boolean;
-    validationStatus: "valid" | "invalid" | "error";
-    message: string;
-}> {
-    return requestApi.validateAIKey(params ?? {});
-}
-
 export async function scanProjects(basePath: string): Promise<Project[]> {
     return requestApi.scanProjects({ basePath });
 }
