@@ -9,6 +9,7 @@ import {
     Trash2,
     X,
 } from "lucide-react";
+import type { ChangeEvent, KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toErrorData, toErrorMessage } from "../../../shared/error.ts";
 import { createLogger } from "../../../shared/logger.ts";
@@ -202,7 +203,7 @@ function MentionPopup({
     }, [filter]);
 
     useEffect(() => {
-        const handler = (e: KeyboardEvent) => {
+        const handler = (e: globalThis.KeyboardEvent) => {
             if (e.key === "ArrowDown") {
                 e.preventDefault();
                 setSelectedIndex((i) => Math.min(i + 1, filtered.length - 1));
@@ -632,7 +633,7 @@ export default function AITab({
 
     // Handle input changes for @ mentions
     const handleInputChange = useCallback(
-        (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        (e: ChangeEvent<HTMLTextAreaElement>) => {
             const value = e.target.value;
             const cursorPos = e.target.selectionStart ?? 0;
             setInput(value);
@@ -681,7 +682,7 @@ export default function AITab({
     }, []);
 
     const handleKeyDown = useCallback(
-        (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+        (e: KeyboardEvent<HTMLTextAreaElement>) => {
             if (showMentionPopup) return; // Let popup handle navigation
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();

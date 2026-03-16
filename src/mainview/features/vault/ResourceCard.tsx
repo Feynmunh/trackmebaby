@@ -12,6 +12,7 @@ import {
     PinOff,
     Trash2,
 } from "lucide-react";
+import type { SyntheticEvent } from "react";
 import { useCallback, useState } from "react";
 import { timeAgo } from "../../../shared/time.ts";
 import type {
@@ -73,7 +74,7 @@ export default function ResourceCard({
         }
     }, [resource.url]);
 
-    const handleImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const handleImageLoad = (e: SyntheticEvent<HTMLImageElement>) => {
         const { naturalWidth, naturalHeight } = e.currentTarget;
         const ratio = naturalWidth / naturalHeight;
         if (ratio > 1.5) {

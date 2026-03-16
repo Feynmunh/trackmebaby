@@ -15,19 +15,17 @@ import {
     setSetting,
 } from "../db/queries.ts";
 import { runGit } from "./git-command.ts";
-import type { GitHubSearchItem } from "./github/api.ts";
+import type {
+    GitHubDeviceCodeResponse,
+    GitHubSearchItem,
+} from "./github/api.ts";
 import {
     fetchGitHubContributorCount,
     fetchGitHubIssuesAndPRs,
     fetchGitHubUser,
     parseGitHubRemoteUrl,
 } from "./github/api.ts";
-import {
-    CALLBACK_PATH,
-    CALLBACK_PORT,
-    GITHUB_AUTH_URL,
-    startOAuthServer,
-} from "./github/oauth.ts";
+import { pollForToken, requestDeviceCode } from "./github/oauth.ts";
 
 const logger = createLogger("github");
 
@@ -56,7 +54,6 @@ async function getGitHubRemote(
 
 export class GitHubService {
     private db: Database;
-    private authCleanup: (() => void) | null = null;
     private inflight: Map<string, Promise<GitHubData | null>> = new Map();
 
     constructor(db: Database) {
@@ -102,77 +99,94 @@ export class GitHubService {
         }
     }
 
-    /**
-     * Fetch the authenticated user's profile to get their username.
-     */
-    /**
-     * Start the GitHub OAuth flow (NON-BLOCKING).
-     * 1. Starts a temporary HTTP server on localhost:7890
-     * 2. Opens the GitHub authorization URL in the system browser
-     * 3. Returns immediately — the server handles the callback in the background
-     * 4. On callback: exchanges code for token, fetches username, stores both, shuts down server
-     */
-    startOAuthFlow(
+    async requestDeviceFlow(
         clientId: string,
-        clientSecret: string,
-    ): { success: boolean; error?: string } {
-        // Clean up any existing auth server
-        this.cleanupAuthServer();
-
-        try {
-            const { cleanup } = startOAuthServer(
-                clientId,
-                clientSecret,
-                async (token) => {
-                    const username = await fetchGitHubUser(token);
-                    this.setAccessToken(token);
-                    if (username) {
-                        this.setUsername(username);
-                    }
-                    return username;
-                },
-            );
-            this.authCleanup = cleanup;
-
-            // Build the authorization URL
-            const authUrl = new URL(GITHUB_AUTH_URL);
-            authUrl.searchParams.set("client_id", clientId);
-            authUrl.searchParams.set(
-                "redirect_uri",
-                `http://localhost:${CALLBACK_PORT}${CALLBACK_PATH}`,
-            );
-            authUrl.searchParams.set("scope", "repo");
-            authUrl.searchParams.set("state", crypto.randomUUID());
-
-            // Open the browser
-            const openCmd =
-                process.platform === "darwin"
-                    ? "open"
-                    : process.platform === "win32"
-                      ? "start"
-                      : "xdg-open";
-            Bun.spawn([openCmd, authUrl.toString()], {
-                detached: true,
-                stdio: ["ignore", "ignore", "ignore"],
-            }).unref();
-
-            return { success: true };
-        } catch (err: unknown) {
-            this.cleanupAuthServer();
-            logger.error("failed to start oauth server", {
-                error: toErrorData(err),
-            });
-            return {
-                success: false,
-                error: `Failed to start OAuth server: ${toErrorMessage(err)}`,
-            };
-        }
+    ): Promise<GitHubDeviceCodeResponse> {
+        return await requestDeviceCode(clientId);
     }
 
-    private cleanupAuthServer(): void {
-        if (this.authCleanup) {
-            this.authCleanup();
-            this.authCleanup = null;
+    async pollDeviceFlow(
+        clientId: string,
+        deviceCode: string,
+    ): Promise<{
+        success: boolean;
+        error?: string;
+        username?: string;
+        retryable?: boolean;
+        intervalMs?: number;
+    }> {
+        try {
+            const result = await pollForToken(clientId, deviceCode);
+
+            if (result.error) {
+                if (result.error === "authorization_pending") {
+                    return {
+                        success: false,
+                        error: "pending",
+                        retryable: true,
+                        intervalMs: result.interval
+                            ? result.interval * 1000
+                            : undefined,
+                    };
+                }
+                if (result.error === "slow_down") {
+                    return {
+                        success: false,
+                        error: "slow_down",
+                        retryable: true,
+                        intervalMs: result.interval
+                            ? result.interval * 1000
+                            : undefined,
+                    };
+                }
+                if (result.error === "expired_token") {
+                    return {
+                        success: false,
+                        error: "expired_token",
+                        retryable: false,
+                    };
+                }
+                if (result.error === "access_denied") {
+                    return {
+                        success: false,
+                        error: "access_denied",
+                        retryable: false,
+                    };
+                }
+                if (result.error === "device_flow_disabled") {
+                    return {
+                        success: false,
+                        error: "device_flow_disabled",
+                        retryable: false,
+                    };
+                }
+                return {
+                    success: false,
+                    error: result.error_description || result.error,
+                    retryable: false,
+                };
+            }
+
+            if (result.access_token) {
+                const username = await fetchGitHubUser(result.access_token);
+                this.setAccessToken(result.access_token);
+                if (username) {
+                    this.setUsername(username);
+                }
+                return { success: true, username: username || undefined };
+            }
+
+            return {
+                success: false,
+                error: "No access token received",
+                retryable: false,
+            };
+        } catch (err: unknown) {
+            return {
+                success: false,
+                error: toErrorMessage(err),
+                retryable: true,
+            };
         }
     }
 

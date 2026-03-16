@@ -254,11 +254,27 @@ export async function windowSetPosition(
 
 // --- GitHub Integration ---
 
-export async function githubStartAuth(): Promise<{
+export async function githubStartDeviceFlow(): Promise<{
     success: boolean;
+    userCode?: string;
+    deviceCode?: string;
+    verificationUri?: string;
+    verificationUriComplete?: string;
+    interval?: number;
+    expiresIn?: number;
     error?: string;
 }> {
-    return requestApi.githubStartAuth({});
+    return requestApi.githubStartDeviceFlow({});
+}
+
+export async function githubPollDeviceFlow(deviceCode: string): Promise<{
+    success: boolean;
+    username?: string;
+    error?: string;
+    retryable?: boolean;
+    intervalMs?: number;
+}> {
+    return requestApi.githubPollDeviceFlow({ deviceCode });
 }
 
 export async function githubSignOut(): Promise<{ success: boolean }> {

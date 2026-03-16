@@ -147,9 +147,28 @@ export type TrackmeBabyRPC = {
                 params: { x: number; y: number };
                 response: { success: boolean };
             };
-            githubStartAuth: {
+            githubStartDeviceFlow: {
                 params: Record<string, never>;
-                response: { success: boolean; error?: string };
+                response: {
+                    success: boolean;
+                    userCode?: string;
+                    deviceCode?: string;
+                    verificationUri?: string;
+                    verificationUriComplete?: string;
+                    interval?: number;
+                    expiresIn?: number;
+                    error?: string;
+                };
+            };
+            githubPollDeviceFlow: {
+                params: { deviceCode: string };
+                response: {
+                    success: boolean;
+                    username?: string;
+                    error?: string;
+                    retryable?: boolean;
+                    intervalMs?: number;
+                };
             };
             githubSignOut: {
                 params: Record<string, never>;

@@ -1,3 +1,4 @@
+import type { FormEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 import type {
     ProjectTodo,
@@ -71,7 +72,7 @@ export default function ProjectTodoList({
         };
     }, [projectId, refreshKey]);
 
-    const handleAddTodo = async (e?: React.FormEvent) => {
+    const handleAddTodo = async (e?: FormEvent) => {
         e?.preventDefault();
         if (!newTask.trim()) return;
 

@@ -62,7 +62,7 @@ export default function GitHubItemCard({
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        openExternalUrl(item.url);
+                                        void openExternalUrl(item.url);
                                     }}
                                     className="text-app-text-muted hover:text-app-accent transition-colors shrink-0 p-1 hover:bg-app-accent/10 rounded-md block"
                                 >

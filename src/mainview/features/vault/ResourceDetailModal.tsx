@@ -14,7 +14,8 @@ import {
     Trash2,
     X,
 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import type { MouseEvent } from "react";
+import { useCallback, useEffect, useId, useRef, useState } from "react";
 import { timeAgo } from "../../../shared/time.ts";
 import type {
     VaultResource,
@@ -50,22 +51,59 @@ export default function ResourceDetailModal({
     const [editContent, setEditContent] = useState(resource.content);
     const [editType, setEditType] = useState<VaultResourceType>(resource.type);
     const panelRef = useRef<HTMLDivElement>(null);
+    const previousFocusRef = useRef<HTMLElement | null>(null);
+    const closeButtonRef = useRef<HTMLButtonElement>(null);
+    const titleId = useId();
+    const descriptionId = useId();
 
     const config = TYPE_CONFIG[resource.type];
     const TypeIcon = config.icon;
 
     // Close on Escape
     useEffect(() => {
+        previousFocusRef.current = document.activeElement as HTMLElement | null;
+        setTimeout(() => {
+            closeButtonRef.current?.focus();
+        }, 10);
+
         const handler = (e: KeyboardEvent) => {
             if (e.key === "Escape") onClose();
+            if (e.key === "Tab" && panelRef.current) {
+                const focusableElements = panelRef.current.querySelectorAll(
+                    'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+                );
+                if (focusableElements.length === 0) return;
+                const firstElement = focusableElements[0] as HTMLElement;
+                const lastElement = focusableElements[
+                    focusableElements.length - 1
+                ] as HTMLElement;
+
+                if (e.shiftKey) {
+                    if (document.activeElement === firstElement) {
+                        e.preventDefault();
+                        lastElement.focus();
+                    }
+                } else {
+                    if (document.activeElement === lastElement) {
+                        e.preventDefault();
+                        firstElement.focus();
+                    }
+                }
+            }
         };
         window.addEventListener("keydown", handler);
-        return () => window.removeEventListener("keydown", handler);
+        return () => {
+            window.removeEventListener("keydown", handler);
+            if (previousFocusRef.current) {
+                previousFocusRef.current.focus();
+                previousFocusRef.current = null;
+            }
+        };
     }, [onClose]);
 
     // Close when clicking the backdrop
     const handleBackdropClick = useCallback(
-        (e: React.MouseEvent) => {
+        (e: MouseEvent) => {
             if (
                 panelRef.current &&
                 !panelRef.current.contains(e.target as Node)
@@ -114,6 +152,10 @@ export default function ResourceDetailModal({
         >
             <div
                 ref={panelRef}
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby={titleId}
+                aria-describedby={descriptionId}
                 className="relative w-full max-h-[85vh] bg-app-bg border-t border-app-border/40 rounded-t-3xl overflow-hidden flex flex-col animate-in slide-in-from-bottom-4 duration-200"
             >
                 {/* ── Drag handle ── */}
@@ -174,6 +216,7 @@ export default function ResourceDetailModal({
                     </div>
                     <button
                         onClick={onClose}
+                        ref={closeButtonRef}
                         className="w-8 h-8 rounded-full bg-app-surface-elevated/50 border border-app-border/30 flex items-center justify-center hover:bg-app-surface-elevated transition-colors"
                     >
                         <X size={14} className="text-app-text-muted" />
@@ -181,7 +224,10 @@ export default function ResourceDetailModal({
                 </div>
 
                 {/* ── Scrollable content ── */}
-                <div className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4">
+                <div
+                    className="flex-1 overflow-y-auto overscroll-contain px-5 py-4 space-y-4"
+                    id={descriptionId}
+                >
                     {/* Image (for image type) */}
                     {resource.type === "image" && (
                         <div className="relative rounded-2xl overflow-hidden bg-app-surface-elevated/20 border border-app-border/20">
