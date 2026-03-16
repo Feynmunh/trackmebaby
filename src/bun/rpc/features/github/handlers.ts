@@ -65,13 +65,13 @@ export function createGitHubHandlers({
             }
             return await githubService.pollDeviceFlow(clientId, deviceCode);
         },
-        githubSignOut: () => {
-            githubService.clearAuth();
+        githubSignOut: async () => {
+            await githubService.clearAuth();
             return { success: true };
         },
-        getGitHubAuthStatus: () => {
+        getGitHubAuthStatus: async () => {
             return {
-                authenticated: githubService.isAuthenticated(),
+                authenticated: await githubService.isAuthenticated(),
                 username: githubService.getUsername() ?? undefined,
             };
         },
@@ -103,7 +103,7 @@ export function createGitHubHandlers({
                     return refreshedData;
                 }
 
-                if (!githubService.isAuthenticated()) {
+                if (!(await githubService.isAuthenticated())) {
                     return null;
                 }
 

@@ -26,6 +26,7 @@ import {
     parseGitHubRemoteUrl,
 } from "./github/api.ts";
 import { pollForToken, requestDeviceCode } from "./github/oauth.ts";
+import { SecretStore } from "./secret-store.ts";
 
 const logger = createLogger("github");
 
@@ -54,15 +55,31 @@ async function getGitHubRemote(
 
 export class GitHubService {
     private db: Database;
+    private secretStore: SecretStore;
     private inflight: Map<string, Promise<GitHubData | null>> = new Map();
 
     constructor(db: Database) {
         this.db = db;
+        this.secretStore = new SecretStore(db, {
+            serviceName: "com.trackmebaby.github",
+        });
     }
 
     /** Get the stored GitHub access token, or null if not authenticated. */
-    getAccessToken(): string | null {
-        return getSetting(this.db, "githubAccessToken");
+    async getAccessToken(): Promise<string | null> {
+        const secretName = "github:access-token";
+        const fallbackKey = "githubAccessToken";
+
+        const fallbackToken = getSetting(this.db, fallbackKey);
+        if (fallbackToken && fallbackToken.trim().length > 0) {
+            await this.secretStore.migrateFallbackToKeychain(
+                secretName,
+                fallbackKey,
+            );
+        }
+
+        const token = await this.secretStore.getSecret(secretName, fallbackKey);
+        return token || null;
     }
 
     /** Get the stored GitHub username, or null. */
@@ -71,13 +88,17 @@ export class GitHubService {
     }
 
     /** Check if user is authenticated with GitHub. */
-    isAuthenticated(): boolean {
-        return !!this.getAccessToken();
+    async isAuthenticated(): Promise<boolean> {
+        return !!(await this.getAccessToken());
     }
 
     /** Store a GitHub access token. */
-    private setAccessToken(token: string): void {
-        setSetting(this.db, "githubAccessToken", token);
+    private async setAccessToken(token: string): Promise<void> {
+        await this.secretStore.setSecret(
+            "github:access-token",
+            "githubAccessToken",
+            token,
+        );
     }
 
     /** Store the GitHub username. */
@@ -86,11 +107,12 @@ export class GitHubService {
     }
 
     /** Remove the stored GitHub access token and username. */
-    clearAuth(): void {
+    async clearAuth(): Promise<void> {
         try {
-            this.db
-                .query("DELETE FROM settings WHERE key = ?")
-                .run("githubAccessToken");
+            await this.secretStore.clearSecret(
+                "github:access-token",
+                "githubAccessToken",
+            );
             this.db
                 .query("DELETE FROM settings WHERE key = ?")
                 .run("githubUsername");
@@ -169,7 +191,7 @@ export class GitHubService {
 
             if (result.access_token) {
                 const username = await fetchGitHubUser(result.access_token);
-                this.setAccessToken(result.access_token);
+                await this.setAccessToken(result.access_token);
                 if (username) {
                     this.setUsername(username);
                 }
@@ -208,7 +230,7 @@ export class GitHubService {
     private async fetchGitHubData(
         projectPath: string,
     ): Promise<GitHubData | null> {
-        const token = this.getAccessToken();
+        const token = await this.getAccessToken();
         if (!token) return null;
 
         const remote = await getGitHubRemote(projectPath);
@@ -256,7 +278,7 @@ export class GitHubService {
                 (!prsData && prsStatus !== 304)
             ) {
                 if (issuesStatus === 401 || prsStatus === 401) {
-                    this.clearAuth();
+                    await this.clearAuth();
                 }
                 return null;
             }
