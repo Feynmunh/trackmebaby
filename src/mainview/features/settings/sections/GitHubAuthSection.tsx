@@ -1,92 +1,15 @@
-import { useEffect, useRef, useState } from "react";
-import { toErrorData } from "../../../../shared/error.ts";
-import { createLogger } from "../../../../shared/logger.ts";
-import {
-    getGitHubAuthStatus,
-    githubSignOut,
-    githubStartAuth,
-} from "../../../rpc";
-
-const logger = createLogger("settings");
+import { useGitHubAuth } from "../../../contexts/GitHubAuthContext.tsx";
 
 export default function GitHubAuthSection() {
-    const [githubAuthenticated, setGithubAuthenticated] = useState(false);
-    const [githubUsername, setGithubUsername] = useState<string | null>(null);
-    const [githubLoading, setGithubLoading] = useState(false);
-    const [githubMessage, setGithubMessage] = useState<string | null>(null);
-    const pollRef = useRef<Timer | null>(null);
-
-    useEffect(() => {
-        checkGitHubAuth();
-
-        return () => {
-            if (pollRef.current) clearInterval(pollRef.current);
-        };
-    }, []);
-
-    function checkGitHubAuth() {
-        getGitHubAuthStatus()
-            .then(({ authenticated, username }) => {
-                setGithubAuthenticated(authenticated);
-                setGithubUsername(username ?? null);
-            })
-            .catch((err: unknown) => {
-                logger.warn("github auth status failed", {
-                    error: toErrorData(err),
-                });
-                setGithubAuthenticated(false);
-            });
-    }
-
-    async function handleGitHubSignIn() {
-        setGithubLoading(true);
-        setGithubMessage(null);
-        try {
-            const result = await githubStartAuth();
-            if (!result.success) {
-                setGithubMessage(result.error || "Failed to start sign-in");
-                setGithubLoading(false);
-                setTimeout(() => setGithubMessage(null), 5000);
-                return;
-            }
-
-            setGithubMessage("Waiting for GitHub authorization…");
-            let attempts = 0;
-            const maxAttempts = 60;
-
-            pollRef.current = setInterval(async () => {
-                attempts++;
-                try {
-                    const status = await getGitHubAuthStatus();
-                    if (status.authenticated) {
-                        if (pollRef.current) clearInterval(pollRef.current);
-                        pollRef.current = null;
-                        setGithubAuthenticated(true);
-                        setGithubUsername(status.username ?? null);
-                        setGithubLoading(false);
-                        setGithubMessage(null);
-                    } else if (attempts >= maxAttempts) {
-                        if (pollRef.current) clearInterval(pollRef.current);
-                        pollRef.current = null;
-                        setGithubLoading(false);
-                        setGithubMessage(
-                            "Sign-in timed out. Please try again.",
-                        );
-                        setTimeout(() => setGithubMessage(null), 5000);
-                    }
-                } catch (err: unknown) {
-                    logger.warn("github auth poll failed", {
-                        error: toErrorData(err),
-                    });
-                }
-            }, 2000);
-        } catch (err: unknown) {
-            logger.warn("github sign-in failed", { error: toErrorData(err) });
-            setGithubLoading(false);
-            setGithubMessage("Failed to start sign-in");
-            setTimeout(() => setGithubMessage(null), 5000);
-        }
-    }
+    const {
+        isAuthenticated: githubAuthenticated,
+        username: githubUsername,
+        loading: githubLoading,
+        error: githubError,
+        signIn: handleGitHubSignIn,
+        signOut: handleGitHubSignOut,
+        clearError,
+    } = useGitHubAuth();
 
     return (
         <div className="bg-app-surface rounded-xl shadow-app-sm text-[14px]">
@@ -139,11 +62,7 @@ export default function GitHubAuthSection() {
                             <button
                                 key="btn-signout"
                                 id="settings-github-signout"
-                                onClick={async () => {
-                                    await githubSignOut();
-                                    setGithubAuthenticated(false);
-                                    setGithubUsername(null);
-                                }}
+                                onClick={handleGitHubSignOut}
                                 className="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all active:scale-[0.98] bg-app-bg hover:bg-red-500/10 hover:text-red-400 text-app-text-muted border border-transparent"
                             >
                                 Sign out
@@ -152,7 +71,10 @@ export default function GitHubAuthSection() {
                             <button
                                 key="btn-signin"
                                 id="settings-github-signin"
-                                onClick={handleGitHubSignIn}
+                                onClick={() => {
+                                    clearError();
+                                    void handleGitHubSignIn();
+                                }}
                                 disabled={githubLoading}
                                 className="px-4 py-1.5 rounded-lg text-[13px] font-medium transition-all active:scale-[0.98] bg-app-bg hover:bg-app-hover text-app-text-main border border-app-border disabled:opacity-40"
                             >
@@ -169,11 +91,9 @@ export default function GitHubAuthSection() {
                     </div>
                 </div>
 
-                {githubMessage && (
-                    <p
-                        className={`text-[12px] mt-3 ${githubAuthenticated ? "text-emerald-500" : "text-app-text-muted"}`}
-                    >
-                        {githubMessage}
+                {githubError && (
+                    <p className="text-[12px] mt-3 text-red-400">
+                        {githubError}
                     </p>
                 )}
             </div>

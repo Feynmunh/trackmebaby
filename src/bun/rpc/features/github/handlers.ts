@@ -1,4 +1,5 @@
 import type { Database } from "bun:sqlite";
+import { toErrorMessage } from "../../../../shared/error.ts";
 import { isIsoWithinMs } from "../../../../shared/time.ts";
 import type { GitHubData } from "../../../../shared/types.ts";
 import { getGitHubCache, getProjectById } from "../../../db/queries.ts";
@@ -17,16 +18,51 @@ export function createGitHubHandlers({
     githubService,
 }: GitHubHandlersDeps) {
     return {
-        githubStartAuth: () => {
+        githubStartDeviceFlow: async () => {
             const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
-            const clientSecret = process.env.GITHUB_OAUTH_CLIENT_SECRET;
-            if (!clientId || !clientSecret) {
+            if (!clientId) {
                 return {
                     success: false,
-                    error: "GitHub OAuth credentials not configured",
+                    error: "GitHub OAuth client ID not configured",
                 };
             }
-            return githubService.startOAuthFlow(clientId, clientSecret);
+            try {
+                const res = await githubService.requestDeviceFlow(clientId);
+                if (res.error) {
+                    return {
+                        success: false,
+                        error: res.error_description || res.error,
+                    };
+                }
+                return {
+                    success: true,
+                    userCode: res.user_code,
+                    deviceCode: res.device_code,
+                    verificationUri: res.verification_uri,
+                    interval: res.interval,
+                    expiresIn: res.expires_in,
+                };
+            } catch (err: unknown) {
+                return {
+                    success: false,
+                    error: toErrorMessage(err),
+                };
+            }
+        },
+        githubPollDeviceFlow: async ({
+            deviceCode,
+        }: {
+            deviceCode: string;
+        }) => {
+            const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
+            if (!clientId) {
+                return {
+                    success: false,
+                    error: "Missing client ID",
+                    retryable: false,
+                };
+            }
+            return await githubService.pollDeviceFlow(clientId, deviceCode);
         },
         githubSignOut: () => {
             githubService.clearAuth();

@@ -4,6 +4,17 @@ import { createLogger } from "../../../shared/logger.ts";
 const logger = createLogger("github");
 
 export const GITHUB_API_BASE = "https://api.github.com";
+export const GITHUB_DEVICE_CODE_URL = "https://github.com/login/device/code";
+
+export interface GitHubDeviceCodeResponse {
+    device_code: string;
+    user_code: string;
+    verification_uri: string;
+    expires_in: number;
+    interval: number;
+    error?: string;
+    error_description?: string;
+}
 
 export interface GitHubUserResponse {
     login?: string;
