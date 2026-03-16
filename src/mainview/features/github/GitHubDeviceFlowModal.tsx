@@ -1,4 +1,5 @@
 import { Check, Copy, Github } from "lucide-react";
+import type { MouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { openExternalUrl } from "../../rpc";
@@ -24,7 +25,9 @@ export default function GitHubDeviceFlowModal({
             await navigator.clipboard.writeText(userCode);
             setCopied(true);
             setTimeout(() => {
-                openExternalUrl(verificationUri);
+                void openExternalUrl(verificationUri).catch((err) => {
+                    console.error("Failed to open verification URL", err);
+                });
                 setCopied(false);
             }, 600);
         } catch (err) {
@@ -33,7 +36,7 @@ export default function GitHubDeviceFlowModal({
     }, [userCode, verificationUri]);
 
     const handleBackdropClick = useCallback(
-        (e: React.MouseEvent) => {
+        (e: MouseEvent) => {
             if (
                 modalRef.current &&
                 !modalRef.current.contains(e.target as Node)

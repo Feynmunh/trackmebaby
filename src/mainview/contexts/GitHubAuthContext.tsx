@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
     createContext,
     useCallback,
@@ -32,11 +33,7 @@ const GitHubAuthContext = createContext<GitHubAuthContextType | undefined>(
     undefined,
 );
 
-export function GitHubAuthProvider({
-    children,
-}: {
-    children: React.ReactNode;
-}) {
+export function GitHubAuthProvider({ children }: { children: ReactNode }) {
     const [isAuthenticated, setIsAuthenticated] = useState(false);
     const [username, setUsername] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
