@@ -34,6 +34,7 @@ export function resolveAIProvider(
     return resolveSupportedAIProvider(provider);
 }
 
+export type { SecretStorageMode as AISecretStorageMode } from "../secret-store.ts";
 export { getSavedApiKey } from "./config.ts";
 export type { AIProvider } from "./provider.ts";
-export { type AISecretStorageMode, AISecretStore } from "./secret-store.ts";
+export { AISecretStore } from "./secret-store.ts";

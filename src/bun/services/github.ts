@@ -26,8 +26,11 @@ import {
     parseGitHubRemoteUrl,
 } from "./github/api.ts";
 import { pollForToken, requestDeviceCode } from "./github/oauth.ts";
+import { SecretStore } from "./secret-store.ts";
 
 const logger = createLogger("github");
+const GITHUB_ACCESS_TOKEN_SECRET = "github:access-token";
+const GITHUB_ACCESS_TOKEN_FALLBACK_KEY = "githubAccessToken";
 
 /**
  * Get the GitHub remote URL from a project's git config.
@@ -54,15 +57,23 @@ async function getGitHubRemote(
 
 export class GitHubService {
     private db: Database;
+    private secretStore: SecretStore;
     private inflight: Map<string, Promise<GitHubData | null>> = new Map();
 
     constructor(db: Database) {
         this.db = db;
+        this.secretStore = new SecretStore(db, {
+            serviceName: "com.trackmebaby.github",
+        });
     }
 
     /** Get the stored GitHub access token, or null if not authenticated. */
-    getAccessToken(): string | null {
-        return getSetting(this.db, "githubAccessToken");
+    async getAccessToken(): Promise<string | null> {
+        const token = await this.secretStore.getSecret(
+            GITHUB_ACCESS_TOKEN_SECRET,
+            "",
+        );
+        return token || null;
     }
 
     /** Get the stored GitHub username, or null. */
@@ -71,13 +82,22 @@ export class GitHubService {
     }
 
     /** Check if user is authenticated with GitHub. */
-    isAuthenticated(): boolean {
-        return !!this.getAccessToken();
+    async isAuthenticated(): Promise<boolean> {
+        return !!(await this.getAccessToken());
     }
 
     /** Store a GitHub access token. */
-    private setAccessToken(token: string): void {
-        setSetting(this.db, "githubAccessToken", token);
+    private async setAccessToken(token: string): Promise<void> {
+        const result = await this.secretStore.setSecret(
+            GITHUB_ACCESS_TOKEN_SECRET,
+            "",
+            token,
+        );
+        if (result.storageMode !== "secure") {
+            throw new Error(
+                "Secure storage unavailable: GitHub token requires OS keychain",
+            );
+        }
     }
 
     /** Store the GitHub username. */
@@ -86,11 +106,12 @@ export class GitHubService {
     }
 
     /** Remove the stored GitHub access token and username. */
-    clearAuth(): void {
+    async clearAuth(): Promise<void> {
         try {
-            this.db
-                .query("DELETE FROM settings WHERE key = ?")
-                .run("githubAccessToken");
+            await this.secretStore.clearSecret(
+                GITHUB_ACCESS_TOKEN_SECRET,
+                GITHUB_ACCESS_TOKEN_FALLBACK_KEY,
+            );
             this.db
                 .query("DELETE FROM settings WHERE key = ?")
                 .run("githubUsername");
@@ -169,7 +190,7 @@ export class GitHubService {
 
             if (result.access_token) {
                 const username = await fetchGitHubUser(result.access_token);
-                this.setAccessToken(result.access_token);
+                await this.setAccessToken(result.access_token);
                 if (username) {
                     this.setUsername(username);
                 }
@@ -208,7 +229,7 @@ export class GitHubService {
     private async fetchGitHubData(
         projectPath: string,
     ): Promise<GitHubData | null> {
-        const token = this.getAccessToken();
+        const token = await this.getAccessToken();
         if (!token) return null;
 
         const remote = await getGitHubRemote(projectPath);
@@ -256,7 +277,7 @@ export class GitHubService {
                 (!prsData && prsStatus !== 304)
             ) {
                 if (issuesStatus === 401 || prsStatus === 401) {
-                    this.clearAuth();
+                    await this.clearAuth();
                 }
                 return null;
             }
