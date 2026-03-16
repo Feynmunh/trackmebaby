@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import { toErrorMessage } from "../../../../shared/error.ts";
 import { isIsoWithinMs } from "../../../../shared/time.ts";
 import type { GitHubData } from "../../../../shared/types.ts";
+import { GITHUB_OAUTH_CLIENT_ID } from "../../../config.ts";
 import { getGitHubCache, getProjectById } from "../../../db/queries.ts";
 import type { GitHubService } from "../../../services/github.ts";
 
@@ -19,7 +20,7 @@ export function createGitHubHandlers({
 }: GitHubHandlersDeps) {
     return {
         githubStartDeviceFlow: async () => {
-            const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
+            const clientId = GITHUB_OAUTH_CLIENT_ID;
             if (!clientId) {
                 return {
                     success: false,
@@ -55,7 +56,7 @@ export function createGitHubHandlers({
         }: {
             deviceCode: string;
         }) => {
-            const clientId = process.env.GITHUB_OAUTH_CLIENT_ID;
+            const clientId = GITHUB_OAUTH_CLIENT_ID;
             if (!clientId) {
                 return {
                     success: false,
