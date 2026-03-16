@@ -259,6 +259,7 @@ export async function githubStartDeviceFlow(): Promise<{
     userCode?: string;
     deviceCode?: string;
     verificationUri?: string;
+    verificationUriComplete?: string;
     interval?: number;
     expiresIn?: number;
     error?: string;
@@ -271,6 +272,7 @@ export async function githubPollDeviceFlow(deviceCode: string): Promise<{
     username?: string;
     error?: string;
     retryable?: boolean;
+    intervalMs?: number;
 }> {
     return requestApi.githubPollDeviceFlow({ deviceCode });
 }

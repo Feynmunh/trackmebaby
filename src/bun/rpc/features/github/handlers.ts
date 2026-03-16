@@ -39,6 +39,7 @@ export function createGitHubHandlers({
                     userCode: res.user_code,
                     deviceCode: res.device_code,
                     verificationUri: res.verification_uri,
+                    verificationUriComplete: res.verification_uri_complete,
                     interval: res.interval,
                     expiresIn: res.expires_in,
                 };

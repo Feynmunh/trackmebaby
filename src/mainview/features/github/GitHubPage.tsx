@@ -386,7 +386,9 @@ export default function GitHubPage({
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     githubData?.repoUrl &&
-                                        openExternalUrl(githubData.repoUrl);
+                                        void openExternalUrl(
+                                            githubData.repoUrl,
+                                        );
                                 }}
                                 className="text-xs text-app-text-muted hover:text-app-accent transition-colors font-mono tracking-wider opacity-80 cursor-pointer"
                             >
@@ -437,7 +439,7 @@ export default function GitHubPage({
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    openExternalUrl(
+                                    void openExternalUrl(
                                         `${githubData?.repoUrl}/issues`,
                                     );
                                 }}
@@ -448,7 +450,7 @@ export default function GitHubPage({
                             <button
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    openExternalUrl(
+                                    void openExternalUrl(
                                         `${githubData?.repoUrl}/pulls`,
                                     );
                                 }}

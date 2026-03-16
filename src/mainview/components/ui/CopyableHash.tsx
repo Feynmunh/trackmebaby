@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import { useState } from "react";
 import Tooltip from "./Tooltip.tsx";
 
@@ -8,7 +9,7 @@ interface CopyableHashProps {
 export default function CopyableHash({ hash }: CopyableHashProps) {
     const [copied, setCopied] = useState(false);
 
-    const copy = (e: React.MouseEvent) => {
+    const copy = (e: MouseEvent) => {
         e.stopPropagation();
         navigator.clipboard.writeText(hash);
         setCopied(true);

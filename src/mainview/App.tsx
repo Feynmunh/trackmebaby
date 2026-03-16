@@ -1,3 +1,4 @@
+import type { MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TabBar from "./components/TabBar";
 import { ToastProvider } from "./components/ui/Toast.tsx";
@@ -105,13 +106,13 @@ function App() {
 
     // Sidebar resize drag handler
     const startResize = useCallback(
-        (e: React.MouseEvent) => {
+        (e: MouseEvent) => {
             e.preventDefault();
             isResizing.current = true;
             const startX = e.clientX;
             const startWidth = sidebarWidth;
 
-            const onMove = (ev: MouseEvent) => {
+            const onMove = (ev: globalThis.MouseEvent) => {
                 if (!isResizing.current) return;
                 const delta = startX - ev.clientX;
                 setSidebarWidth(

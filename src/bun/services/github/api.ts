@@ -10,6 +10,7 @@ export interface GitHubDeviceCodeResponse {
     device_code: string;
     user_code: string;
     verification_uri: string;
+    verification_uri_complete?: string;
     expires_in: number;
     interval: number;
     error?: string;
@@ -24,6 +25,7 @@ export interface GitHubTokenResponse {
     access_token?: string;
     error?: string;
     error_description?: string;
+    interval?: number;
 }
 
 export interface GitHubSearchResponse {

@@ -42,8 +42,12 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
     const [deviceFlowActive, setDeviceFlowActive] = useState(false);
     const [userCode, setUserCode] = useState("");
     const [verificationUri, setVerificationUri] = useState("");
+    const [verificationUriComplete, setVerificationUriComplete] = useState<
+        string | null
+    >(null);
     const pollTimeoutRef = useRef<Timer | null>(null);
     const activeFlowRef = useRef(false);
+    const signInGuardRef = useRef(false);
 
     const clearPollTimer = useCallback(() => {
         if (pollTimeoutRef.current) {
@@ -51,6 +55,27 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
             pollTimeoutRef.current = null;
         }
     }, []);
+
+    const cancelDeviceFlowInternal = useCallback(() => {
+        clearPollTimer();
+        activeFlowRef.current = false;
+        setDeviceFlowActive(false);
+        setLoading(false);
+    }, [clearPollTimer]);
+
+    const terminateFlow = useCallback(
+        (errorMsg?: string) => {
+            activeFlowRef.current = false;
+            signInGuardRef.current = false;
+            clearPollTimer();
+            if (errorMsg) {
+                setError(errorMsg);
+            }
+            setLoading(false);
+            setDeviceFlowActive(false);
+        },
+        [clearPollTimer],
+    );
 
     const checkAuthStatus = useCallback(async () => {
         try {
@@ -73,7 +98,8 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
     }, [checkAuthStatus, clearPollTimer]);
 
     const signIn = useCallback(async () => {
-        if (loading) return;
+        if (loading || signInGuardRef.current) return;
+        signInGuardRef.current = true;
         setError(null);
         clearPollTimer();
         activeFlowRef.current = true;
@@ -87,34 +113,30 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
                 !result.userCode ||
                 !result.verificationUri
             ) {
-                const errorMsg = result.error || "Failed to start sign-in";
-                setError(errorMsg);
-                setLoading(false);
-                activeFlowRef.current = false;
+                terminateFlow(result.error || "Failed to start sign-in");
                 return;
             }
 
             setUserCode(result.userCode);
             setVerificationUri(result.verificationUri);
+            setVerificationUriComplete(result.verificationUriComplete || null);
             setDeviceFlowActive(true);
 
             const startTime = Date.now();
             const hardExpiryMs = (result.expiresIn || 900) * 1000;
             const baseDelayMs = Math.max((result.interval || 5) * 1000, 1000);
-            const maxDelayMs = 30000;
             const maxTransientFailures = 12;
-            let pendingAttempts = 0;
             let transientFailures = 0;
+            let slowDownCount = 0;
+            let currentIntervalMs = baseDelayMs;
 
             const scheduleNextPoll = (delayMs: number) => {
                 if (!activeFlowRef.current) return;
 
                 if (Date.now() - startTime > hardExpiryMs) {
-                    activeFlowRef.current = false;
-                    clearPollTimer();
-                    setError("Authorization code expired. Please try again.");
-                    setLoading(false);
-                    setDeviceFlowActive(false);
+                    terminateFlow(
+                        "Authorization code expired. Please try again.",
+                    );
                     return;
                 }
 
@@ -129,15 +151,6 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
                 return delayMs + jitter;
             };
 
-            const backoffDelay = (attempt: number): number => {
-                const cappedAttempt = Math.min(attempt, 6);
-                const delay = Math.min(
-                    maxDelayMs,
-                    baseDelayMs * 2 ** cappedAttempt,
-                );
-                return jitterDelay(delay);
-            };
-
             const poll = async () => {
                 if (!activeFlowRef.current) return;
                 try {
@@ -145,53 +158,63 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
                         result.deviceCode!,
                     );
                     if (pollResult.success) {
-                        clearPollTimer();
-                        activeFlowRef.current = false;
+                        terminateFlow();
                         await checkAuthStatus();
-                        setLoading(false);
-                        setDeviceFlowActive(false);
                         return;
                     }
 
                     if (pollResult.error === "pending") {
-                        pendingAttempts += 1;
-                        scheduleNextPoll(backoffDelay(pendingAttempts));
+                        transientFailures = 0;
+                        currentIntervalMs =
+                            pollResult.intervalMs ?? currentIntervalMs;
+                        scheduleNextPoll(jitterDelay(currentIntervalMs));
                         return;
                     }
 
                     if (pollResult.error === "slow_down") {
-                        pendingAttempts += 1;
-                        scheduleNextPoll(backoffDelay(pendingAttempts + 1));
+                        slowDownCount += 1;
+                        transientFailures = 0;
+                        currentIntervalMs =
+                            pollResult.intervalMs ??
+                            baseDelayMs + slowDownCount * 5000;
+                        scheduleNextPoll(jitterDelay(currentIntervalMs));
                         return;
                     }
 
                     if (pollResult.error) {
+                        if (pollResult.error === "expired_token") {
+                            terminateFlow(
+                                "Authorization code expired. Please try again.",
+                            );
+                            return;
+                        }
+                        if (pollResult.error === "access_denied") {
+                            terminateFlow("Authorization was denied.");
+                            return;
+                        }
+                        if (pollResult.error === "device_flow_disabled") {
+                            terminateFlow(
+                                "Device Flow is disabled for this GitHub app.",
+                            );
+                            return;
+                        }
                         if (pollResult.retryable) {
                             transientFailures += 1;
                             if (transientFailures > maxTransientFailures) {
-                                activeFlowRef.current = false;
-                                clearPollTimer();
-                                setError(
+                                terminateFlow(
                                     "Connection lost during polling. Please try again.",
                                 );
-                                setLoading(false);
-                                setDeviceFlowActive(false);
                                 return;
                             }
-                            scheduleNextPoll(backoffDelay(transientFailures));
+                            scheduleNextPoll(jitterDelay(currentIntervalMs));
                             return;
                         }
 
-                        activeFlowRef.current = false;
-                        clearPollTimer();
-                        setError(pollResult.error);
-                        setLoading(false);
-                        setDeviceFlowActive(false);
+                        terminateFlow(pollResult.error);
                         return;
                     }
 
-                    pendingAttempts += 1;
-                    scheduleNextPoll(backoffDelay(pendingAttempts));
+                    scheduleNextPoll(jitterDelay(currentIntervalMs));
                     return;
                 } catch (err: unknown) {
                     logger.warn("github device flow poll unexpected error", {
@@ -200,34 +223,25 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
 
                     transientFailures += 1;
                     if (transientFailures > maxTransientFailures) {
-                        activeFlowRef.current = false;
-                        clearPollTimer();
-                        setError(
+                        terminateFlow(
                             "An unexpected error occurred. Please try again.",
                         );
-                        setLoading(false);
-                        setDeviceFlowActive(false);
                         return;
                     }
 
-                    scheduleNextPoll(backoffDelay(transientFailures));
+                    scheduleNextPoll(jitterDelay(currentIntervalMs));
                     return;
                 }
             };
 
-            scheduleNextPoll(jitterDelay(baseDelayMs));
+            scheduleNextPoll(jitterDelay(currentIntervalMs));
         } catch (err) {
-            const errorMsg = "Sign-in failed";
             logger.error("github device flow start failed", {
                 error: toErrorData(err),
             });
-            setError(errorMsg);
-            activeFlowRef.current = false;
-            clearPollTimer();
-            setLoading(false);
-            setDeviceFlowActive(false);
+            terminateFlow("Sign-in failed");
         }
-    }, [checkAuthStatus, clearPollTimer, loading]);
+    }, [checkAuthStatus, terminateFlow, loading]);
 
     const signOut = useCallback(async () => {
         try {
@@ -237,20 +251,20 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
                 error: toErrorData(err),
             });
         }
+        signInGuardRef.current = false;
+        cancelDeviceFlowInternal();
         setIsAuthenticated(false);
         setUsername(null);
-    }, []);
+        terminateFlow();
+    }, [terminateFlow]);
 
     const clearError = useCallback(() => {
         setError(null);
     }, []);
 
     const cancelDeviceFlow = useCallback(() => {
-        clearPollTimer();
-        activeFlowRef.current = false;
-        setDeviceFlowActive(false);
-        setLoading(false);
-    }, [clearPollTimer]);
+        terminateFlow();
+    }, [terminateFlow]);
 
     return (
         <GitHubAuthContext.Provider
@@ -269,6 +283,7 @@ export function GitHubAuthProvider({ children }: { children: ReactNode }) {
                 isOpen={deviceFlowActive}
                 userCode={userCode}
                 verificationUri={verificationUri}
+                verificationUriComplete={verificationUriComplete || undefined}
                 onCancel={cancelDeviceFlow}
             />
         </GitHubAuthContext.Provider>

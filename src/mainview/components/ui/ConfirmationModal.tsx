@@ -1,4 +1,5 @@
 import { AlertCircle, X } from "lucide-react";
+import type { MouseEvent } from "react";
 import { useCallback, useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 
@@ -83,7 +84,7 @@ export default function ConfirmationModal({
     }, [isOpen]);
 
     const handleBackdropClick = useCallback(
-        (e: React.MouseEvent) => {
+        (e: MouseEvent) => {
             if (
                 modalRef.current &&
                 !modalRef.current.contains(e.target as Node)

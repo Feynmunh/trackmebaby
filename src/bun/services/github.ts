@@ -113,6 +113,7 @@ export class GitHubService {
         error?: string;
         username?: string;
         retryable?: boolean;
+        intervalMs?: number;
     }> {
         try {
             const result = await pollForToken(clientId, deviceCode);
@@ -123,6 +124,9 @@ export class GitHubService {
                         success: false,
                         error: "pending",
                         retryable: true,
+                        intervalMs: result.interval
+                            ? result.interval * 1000
+                            : undefined,
                     };
                 }
                 if (result.error === "slow_down") {
@@ -130,6 +134,30 @@ export class GitHubService {
                         success: false,
                         error: "slow_down",
                         retryable: true,
+                        intervalMs: result.interval
+                            ? result.interval * 1000
+                            : undefined,
+                    };
+                }
+                if (result.error === "expired_token") {
+                    return {
+                        success: false,
+                        error: "expired_token",
+                        retryable: false,
+                    };
+                }
+                if (result.error === "access_denied") {
+                    return {
+                        success: false,
+                        error: "access_denied",
+                        retryable: false,
+                    };
+                }
+                if (result.error === "device_flow_disabled") {
+                    return {
+                        success: false,
+                        error: "device_flow_disabled",
+                        retryable: false,
                     };
                 }
                 return {

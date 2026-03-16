@@ -154,6 +154,7 @@ export type TrackmeBabyRPC = {
                     userCode?: string;
                     deviceCode?: string;
                     verificationUri?: string;
+                    verificationUriComplete?: string;
                     interval?: number;
                     expiresIn?: number;
                     error?: string;
@@ -166,6 +167,7 @@ export type TrackmeBabyRPC = {
                     username?: string;
                     error?: string;
                     retryable?: boolean;
+                    intervalMs?: number;
                 };
             };
             githubSignOut: {

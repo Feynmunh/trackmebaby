@@ -20,11 +20,41 @@ export async function requestDeviceCode(
         body: params.toString(),
     });
 
-    if (!res.ok) {
-        throw new Error(`Failed to request device code: ${res.statusText}`);
+    const rawBody = await res.text();
+    let parsedBody: GitHubDeviceCodeResponse | null = null;
+    if (rawBody) {
+        try {
+            parsedBody = JSON.parse(rawBody) as GitHubDeviceCodeResponse;
+        } catch (err) {
+            if (res.ok) {
+                throw err;
+            }
+        }
     }
 
-    return (await res.json()) as GitHubDeviceCodeResponse;
+    if (!res.ok) {
+        if (parsedBody?.error) {
+            return parsedBody;
+        }
+        const details = rawBody ? ` - ${rawBody}` : "";
+        throw new Error(
+            `Failed to request device code: ${res.status} ${res.statusText}${details}`,
+        );
+    }
+
+    if (parsedBody) {
+        return parsedBody;
+    }
+
+    if (res.ok) {
+        throw new Error(
+            "GitHub returned success but with an empty or invalid body",
+        );
+    }
+
+    throw new Error(
+        `Failed to request device code: ${res.status} ${res.statusText}${rawBody ? ` - ${rawBody}` : ""}`,
+    );
 }
 
 export async function pollForToken(
@@ -45,9 +75,39 @@ export async function pollForToken(
         body: params.toString(),
     });
 
-    if (!res.ok) {
-        throw new Error(`Failed to poll for token: ${res.statusText}`);
+    const rawBody = await res.text();
+    let parsedBody: GitHubTokenResponse | null = null;
+    if (rawBody) {
+        try {
+            parsedBody = JSON.parse(rawBody) as GitHubTokenResponse;
+        } catch (err) {
+            if (res.ok) {
+                throw err;
+            }
+        }
     }
 
-    return (await res.json()) as GitHubTokenResponse;
+    if (!res.ok) {
+        if (parsedBody?.error) {
+            return parsedBody;
+        }
+        const details = rawBody ? ` - ${rawBody}` : "";
+        throw new Error(
+            `Failed to poll for token: ${res.status} ${res.statusText}${details}`,
+        );
+    }
+
+    if (parsedBody) {
+        return parsedBody;
+    }
+
+    if (res.ok) {
+        throw new Error(
+            "GitHub returned success but with an empty or invalid body",
+        );
+    }
+
+    throw new Error(
+        `Failed to poll for token: ${res.status} ${res.statusText}${rawBody ? ` - ${rawBody}` : ""}`,
+    );
 }

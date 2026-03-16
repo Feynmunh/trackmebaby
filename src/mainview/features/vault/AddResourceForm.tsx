@@ -3,6 +3,7 @@
  * Auto-detects URLs, supports image paste/drop/upload, and uses AI for text categorization.
  */
 import { ArrowUp, ImageIcon, X } from "lucide-react";
+import type { ClipboardEvent, KeyboardEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { VaultResourceType } from "../../../shared/types.ts";
 import { readClipboardImage } from "../../rpc.ts";
@@ -64,7 +65,7 @@ export default function AddResourceForm({
     }, []);
 
     const handlePaste = useCallback(
-        async (e: React.ClipboardEvent) => {
+        async (e: ClipboardEvent) => {
             const clipboardData = e.clipboardData;
             if (!clipboardData) return;
 
@@ -180,7 +181,7 @@ export default function AddResourceForm({
     }, [inputValue, stagedImage, onAiEnhance, onAdd]);
 
     const handleKeyDown = useCallback(
-        (e: React.KeyboardEvent) => {
+        (e: KeyboardEvent) => {
             if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
                 void handleSubmit();
