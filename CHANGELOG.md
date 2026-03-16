@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-03-17 - OS Keychain Integration
+
+### Added
+- **GitHub OAuth Device Flow**: Sign in with GitHub to view issues and pull requests directly in the app.
+- **Secure Token Storage**: API keys and GitHub tokens are stored in the OS keychain when available, with SQLite fallback.
+- **Project GitHub Data**: View open issues, open PRs, and contributor count for each tracked project.
+
+### Changed
+- Updated AI provider architecture with a unified secret store for secure credential management.
+
 ## [0.1.0] - 2026-03-13 - Initial Release
 
 ### Added
@@ -18,5 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Minimalist Tray Interface**: A non-intrusive background daemon that stays out of your way until you need it.
 - **Cross-Platform Readiness**: Native-feel performance across Linux, macOS, and Windows.
 
-[Unreleased]: https://github.com/Feynmunh/trackmebaby/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/Feynmunh/trackmebaby/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Feynmunh/trackmebaby/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Feynmunh/trackmebaby/releases/tag/v0.1.0

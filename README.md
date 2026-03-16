@@ -13,6 +13,7 @@ A background desktop app that watches your projects folder and keeps track of wh
 | File watching | `@parcel/watcher-wasm` with `fs.watch` fallback |
 | Git tracking | `Bun.$` shell (read-only git commands) |
 | AI | Groq API (LLaMA 3.3 70B) + Google Gemini |
+| Auth | GitHub OAuth Device Flow |
 
 ## Architecture
 
@@ -80,7 +81,7 @@ src/
 4. **Git tracker**: Polls git status (branch, commits, uncommitted files) every 60s.
 5. **AI chat**: Ask questions about your work — activity context is assembled automatically.
 6. **Warden**: AI-powered insights that analyze your work patterns and provide recommendations.
-7. **GitHub integration**: Sync with GitHub for trending repos and activity.
+7. **GitHub integration**: Sign in with GitHub to view issues and PRs for your projects.
 
 ## Installation
 

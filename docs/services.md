@@ -73,7 +73,7 @@ A simple wrapper for managing application configuration.
 
 Integrates GitHub data into the project dashboard.
 
-- Implements the GitHub OAuth flow for authentication, including a local redirect server.
+- Implements GitHub OAuth Device Flow for authentication (no redirect server needed).
 - Fetches open issues and pull requests for projects with a GitHub remote.
 - Uses ETag-based caching to minimize API usage and respect rate limits.
 - Core logic resides in the `github/` subdirectory, with `api.ts` for network calls and `oauth.ts` for authentication.
