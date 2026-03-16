@@ -1,7 +1,6 @@
 import { Database } from "bun:sqlite";
 import { afterEach, beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { secrets } from "bun";
-import { setSetting } from "../db/queries.ts";
 import { runMigrations } from "../db/schema.ts";
 import { GitHubService } from "./github.ts";
 
@@ -15,56 +14,54 @@ beforeEach(() => {
 });
 
 describe("GitHubService token storage", () => {
+    let getSpy: ReturnType<typeof spyOn<typeof secrets, "get">> | null = null;
+    let setSpy: ReturnType<typeof spyOn<typeof secrets, "set">> | null = null;
+    let deleteSpy: ReturnType<typeof spyOn<typeof secrets, "delete">> | null =
+        null;
+
     afterEach(() => {
-        spyOn(secrets, "get").mockRestore();
-        spyOn(secrets, "set").mockRestore();
-        spyOn(secrets, "delete").mockRestore();
+        getSpy?.mockRestore();
+        setSpy?.mockRestore();
+        deleteSpy?.mockRestore();
+        getSpy = null;
+        setSpy = null;
+        deleteSpy = null;
     });
 
     test("is unauthenticated when no token exists", async () => {
-        const getSpy = spyOn(secrets, "get").mockResolvedValue(null);
-        spyOn(secrets, "set").mockResolvedValue(undefined);
-        spyOn(secrets, "delete").mockResolvedValue(false);
+        getSpy = spyOn(secrets, "get").mockResolvedValue(null);
+        setSpy = spyOn(secrets, "set").mockResolvedValue(undefined);
+        deleteSpy = spyOn(secrets, "delete").mockResolvedValue(false);
 
         expect(await service.isAuthenticated()).toBe(false);
         expect(getSpy).toHaveBeenCalled();
     });
 
-    test("uses fallback sqlite token if present", async () => {
-        const getSpy = spyOn(secrets, "get").mockImplementation(
-            async ({ name }) => {
-                if (name === "__trackmebaby_probe__") {
-                    return null;
-                }
-                return null;
-            },
-        );
-        spyOn(secrets, "set").mockResolvedValue(undefined);
-        spyOn(secrets, "delete").mockResolvedValue(false);
-
-        setSetting(db, "githubAccessToken", "fallback-token");
-        expect(await service.getAccessToken()).toBe("fallback-token");
-        expect(await service.isAuthenticated()).toBe(true);
-        expect(getSpy).toHaveBeenCalled();
-    });
-
     test("uses keychain token if present", async () => {
-        const getSpy = spyOn(secrets, "get").mockImplementation(
-            async ({ name }) => {
-                if (name === "__trackmebaby_probe__") {
-                    return null;
-                }
-                if (name === "github:access-token") {
-                    return "secure-token";
-                }
+        getSpy = spyOn(secrets, "get").mockImplementation(async ({ name }) => {
+            if (name === "__trackmebaby_probe__") {
                 return null;
-            },
-        );
-        spyOn(secrets, "set").mockResolvedValue(undefined);
-        spyOn(secrets, "delete").mockResolvedValue(false);
+            }
+            if (name === "github:access-token") {
+                return "secure-token";
+            }
+            return null;
+        });
+        setSpy = spyOn(secrets, "set").mockResolvedValue(undefined);
+        deleteSpy = spyOn(secrets, "delete").mockResolvedValue(false);
 
         expect(await service.getAccessToken()).toBe("secure-token");
         expect(await service.isAuthenticated()).toBe(true);
         expect(getSpy).toHaveBeenCalled();
+    });
+
+    test("returns unauthenticated when keychain is unavailable", async () => {
+        getSpy = spyOn(secrets, "get").mockRejectedValue(
+            new Error("unavailable"),
+        );
+        setSpy = spyOn(secrets, "set").mockResolvedValue(undefined);
+        deleteSpy = spyOn(secrets, "delete").mockResolvedValue(false);
+
+        expect(await service.isAuthenticated()).toBe(false);
     });
 });

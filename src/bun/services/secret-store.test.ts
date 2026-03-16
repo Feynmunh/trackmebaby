@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { beforeEach, describe, expect, spyOn, test } from "bun:test";
 import { secrets } from "bun";
-import { getSetting, setSetting } from "../db/queries.ts";
+import { getSetting } from "../db/queries.ts";
 import { runMigrations } from "../db/schema.ts";
 import { SecretStore } from "./secret-store.ts";
 
@@ -71,26 +71,6 @@ describe("SecretStore", () => {
             "githubAccessToken",
         );
         expect(token).toBe("secure-token");
-
-        getSpy.mockRestore();
-        setSpy.mockRestore();
-    });
-
-    test("migrates fallback token to keychain", async () => {
-        const getSpy = spyOn(secrets, "get")
-            .mockResolvedValueOnce(null)
-            .mockResolvedValueOnce("fallback-token");
-        const setSpy = spyOn(secrets, "set").mockResolvedValue(undefined);
-
-        setSetting(db, "githubAccessToken", "fallback-token");
-
-        const migrated = await store.migrateFallbackToKeychain(
-            "github:access-token",
-            "githubAccessToken",
-        );
-
-        expect(migrated).toBe(true);
-        expect(setSpy).toHaveBeenCalled();
 
         getSpy.mockRestore();
         setSpy.mockRestore();

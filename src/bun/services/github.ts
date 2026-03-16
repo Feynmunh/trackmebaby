@@ -29,6 +29,7 @@ import { pollForToken, requestDeviceCode } from "./github/oauth.ts";
 import { SecretStore } from "./secret-store.ts";
 
 const logger = createLogger("github");
+const GITHUB_ACCESS_TOKEN_SECRET = "github:access-token";
 
 /**
  * Get the GitHub remote URL from a project's git config.
@@ -67,18 +68,10 @@ export class GitHubService {
 
     /** Get the stored GitHub access token, or null if not authenticated. */
     async getAccessToken(): Promise<string | null> {
-        const secretName = "github:access-token";
-        const fallbackKey = "githubAccessToken";
-
-        const fallbackToken = getSetting(this.db, fallbackKey);
-        if (fallbackToken && fallbackToken.trim().length > 0) {
-            await this.secretStore.migrateFallbackToKeychain(
-                secretName,
-                fallbackKey,
-            );
-        }
-
-        const token = await this.secretStore.getSecret(secretName, fallbackKey);
+        const token = await this.secretStore.getSecret(
+            GITHUB_ACCESS_TOKEN_SECRET,
+            "",
+        );
         return token || null;
     }
 
@@ -94,11 +87,16 @@ export class GitHubService {
 
     /** Store a GitHub access token. */
     private async setAccessToken(token: string): Promise<void> {
-        await this.secretStore.setSecret(
-            "github:access-token",
-            "githubAccessToken",
+        const result = await this.secretStore.setSecret(
+            GITHUB_ACCESS_TOKEN_SECRET,
+            "",
             token,
         );
+        if (result.storageMode !== "secure") {
+            throw new Error(
+                "Secure storage unavailable: GitHub token requires OS keychain",
+            );
+        }
     }
 
     /** Store the GitHub username. */
@@ -109,10 +107,7 @@ export class GitHubService {
     /** Remove the stored GitHub access token and username. */
     async clearAuth(): Promise<void> {
         try {
-            await this.secretStore.clearSecret(
-                "github:access-token",
-                "githubAccessToken",
-            );
+            await this.secretStore.clearSecret(GITHUB_ACCESS_TOKEN_SECRET, "");
             this.db
                 .query("DELETE FROM settings WHERE key = ?")
                 .run("githubUsername");

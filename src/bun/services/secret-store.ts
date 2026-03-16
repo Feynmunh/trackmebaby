@@ -73,7 +73,9 @@ export class SecretStore {
     ): Promise<string> {
         const keychainAvailable = await this.isKeychainAvailable();
         if (!keychainAvailable) {
-            return getSetting(this.db, fallbackSettingsKey) ?? "";
+            return fallbackSettingsKey
+                ? (getSetting(this.db, fallbackSettingsKey) ?? "")
+                : "";
         }
 
         try {
@@ -89,7 +91,9 @@ export class SecretStore {
             this.markKeychainUnavailable();
         }
 
-        return getSetting(this.db, fallbackSettingsKey) ?? "";
+        return fallbackSettingsKey
+            ? (getSetting(this.db, fallbackSettingsKey) ?? "")
+            : "";
     }
 
     async getStorageMode(
@@ -98,7 +102,9 @@ export class SecretStore {
     ): Promise<SecretStorageMode> {
         const keychainAvailable = await this.isKeychainAvailable();
         if (!keychainAvailable) {
-            const fallbackValue = getSetting(this.db, fallbackSettingsKey);
+            const fallbackValue = fallbackSettingsKey
+                ? getSetting(this.db, fallbackSettingsKey)
+                : null;
             if (fallbackValue && fallbackValue.trim().length > 0) {
                 return "local_unencrypted";
             }
@@ -118,7 +124,9 @@ export class SecretStore {
             this.markKeychainUnavailable();
         }
 
-        const fallbackValue = getSetting(this.db, fallbackSettingsKey);
+        const fallbackValue = fallbackSettingsKey
+            ? getSetting(this.db, fallbackSettingsKey)
+            : null;
         if (fallbackValue && fallbackValue.trim().length > 0) {
             return "local_unencrypted";
         }
@@ -130,8 +138,8 @@ export class SecretStore {
         fallbackSettingsKey: string,
         rawValue: string,
     ): Promise<StoreSecretResult> {
-        const value = rawValue.trim();
-        if (!value) {
+        const trimmedValue = rawValue.trim();
+        if (!trimmedValue) {
             await this.clearSecret(secretName, fallbackSettingsKey);
             return {
                 storageMode: "none",
@@ -147,10 +155,12 @@ export class SecretStore {
                 await secrets.set({
                     service: this.serviceName,
                     name: secretName,
-                    value,
+                    value: rawValue,
                 });
                 this.markKeychainAvailable();
-                setSetting(this.db, fallbackSettingsKey, "");
+                if (fallbackSettingsKey) {
+                    setSetting(this.db, fallbackSettingsKey, "");
+                }
                 return {
                     storageMode: "secure",
                     keychainAvailable: true,
@@ -167,7 +177,9 @@ export class SecretStore {
             }
         }
 
-        setSetting(this.db, fallbackSettingsKey, value);
+        if (fallbackSettingsKey) {
+            setSetting(this.db, fallbackSettingsKey, rawValue);
+        }
         return {
             storageMode: "local_unencrypted",
             keychainAvailable: finalKeychainAvailable,
@@ -196,58 +208,8 @@ export class SecretStore {
             }
         }
 
-        setSetting(this.db, fallbackSettingsKey, "");
-    }
-
-    async migrateFallbackToKeychain(
-        secretName: string,
-        fallbackSettingsKey: string,
-    ): Promise<boolean> {
-        const fallbackValue = getSetting(this.db, fallbackSettingsKey);
-        if (!fallbackValue) {
-            return false;
-        }
-        const trimmedFallbackValue = fallbackValue.trim();
-        if (trimmedFallbackValue.length === 0) {
-            return false;
-        }
-
-        const keychainAvailable = await this.isKeychainAvailable();
-        if (!keychainAvailable) {
-            return false;
-        }
-
-        try {
-            await secrets.set({
-                service: this.serviceName,
-                name: secretName,
-                value: trimmedFallbackValue,
-            });
-            this.markKeychainAvailable();
-
-            const roundTrip = await secrets.get({
-                service: this.serviceName,
-                name: secretName,
-            });
-            this.markKeychainAvailable();
-
-            if (roundTrip && roundTrip.trim() === trimmedFallbackValue) {
-                setSetting(this.db, fallbackSettingsKey, "");
-                return true;
-            }
-
-            logger.warn("keychain migration verification failed", {
-                secretName,
-            });
-            return false;
-        } catch (err: unknown) {
-            this.markKeychainUnavailable();
-            const message = err instanceof Error ? err.message : String(err);
-            logger.warn("fallback-to-keychain migration failed", {
-                secretName,
-                error: message,
-            });
-            return false;
+        if (fallbackSettingsKey) {
+            setSetting(this.db, fallbackSettingsKey, "");
         }
     }
 }
