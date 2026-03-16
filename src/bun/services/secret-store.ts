@@ -204,7 +204,11 @@ export class SecretStore {
         fallbackSettingsKey: string,
     ): Promise<boolean> {
         const fallbackValue = getSetting(this.db, fallbackSettingsKey);
-        if (!fallbackValue || fallbackValue.trim().length === 0) {
+        if (!fallbackValue) {
+            return false;
+        }
+        const trimmedFallbackValue = fallbackValue.trim();
+        if (trimmedFallbackValue.length === 0) {
             return false;
         }
 
@@ -217,7 +221,7 @@ export class SecretStore {
             await secrets.set({
                 service: this.serviceName,
                 name: secretName,
-                value: fallbackValue,
+                value: trimmedFallbackValue,
             });
             this.markKeychainAvailable();
 
@@ -227,7 +231,7 @@ export class SecretStore {
             });
             this.markKeychainAvailable();
 
-            if (roundTrip && roundTrip.trim().length > 0) {
+            if (roundTrip && roundTrip.trim() === trimmedFallbackValue) {
                 setSetting(this.db, fallbackSettingsKey, "");
                 return true;
             }
