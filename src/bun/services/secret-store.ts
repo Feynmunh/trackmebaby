@@ -155,7 +155,7 @@ export class SecretStore {
                 await secrets.set({
                     service: this.serviceName,
                     name: secretName,
-                    value: rawValue,
+                    value: trimmedValue,
                 });
                 this.markKeychainAvailable();
                 if (fallbackSettingsKey) {
@@ -178,10 +178,15 @@ export class SecretStore {
         }
 
         if (fallbackSettingsKey) {
-            setSetting(this.db, fallbackSettingsKey, rawValue);
+            setSetting(this.db, fallbackSettingsKey, trimmedValue);
+            return {
+                storageMode: "local_unencrypted",
+                keychainAvailable: finalKeychainAvailable,
+            };
         }
+
         return {
-            storageMode: "local_unencrypted",
+            storageMode: "none",
             keychainAvailable: finalKeychainAvailable,
         };
     }

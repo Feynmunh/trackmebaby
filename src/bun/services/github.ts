@@ -30,6 +30,7 @@ import { SecretStore } from "./secret-store.ts";
 
 const logger = createLogger("github");
 const GITHUB_ACCESS_TOKEN_SECRET = "github:access-token";
+const GITHUB_ACCESS_TOKEN_FALLBACK_KEY = "githubAccessToken";
 
 /**
  * Get the GitHub remote URL from a project's git config.
@@ -107,7 +108,10 @@ export class GitHubService {
     /** Remove the stored GitHub access token and username. */
     async clearAuth(): Promise<void> {
         try {
-            await this.secretStore.clearSecret(GITHUB_ACCESS_TOKEN_SECRET, "");
+            await this.secretStore.clearSecret(
+                GITHUB_ACCESS_TOKEN_SECRET,
+                GITHUB_ACCESS_TOKEN_FALLBACK_KEY,
+            );
             this.db
                 .query("DELETE FROM settings WHERE key = ?")
                 .run("githubUsername");
