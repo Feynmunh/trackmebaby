@@ -71,7 +71,7 @@ export class GitHubService {
     async getAccessToken(): Promise<string | null> {
         const token = await this.secretStore.getSecret(
             GITHUB_ACCESS_TOKEN_SECRET,
-            "",
+            GITHUB_ACCESS_TOKEN_FALLBACK_KEY,
         );
         return token || null;
     }
@@ -88,14 +88,23 @@ export class GitHubService {
 
     /** Store a GitHub access token. */
     private async setAccessToken(token: string): Promise<void> {
+        if (!token || token.trim().length === 0) {
+            throw new Error("Cannot store an empty GitHub access token");
+        }
+
         const result = await this.secretStore.setSecret(
             GITHUB_ACCESS_TOKEN_SECRET,
-            "",
+            GITHUB_ACCESS_TOKEN_FALLBACK_KEY,
             token,
         );
-        if (result.storageMode !== "secure") {
+
+        if (result.storageMode === "local_unencrypted") {
+            logger.warn(
+                "keychain unavailable or failed: GitHub token stored as plaintext in SQLite",
+            );
+        } else if (result.storageMode === "none") {
             throw new Error(
-                "Secure storage unavailable: GitHub token requires OS keychain",
+                "Failed to store GitHub token: storage unavailable",
             );
         }
     }
