@@ -1,152 +1,110 @@
+<div align="center">
+
 # trackmebaby
 
-A background desktop app that watches your projects folder and keeps track of what you're working on. Ask AI questions about your work history.
+[![Build Status](https://github.com/Feynmunh/trackmebaby/actions/workflows/ci.yml/badge.svg)](https://github.com/Feynmunh/trackmebaby/actions)
+[![Latest Release](https://img.shields.io/github/v/tag/Feynmunh/trackmebaby?label=release)](https://github.com/Feynmunh/trackmebaby/releases)
 
-## Stack
+</div>
 
-| Layer | Tech |
-|-------|------|
-| Runtime | [Electrobun](https://electrobun.dev/) (not Electron) |
-| Backend | [Bun](https://bun.sh/) (TypeScript) |
-| Frontend | React + Tailwind CSS + Vite |
-| Database | bun:sqlite (WAL mode) |
-| File watching | `@parcel/watcher-wasm` with `fs.watch` fallback |
-| Git tracking | `Bun.$` shell (read-only git commands) |
-| AI | Groq API (LLaMA 3.3 70B) + Google Gemini |
-| Auth | GitHub OAuth Device Flow |
+**The Project Manager Every Dev Wants**
 
-## Architecture
+trackmebaby is a lightweight desktop app that quietly watches your projects folder to build a rich history of your work. Say goodbye 👋 to manually opening and closing todos, forgetting where you left off, and maintaining a separate Notion page just to jot things down related to your project.
 
-```
-src/
-├── bun/                         # Backend (Bun process)
-│   ├── index.ts                 # Main entry — tray, window, service orchestration
-│   ├── db/
-│   │   ├── database.ts         # SQLite singleton (WAL, XDG paths)
-│   │   ├── schema.ts           # Versioned migrations
-│   │   └── queries/            # Typed CRUD with UUIDv7 keys
-│   │       ├── activity.ts     # Activity tracking
-│   │       ├── chat.ts         # AI chat history
-│   │       ├── events.ts       # File events
-│   │       ├── git.ts          # Git metadata
-│   │       ├── project-cache.ts # Cached project metadata
-│   │       ├── projects.ts     # Projects
-│   │       ├── settings.ts     # App settings
-│   │       ├── todos.ts        # Todo items
-│   │       ├── vault.ts        # Encrypted vault
-│   │       └── warden.ts        # Warden AI insights
-│   ├── rpc/
-│   │   ├── bridge.ts            # Electrobun typed RPC bridge
-│   │   └── features/           # RPC handlers by feature
-│   │       ├── ai/             # AI chat
-│   │       ├── github/         # GitHub integration
-│   │       ├── git/            # Git operations
-│   │       ├── projects/       # Project management
-│   │       ├── settings/       # Settings
-│   │       ├── vault/          # Encrypted vault
-│   │       ├── warden/         # Warden AI insights
-│   │       └── window/         # Window controls
-│   └── services/
-│       ├── ai/                 # AI providers (Groq, Gemini)
-│       ├── autostart.ts        # OS autostart
-│       ├── github.ts           # GitHub API
-│       ├── git-tracker.ts      # Git status polling
-│       ├── link-preview.ts     # URL metadata
-│       ├── project-scanner.ts  # Find git repos
-│       ├── settings.ts         # Settings
-│       └── watcher.ts          # File watching
-├── mainview/                    # Frontend (browser)
-│   ├── App.tsx                 # Tab shell
-│   ├── rpc.ts                  # RPC client
-│   ├── components/            # UI components
-│   ├── features/              # Feature hooks/views
-│   │   ├── github/            # GitHub UI
-│   │   └── vault/             # Vault UI
-│   ├── hooks/                 # React hooks
-│   └── tabs/                  # Tab views
-└── shared/                      # Shared types
-    ├── types.ts               # Domain types
-    ├── rpc-types.ts           # RPC schema
-    ├── error.ts               # Error classes
-    ├── git.ts                 # Git utilities
-    ├── logger.ts              # Logging
-    └── time.ts                # Time utilities
-```
+> [!IMPORTANT]
+> **trackmebaby v1.0 is coming soon!** We're working on the final release features. Stay tuned for the official launch.
 
-## How it works
+---
 
-1. **Background daemon**: Runs in system tray. Click to open dashboard.
-2. **Project scanner**: Scans your base folder for git repos (depth 3).
-3. **File watcher**: Monitors each project via `@parcel/watcher-wasm` (or `fs.watch` fallback) with debouncing and `.gitignore` filtering.
-4. **Git tracker**: Polls git status (branch, commits, uncommitted files) every 60s.
-5. **AI chat**: Ask questions about your work — activity context is assembled automatically.
-6. **Warden**: AI-powered insights that analyze your work patterns and provide recommendations.
-7. **GitHub integration**: Sign in with GitHub to view issues and PRs for your projects.
+## Key Features
 
-## Installation
+### Automatic Activity Tracking
+Forget manual time-tracking or "What was I doing yesterday?" moments.
+- **File Watching**: Monitors every change in your projects folder (respecting .gitignore).
+- **Git Context**: Automatically tracks branches, commits, and uncommitted changes across all your repositories.
 
-Download the latest version for your platform from the [Releases](https://github.com/Feynmunh/trackmebaby/releases) page.
+### Warden: Your AI Project Health Officer
+Warden analyzes your recent activity to provide proactive insights and actionable tasks.
+- **Smart Todos**: Suggests hyper-specific next steps based on what you're currently building.
+- **Auto-Completion**: Automatically marks tasks as complete by analyzing your git diffs.
+- **Health Insights**: Identifies tech debt, security gaps, and project health issues.
 
-- **Linux:** Download the `.tar.gz` installer, extract it, and run the `installer` file.
-- **macOS:** Download the `.tar.gz`, extract it, then drag/move the `trackmebaby.app` into your Applications folder. (Note: Since this is an unsigned app, you may need to Right-click -> Open the first time).
-- **Windows:** Download the setup executable and run it to install.
+### Resource Vault
+Keep all your project-related knowledge in one place.
+- **Project-Specific Storage**: Save links, notes, and code snippets attached to specific projects.
+- **Rich Link Previews**: Automatically fetches titles, descriptions, and icons for any URL you save.
+- **Organization**: Use tags and pinning to keep your most important resources easily accessible.
 
-### Linux Post-Install
+### GitHub Integration
+Your local work meets your remote workflow.
+- **Issues & PRs**: See open pull requests and assigned issues directly in your project dashboard.
+- **Device Flow Auth**: Simple, secure sign-in without complex configuration.
 
-On Linux, the app creates a Desktop shortcut but does not automatically appear in the app menu. This is a [known electrobun issue](https://github.com/blackboardsh/electrobun/issues/144).
+### Context-Aware AI Chat (Alpha)
+Ask anything about your work history using Groq (LLaMA 3) or Google Gemini.
+- "What did I accomplish yesterday across all projects?"
+- "Give me a summary of the changes in the auth feature."
+- **Smart Context**: The AI automatically looks at your git logs, file diffs, and activity history.
 
-**Option 1:** After rebuilding with an icon (see below), the desktop file will be in the app directory:
+---
 
-```bash
-mkdir -p ~/.local/share/applications
-cp ~/.local/share/dev.trackmebaby.app/stable/app/trackmebaby.desktop ~/.local/share/applications/
-update-desktop-database ~/.local/share/applications/
-```
+## How it Works
 
-**Option 2:** Right-click the Desktop shortcut → "Allow Launching" — then search for it in your app menu.
+trackmebaby operates as a silent background daemon:
+1. **Tray Presence**: Runs in your system tray, staying out of your way until you need it.
+2. **Scanner**: Detects git repositories in your base folder (up to 3 levels deep).
+3. **Watcher**: Monitors file events via `@parcel/watcher-wasm` with `.gitignore` filtering.
+4. **Analyzer**: Periodically polls git status and uncommitted files (every 60s).
+5. **AI Orchestrator**: When you ask a question or Warden runs, the app assembles a temporary context of recent diffs and events to guide the AI.
 
-### Building with Icon (Linux)
+---
 
-To include an icon in the Linux build (required for the desktop file to be generated):
+## Getting Started
 
-1. Add an icon to `build/icon.png` (512x512 PNG recommended)
-2. The config at `electrobun.static.config.ts` already includes `linux.icon: "build/icon.png"`
-3. Rebuild: `bun run build:prod`
+### Installation
 
-## Development
+Download the latest release for your platform from the [Releases](https://github.com/Feynmunh/trackmebaby/releases) page.
 
-```bash
-# Install dependencies
-bun install
+- **Linux:** Extract the .tar.gz and run the installer.
+- **macOS:** Extract the .tar.gz and move trackmebaby.app to your Applications folder.
+- **Windows:** Run the setup executable.
 
-# Development (build + dev server)
-bun run dev
+### Quick Start
 
-# Development with HMR (concurrent UI + native)
-bun run dev:ui      # Vite HMR only (port 5173)
-bun run dev:native  # Electrobun dev with --watch
+1. **Set your Projects Folder**: Open the app from the tray, go to Settings, and point it to where you keep your code.
+2. **Configure AI**: Add your Groq or Gemini API key in the Settings panel to enable Chat and Warden.
 
-# Production build
-bun run build:prod
+> [!NOTE]
+> Currently, we only support Groq and Google Gemini. Support for more providers (OpenAI, Anthropic, and Local LLMs) is coming soon.
 
-# Lint & format
-bun run lint         # biome check .
-bun run format       # biome format .
+3. **Connect GitHub**: Sign in via the GitHub tab to sync your issues and PRs.
 
-# Type check
-bun run typecheck    # tsc --noEmit
+---
 
-# Run tests
-bun test             # Run all tests
-bun test <file>     # Run single test file
-bun test --watch    # Watch mode
-```
+## Privacy & Security
 
-## Configuration
+- **Your Data, Your Machine**: Everything is stored in a local SQLite database. Your activity history and AI chat context never leave your machine.
+- **Bring Your Own AI**: Use your own API keys for Groq or Gemini. No third-party servers see your prompts or data.
+- **Lightweight & Efficient**: Built with [Electrobun](https://electrobun.dev/) and Bun for minimal resource usage.
 
-Set your projects folder in the Settings panel, or configure AI providers via environment variables:
+---
 
-```bash
-export GROQ_API_KEY="your-api-key-here"
-export GEMINI_API_KEY="your-gemini-key-here"
-```
+## Developer Info
+
+### Stack
+- **Runtime**: [Electrobun](https://electrobun.dev/) + [Bun](https://bun.sh/)
+- **Frontend**: React + Tailwind CSS + Vite
+- **Database**: SQLite
+- **AI**: Groq / Google Gemini (More providers coming soon)
+
+For detailed architecture and internal documentation, see the [docs/](./docs) folder.
+
+---
+
+## Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=Feynmunh/trackmebaby&type=Date)](https://star-history.com/#Feynmunh/trackmebaby&Date)
+
+---
+
+*Made with ❤️ for developers who juggle multiple projects and forget what they did yesterday.*
