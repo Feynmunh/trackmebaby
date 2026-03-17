@@ -7,9 +7,10 @@ import {
 
 const packageJson = JSON.parse(
     fs.readFileSync(new URL("./package.json", import.meta.url), "utf8"),
-) as { version: string };
+) as { version: string; description: string };
 
 type ElectrobunConfigWithWatch = ElectrobunConfig & {
+    app: ElectrobunConfig["app"] & { description?: string };
     build: ElectrobunConfig["build"] & { watch?: string[] };
 };
 
@@ -18,6 +19,7 @@ export default {
         name: "trackmebaby",
         identifier: "dev.trackmebaby.app",
         version: packageJson.version,
+        description: packageJson.description,
     },
     runtime: ELECTROBUN_RUNTIME,
     build: {
@@ -40,6 +42,7 @@ export default {
             "dist/assets": "views/mainview/assets",
             "node_modules/@parcel/watcher-wasm/watcher.wasm":
                 "app/bun/watcher.wasm",
+            "assets/trackmebaby.png": "views/assets/trackmebaby.png",
         },
         ...ELECTROBUN_STATIC_BUILD,
     },

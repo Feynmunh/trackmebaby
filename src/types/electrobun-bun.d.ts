@@ -50,6 +50,7 @@ declare module "electrobun/bun" {
         close(): void;
         getPosition(): { x: number; y: number };
         setPosition(x: number, y: number): void;
+        setIcon(iconPath: string): void;
         on(event: string, callback: () => void): void;
     }
 
@@ -76,6 +77,7 @@ declare module "electrobun/bun" {
 
     export interface TrayInstance {
         setMenu(menu: TrayMenuItem[]): void;
+        setImage(imagePath: string): void;
         on(event: string, callback: (event: unknown) => void): void;
     }
 
@@ -83,6 +85,8 @@ declare module "electrobun/bun" {
         title: string;
         width: number;
         height: number;
+        image?: string;
+        template?: boolean;
     }) => TrayInstance;
 
     export interface UtilsPaths {

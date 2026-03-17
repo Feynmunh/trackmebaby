@@ -1,15 +1,15 @@
 export const ELECTROBUN_STATIC_BUILD = {
     mac: {
         bundleCEF: false,
-        icons: "assets/icon.iconset",
+        icons: "assets/trackmebaby.iconset",
     },
     linux: {
         bundleCEF: false,
-        icon: "assets/icon.png",
+        icon: "assets/trackmebaby.png",
     },
     win: {
         bundleCEF: false,
-        icon: "assets/icon.ico",
+        icon: "assets/trackmebaby.ico",
     },
 } as const;
 

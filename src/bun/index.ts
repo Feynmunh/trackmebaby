@@ -165,6 +165,8 @@ const tray = new Tray({
     title: "trackmebaby",
     width: 22,
     height: 22,
+    image: "views://assets/trackmebaby.png",
+    template: false,
 });
 
 tray.setMenu([

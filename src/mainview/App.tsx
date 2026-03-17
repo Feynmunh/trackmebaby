@@ -209,8 +209,14 @@ function App() {
                             {/* Spacer for macOS traffic lights (left side) */}
                             <div className="w-20 shrink-0" />
 
-                            {/* Centered title */}
+                            {/* Centered title with icon */}
                             <div className="flex-1 flex items-center justify-center">
+                                <img
+                                    src="/assets/trackmebaby.png"
+                                    alt=""
+                                    className="w-4 h-4 mr-1.5 select-none pointer-events-none"
+                                    draggable={false}
+                                />
                                 <span className="text-[13px] font-semibold text-app-text-main/80 cursor-default select-none electrobun-webkit-app-region-no-drag">
                                     trackmebaby
                                 </span>
