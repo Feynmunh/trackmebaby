@@ -18,7 +18,7 @@ describe("AutostartService (Linux)", () => {
         const testConfigParent = "/tmp/trackmebaby-autostart-test/.config";
         process.env.XDG_CONFIG_HOME = testConfigParent;
         mkdirSync(testConfigParent, { recursive: true });
-        autostart = new AutostartService();
+        autostart = new AutostartService("linux");
     });
 
     afterEach(() => {
