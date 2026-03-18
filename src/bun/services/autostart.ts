@@ -19,8 +19,8 @@ const logger = createLogger("autostart");
 export class AutostartService {
     private platform: string;
 
-    constructor() {
-        this.platform = process.platform;
+    constructor(platform: string = process.platform) {
+        this.platform = platform;
     }
 
     /**

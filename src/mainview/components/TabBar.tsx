@@ -11,72 +11,6 @@ interface TabBarProps<TTab extends string> {
     settingsId: TTab;
 }
 
-/** Geometric mosaic logo — mirrors the reference image style */
-function AppLogo() {
-    const accent = "#e1510e";
-    const accentFade = "#e1510e99";
-    return (
-        <svg
-            viewBox="0 0 36 36"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            className="w-[38px] h-[38px]"
-        >
-            {/* Top-left filled block */}
-            <rect x="2" y="2" width="14" height="14" rx="3" fill={accent} />
-            {/* Top-right outlined inset block */}
-            <rect
-                x="20"
-                y="2"
-                width="14"
-                height="14"
-                rx="3"
-                fill="none"
-                stroke={accent}
-                strokeWidth="2.2"
-            />
-            {/* Bottom-left: 2×2 mini grid */}
-            <rect x="2" y="20" width="6" height="6" rx="1.5" fill={accent} />
-            <rect
-                x="10"
-                y="20"
-                width="6"
-                height="6"
-                rx="1.5"
-                fill={accentFade}
-            />
-            <rect
-                x="2"
-                y="28"
-                width="6"
-                height="6"
-                rx="1.5"
-                fill={accentFade}
-            />
-            <rect x="10" y="28" width="6" height="6" rx="1.5" fill={accent} />
-            {/* Bottom-right diagonal slash mark */}
-            <line
-                x1="21"
-                y1="33"
-                x2="33"
-                y2="21"
-                stroke={accent}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-            />
-            <line
-                x1="21"
-                y1="26"
-                x2="27"
-                y2="20"
-                stroke={accentFade}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-            />
-        </svg>
-    );
-}
-
 const SettingsIcon = () => (
     <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -149,11 +83,6 @@ export default function TabBar<TTab extends string>({
 }: TabBarProps<TTab>) {
     return (
         <nav className="flex flex-col w-[72px] h-full items-center py-5 gap-0 select-none shrink-0 bg-app-surface-elevated border-r border-app-border">
-            {/* Logo mark */}
-            <div className="flex items-center justify-center w-12 h-12 mb-8 shrink-0">
-                <AppLogo />
-            </div>
-
             {/* Main nav */}
             <div className="flex flex-col items-center gap-2 flex-1 w-full px-3">
                 {tabs.map((tab) => (
