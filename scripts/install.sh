@@ -1,7 +1,5 @@
 #!/bin/bash
-# trackmebaby - One-line installer for Linux and macOS
-# Usage: curl -fsSL https://raw.githubusercontent.com/Feynmunh/trackmebaby/master/scripts/install.sh | bash
-#
+{ # ensures entire script is downloaded before any execution
 set -euo pipefail
 
 REPO="Feynmunh/trackmebaby"
@@ -15,6 +13,19 @@ info()    { echo -e "${BLUE}==>${NC} $*"; }
 success() { echo -e "${GREEN}SUCCESS:${NC} $*"; }
 warn()    { echo -e "${YELLOW}WARNING:${NC} $*"; }
 error()   { echo -e "${RED}Error:${NC} $*" >&2; }
+
+detect_shell_config() {
+    case "$(basename "$SHELL" 2>/dev/null || echo bash)" in
+        zsh)  printf '%s\n' "${ZDOTDIR:-$HOME}/.zshrc" ;;
+        fish) printf '%s\n' "${HOME}/.config/fish/config.fish" ;;
+        bash) [ -f "$HOME/.bash_profile" ] && printf '%s\n' "$HOME/.bash_profile" || printf '%s\n' "$HOME/.bashrc" ;;
+        *)    printf '%s\n' "$HOME/.bashrc" ;;
+    esac
+}
+
+path_prepend() {
+    case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH" ;; esac
+}
 
 if ! command -v curl >/dev/null 2>&1; then
     error "curl is required but is not installed."
@@ -88,6 +99,9 @@ determine_filename() {
             esac
             ;;
         Darwin)
+            if [ "$arch" = "x86_64" ] && [ "$(sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = "1" ]; then
+                arch="arm64"
+            fi
             case "$arch" in
                 arm64)
                     echo "trackmebaby-macos-arm64.tar.gz"
@@ -130,7 +144,13 @@ cleanup() {
 trap cleanup EXIT
 trap 'cleanup; exit 130' INT TERM
 
-TEMP_DIR=$(mktemp -d)
+# BSD (macOS) needs -t prefix, GNU (Linux) uses template directly.
+# Fallback chain ensures at least one works on every system.
+TEMP_DIR=$(mktemp -d -t trackmebaby 2>/dev/null || mktemp -d "${TMPDIR:-/tmp}/trackmebaby.XXXXXX") || {
+    error "Failed to create temporary directory."
+    exit 1
+}
+
 cd "$TEMP_DIR"
 
 info "Downloading installer..."
@@ -172,20 +192,35 @@ case "$OS" in
         ;;
 
     Darwin)
-        mapfile -t APP_NAMES < <(find . -maxdepth 1 -name "*.app" -type d 2>/dev/null)
-        APP_COUNT=${#APP_NAMES[@]}
+        APP_NAME=""
+        for path in ./*.app; do
+            if [ -d "$path" ]; then
+                if [ -n "$APP_NAME" ]; then
+                    error "Multiple .app bundles found in archive. Ambiguous."
+                    exit 1
+                fi
+                APP_NAME="$path"
+            fi
+        done
 
-        if [ "$APP_COUNT" -eq 0 ]; then
+        if [ -z "$APP_NAME" ]; then
             error "Could not find a .app bundle in the downloaded archive."
-            exit 1
-        elif [ "$APP_COUNT" -gt 1 ]; then
-            error "Multiple .app bundles found in archive. Ambiguous."
-            error "Found: ${APP_NAMES[*]}"
             exit 1
         fi
 
-        APP_NAME="${APP_NAMES[0]}"
         info "Installing ${APP_NAME} to /Applications..."
+
+        if [ -d "/Applications/trackmebaby.app" ]; then
+            info "Removing existing installation..."
+            rm -rf "/Applications/trackmebaby.app" || {
+                if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+                    sudo rm -rf "/Applications/trackmebaby.app"
+                else
+                    error "Could not remove existing installation at /Applications/trackmebaby.app"
+                    exit 1
+                fi
+            }
+        fi
 
         if mv "$APP_NAME" /Applications/ 2>/dev/null; then
             success "trackmebaby installed to /Applications"
@@ -199,3 +234,4 @@ case "$OS" in
         fi
         ;;
 esac
+} # matches the opening brace

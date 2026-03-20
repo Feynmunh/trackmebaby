@@ -3,7 +3,7 @@
  * User-level only, no sudo/admin required
  *
  * Linux: ~/.config/autostart/trackmebaby.desktop
- * macOS: ~/Library/LaunchAgents/dev.trackmebaby.app.plist
+ * macOS: ~/Library/LaunchAgents/trackmebaby.plist
  * Windows: Registry HKCU\Software\Microsoft\Windows\CurrentVersion\Run
  */
 import { existsSync, mkdirSync, unlinkSync, writeFileSync } from "node:fs";
@@ -11,7 +11,7 @@ import { join } from "node:path";
 import { toErrorData } from "../../shared/error.ts";
 import { createLogger } from "../../shared/logger.ts";
 
-const APP_ID = "dev.trackmebaby.app";
+const APP_ID = "trackmebaby";
 const APP_NAME = "trackmebaby";
 
 const logger = createLogger("autostart");

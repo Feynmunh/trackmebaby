@@ -24,18 +24,18 @@ trackmebaby is a lightweight desktop app that quietly watches your projects fold
 
 ```bash
 # Linux / macOS
-curl -fsSL https://raw.githubusercontent.com/Feynmunh/trackmebaby/master/scripts/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Feynmunh/trackmebaby/main/scripts/install.sh | bash
 ```
 
 ```powershell
 # Windows (PowerShell)
-irm https://raw.githubusercontent.com/Feynmunh/trackmebaby/master/scripts/install.ps1 | iex
+irm https://raw.githubusercontent.com/Feynmunh/trackmebaby/main/scripts/install.ps1 | iex
 ```
 
 > [!TIP]
 > To preview a script before running it:
 > ```bash
-> curl -fsSL https://raw.githubusercontent.com/Feynmunh/trackmebaby/master/scripts/install.sh | less
+> curl -fsSL https://raw.githubusercontent.com/Feynmunh/trackmebaby/main/scripts/install.sh | less
 > ```
 
 Alternatively, download and run the installer manually from the [Releases](https://github.com/Feynmunh/trackmebaby/releases) page.
