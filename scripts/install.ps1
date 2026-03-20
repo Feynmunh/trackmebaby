@@ -35,7 +35,8 @@ if ($foundInstall) {
     $confirm = if ($PSVersionTable.PSVersion.Major -ge 7) { Read-Host "Continue? [Y/n]" } else { Read-Host "Continue? (Y/n)" }
     if ($confirm -ne 'Y' -and $confirm -ne 'y') {
         Write-Host "Installation cancelled."
-        exit 0
+        Cleanup-Session
+        return
     }
 }
 

@@ -41,6 +41,10 @@ detect_installation() {
                 echo "/Applications/trackmebaby.app"
                 return 0
             fi
+            if [ -d "$HOME/Applications/trackmebaby.app" ]; then
+                echo "$HOME/Applications/trackmebaby.app"
+                return 0
+            fi
             ;;
     esac
     return 1
