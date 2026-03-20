@@ -1,5 +1,6 @@
 import { BrowserWindow } from "electrobun/bun";
 import { toErrorMessage } from "../../../../shared/error.ts";
+import { setTitleBarDarkMode } from "../../../services/windows-titlebar.ts";
 
 type BrowserWindowInstance = InstanceType<typeof BrowserWindow>;
 
@@ -54,6 +55,10 @@ export function createWindowHandlers({ getMainWindow }: WindowHandlersDeps) {
                 return { success: true };
             }
             return { success: false };
+        },
+        setWindowTheme: async ({ isDark }: { isDark: boolean }) => {
+            await setTitleBarDarkMode("trackmebaby", isDark);
+            return { success: true };
         },
         openExternalUrl: ({ url }: { url: string }) => {
             try {

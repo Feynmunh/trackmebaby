@@ -10,6 +10,7 @@
     }
 
     :root {
+        color-scheme: light;
         /* Core Semantic Tokens (HSL) - Toned-down light mode with high contrast */
         --app-bg: 0 0% 95%; /* Softer, less blinding background */
         --app-surface: 0 0% 98%; /* Off-white surface for reduced glare */
@@ -28,6 +29,7 @@
     }
 
     .dark {
+        color-scheme: dark;
         /* Core Semantic Tokens (HSL) - Deep black with clear surface separation */
         --app-bg: 0 0% 0%; /* Pure black as requested */
         --app-surface: 0 0% 4%; /* Slightly lifted for clear separation from bg */

@@ -6,7 +6,7 @@ import { ToastProvider } from "./components/ui/Toast.tsx";
 import { GitHubAuthProvider } from "./contexts/GitHubAuthContext.tsx";
 import AITab from "./features/ai/AITab.tsx";
 import SettingsPanel from "./features/settings/SettingsPanel.tsx";
-import { getPlatform } from "./rpc";
+import { getPlatform, setWindowTheme } from "./rpc";
 import CardsTab from "./tabs/CardsTab";
 
 type TabId = "cards" | "ai" | "settings";
@@ -151,6 +151,9 @@ function App() {
             } else {
                 root.classList.remove("dark");
             }
+
+            // Sync native Windows title bar colour
+            setWindowTheme(isDark).catch(() => {});
         };
 
         updateTheme();
@@ -168,9 +171,10 @@ function App() {
 
         mediaQuery.addEventListener("change", handleSystemChange);
 
-        // Detect platform — custom titlebar only shown on macOS
-        // On Linux/Windows, hiddenInset shows the native titlebar which handles
-        // window controls (minimize, maximize, close, drag, resize)
+        // Detect platform — custom titlebar only shown on macOS.
+        // On Linux and Windows the backend uses titleBarStyle:"default" so the
+        // OS-native titlebar (with minimize/maximize/close buttons) is shown; no
+        // custom titlebar HTML is needed.
         getPlatform()
             .then((platform) => setIsMac(platform === "darwin"))
             .catch(() => setIsMac(false));

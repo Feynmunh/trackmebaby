@@ -147,6 +147,10 @@ export type TrackmeBabyRPC = {
                 params: { x: number; y: number };
                 response: { success: boolean };
             };
+            setWindowTheme: {
+                params: { isDark: boolean };
+                response: { success: boolean };
+            };
             githubStartDeviceFlow: {
                 params: Record<string, never>;
                 response: {

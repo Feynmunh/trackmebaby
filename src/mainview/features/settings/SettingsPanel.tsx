@@ -16,6 +16,7 @@ let rpcApi: {
     updateSettings: (
         settings: Partial<Settings>,
     ) => Promise<{ success: boolean }>;
+    setWindowTheme: (isDark: boolean) => Promise<{ success: boolean }>;
 } | null = null;
 
 try {
@@ -102,6 +103,18 @@ export default function SettingsPanel() {
         } else {
             root.classList.remove("dark");
         }
+
+        const themeColorMeta = document.querySelector(
+            'meta[name="theme-color"]',
+        );
+        if (themeColorMeta)
+            themeColorMeta.setAttribute(
+                "content",
+                isDark ? "#000000" : "#ffffff",
+            );
+
+        // Sync native Windows title bar colour
+        rpcApi?.setWindowTheme(isDark).catch(() => {});
 
         // Remove guard in next frames to ensure paint without transitions
         requestAnimationFrame(() => {
