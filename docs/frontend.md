@@ -18,20 +18,57 @@ src/mainview/
 │   ├── icons/         # SVG icon components
 │   ├── ui/            # Generic UI (Toast, Tooltip, Markdown, StatCard, etc.)
 │   └── utils/         # Utility functions (vitality status)
+├── contexts/          # React context providers
+│   └── GitHubAuthContext.tsx  # GitHub authentication state
 ├── features/          # Feature-specific modules
 │   ├── ai/            # AI chat feature
+│   │   └── AITab.tsx
 │   ├── git/           # Git status views
+│   │   └── GitPage.tsx
 │   ├── github/        # GitHub integration views
+│   │   ├── GitHubPage.tsx
+│   │   ├── GitHubDeviceFlowModal.tsx
+│   │   └── github-trends.ts
 │   ├── projects/      # Project management
+│   │   ├── OverviewPage.tsx
+│   │   ├── ActivityChart.tsx
+│   │   ├── components/
+│   │   │   ├── ProjectDashboard.tsx
+│   │   │   ├── ProjectTodoList.tsx
+│   │   │   ├── ProjectsGrid.tsx
+│   │   │   └── ProjectsEmptyState.tsx
+│   │   └── dashboard/
+│   │       ├── PillDock.tsx
+│   │       ├── DashboardHeader.tsx
+│   │       ├── DashboardContent.tsx
+│   │       ├── AIOverview.tsx
+│   │       ├── DiffView.tsx
+│   │       └── WorktreeSection.tsx
 │   ├── settings/      # Settings panel
+│   │   ├── SettingsPanel.tsx
+│   │   └── sections/
+│   │       ├── AISection.tsx
+│   │       ├── AppearanceSection.tsx
+│   │       ├── GitHubAuthSection.tsx
+│   │       ├── PerformanceSection.tsx
+│   │       └── WorkspaceSection.tsx
 │   ├── vault/         # Resource vault
+│   │   ├── VaultPage.tsx
+│   │   ├── ResourceCard.tsx
+│   │   ├── ResourceDetailModal.tsx
+│   │   ├── AddResourceForm.tsx
+│   │   ├── useVault.ts
+│   │   └── constants.ts
 │   └── warden/        # Warden insights
+│       ├── WardenFeed.tsx
+│       ├── InsightCard.tsx
+│       ├── SwipeableCard.tsx
+│       └── useWardenInsights.ts
 ├── hooks/             # Custom React hooks
 │   ├── useProjectData.ts
 │   └── useGitHubIntegration.ts
 └── tabs/              # Top-level tab views
-    ├── CardsTab.tsx   # Projects grid with search
-    └── cards/         # Project card sub-components
+    └── CardsTab.tsx   # Projects grid with search
 ```
 
 ## Component Patterns

@@ -1,6 +1,6 @@
 # Testing — trackmebaby
 
-trackmebaby uses Bun's built-in test runner, `bun:test`. Tests are colocated with their source files using the `*.test.ts` naming convention. The suite currently includes 10 test files covering core backend services and database operations.
+trackmebaby uses Bun's built-in test runner, `bun:test`. Tests are colocated with their source files using the `*.test.ts` naming convention. The suite currently includes 25 test files covering backend services, database operations, shared utilities, and AI integration.
 
 ## Running Tests
 

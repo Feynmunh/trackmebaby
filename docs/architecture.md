@@ -72,17 +72,45 @@ The `index.ts` entry point orchestrates the lifecycle of all services.
 src/
 ├── bun/                   # Backend (Bun process)
 │   ├── index.ts           # Entry: tray, window, service orchestration
-│   ├── db/                # SQLite: database.ts, schema.ts, queries/
+│   ├── db/                # SQLite: database.ts, schema.ts, queries.ts
 │   ├── rpc/               # Electrobun RPC bridge + feature registrars
-│   └── services/          # Business logic: watcher, git-tracker, etc.
+│   └── services/          # Business logic
+│       ├── watcher.ts
+│       ├── git-tracker.ts
+│       ├── git-tracker/   # Submodules: commands.ts, parsers.ts
+│       ├── project-scanner.ts
+│       ├── warden.ts
+│       ├── settings.ts
+│       ├── secret-store.ts
+│       ├── github.ts
+│       ├── github/        # Submodules: api.ts, oauth.ts
+│       ├── autostart.ts
+│       ├── windows-titlebar.ts
+│       ├── link-preview.ts
+│       ├── git-command.ts
+│       ├── git-utils.ts
+│       └── ai/            # AI providers: groq, gemini, context-assembler, warden-prompt
 ├── mainview/              # Frontend (browser process)
-│   ├── App.tsx            # Tab shell with AI sidebar
+│   ├── App.tsx            # Tab shell with resizable AI sidebar
+│   ├── main.tsx           # React entry point
 │   ├── rpc.ts             # Frontend RPC client
-│   ├── components/        # Reusable UI components
-│   ├── features/          # Feature-specific modules
+│   ├── index.css          # Global styles + CSS variables
+│   ├── index.html         # HTML entry
+│   ├── components/        # Reusable UI components (TabBar, ui/, icons/, utils/)
+│   ├── contexts/          # React contexts (GitHubAuthContext)
+│   ├── features/          # Feature modules (ai, git, github, projects, settings, vault, warden)
 │   ├── hooks/             # Custom React hooks
-│   └── tabs/              # Main tab views
-└── shared/                # Shared types for both processes
-    ├── types.ts           # Domain types
-    └── rpc-types.ts       # Electrobun RPC contract
+│   └── tabs/              # Main tab views (CardsTab)
+├── shared/                # Shared types for both processes
+│   ├── types.ts           # Domain types
+│   ├── rpc-types.ts       # Electrobun RPC contract
+│   ├── ai-provider.ts     # AI provider interface
+│   ├── ai-models.ts       # AI model definitions
+│   ├── error.ts           # Error classes
+│   ├── git.ts             # Git parsing utilities
+│   ├── logger.ts          # Logging utility
+│   └── time.ts            # Time utilities
+└── types/                 # TypeScript type declarations
+    ├── electrobun-bun.d.ts
+    └── images.d.ts
 ```

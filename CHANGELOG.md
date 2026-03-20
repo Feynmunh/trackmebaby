@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-20 - Cross-Platform Icons and Windows Titlebar
+
+### Added
+- **Native App Icons**: Application icons for all platforms — macOS (.iconset), Windows (.ico), and Linux (.png) with full Retina support (16px to 1024px).
+- **Windows Native Titlebar**: Custom titlebar service with proper theme synchronization between light/dark modes and the app UI.
+
+### Fixed
+- **Windows Release Packaging**: Release workflow now outputs complete .zip archive instead of a bare .exe file.
+
 ## [0.2.0] - 2026-03-17 - OS Keychain Integration
 
 ### Added
@@ -28,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Minimalist Tray Interface**: A non-intrusive background daemon that stays out of your way until you need it.
 - **Cross-Platform Readiness**: Native-feel performance across Linux, macOS, and Windows.
 
-[Unreleased]: https://github.com/Feynmunh/trackmebaby/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/Feynmunh/trackmebaby/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/Feynmunh/trackmebaby/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/Feynmunh/trackmebaby/releases/tag/v0.2.0
 [0.1.0]: https://github.com/Feynmunh/trackmebaby/releases/tag/v0.1.0
