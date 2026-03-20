@@ -72,7 +72,7 @@ The `index.ts` entry point orchestrates the lifecycle of all services.
 src/
 ├── bun/                   # Backend (Bun process)
 │   ├── index.ts           # Entry: tray, window, service orchestration
-│   ├── db/                # SQLite: database.ts, schema.ts, queries.ts
+│   ├── db/                # SQLite: database.ts, schema.ts, queries/ (modules) + queries.ts (entrypoint)
 │   ├── rpc/               # Electrobun RPC bridge + feature registrars
 │   └── services/          # Business logic
 │       ├── watcher.ts
