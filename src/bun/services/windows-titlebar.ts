@@ -4,8 +4,8 @@
  * All exports are no-ops on non-Windows platforms.
  */
 
-import { join } from "node:path";
 import fs from "node:fs";
+import { join } from "node:path";
 
 /**
  * Apply dark or light mode to the native title bar of the window with the
