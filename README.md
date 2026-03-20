@@ -16,6 +16,42 @@ trackmebaby is a lightweight desktop app that quietly watches your projects fold
 
 ---
 
+## Getting Started
+
+### Installation
+
+**Quick install**
+
+```bash
+# Linux / macOS
+curl -fsSL https://raw.githubusercontent.com/Feynmunh/trackmebaby/master/scripts/install.sh | bash
+```
+
+```powershell
+# Windows (PowerShell)
+irm https://raw.githubusercontent.com/Feynmunh/trackmebaby/master/scripts/install.ps1 | iex
+```
+
+> [!TIP]
+> To preview a script before running it:
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/Feynmunh/trackmebaby/master/scripts/install.sh | less
+> ```
+
+Alternatively, download and run the installer manually from the [Releases](https://github.com/Feynmunh/trackmebaby/releases) page.
+
+### Quick Start
+
+1. **Set your Projects Folder**: Open the app from the tray, go to Settings, and point it to where you keep your code.
+2. **Configure AI**: Add your Groq or Gemini API key in the Settings panel to enable Chat and Warden.
+
+> [!NOTE]
+> Currently, we only support Groq and Google Gemini. Support for more providers (OpenAI, Anthropic, and Local LLMs) is coming soon.
+
+3. **Connect GitHub**: Sign in via the GitHub tab to sync your issues and PRs.
+
+---
+
 ## Key Features
 
 ### Automatic Activity Tracking
@@ -56,28 +92,6 @@ trackmebaby operates as a silent background daemon:
 3. **Watcher**: Monitors file events via `@parcel/watcher-wasm` with `.gitignore` filtering.
 4. **Analyzer**: Periodically polls git status and uncommitted files (every 60s).
 5. **AI Orchestrator**: When you ask a question or Warden runs, the app assembles a temporary context of recent diffs and events to guide the AI.
-
----
-
-## Getting Started
-
-### Installation
-
-Download the latest release for your platform from the [Releases](https://github.com/Feynmunh/trackmebaby/releases) page.
-
-- **Linux:** Extract the .tar.gz and run the installer.
-- **macOS:** Extract the .tar.gz and move trackmebaby.app to your Applications folder.
-- **Windows:** Run the setup executable.
-
-### Quick Start
-
-1. **Set your Projects Folder**: Open the app from the tray, go to Settings, and point it to where you keep your code.
-2. **Configure AI**: Add your Groq or Gemini API key in the Settings panel to enable Chat and Warden.
-
-> [!NOTE]
-> Currently, we only support Groq and Google Gemini. Support for more providers (OpenAI, Anthropic, and Local LLMs) is coming soon.
-
-3. **Connect GitHub**: Sign in via the GitHub tab to sync your issues and PRs.
 
 ---
 
