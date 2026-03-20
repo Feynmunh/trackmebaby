@@ -43,6 +43,7 @@ export default {
             "node_modules/@parcel/watcher-wasm/watcher.wasm":
                 "app/bun/watcher.wasm",
             "assets/trackmebaby.png": "views/assets/trackmebaby.png",
+            "assets/trackmebaby.ico": "views/assets/trackmebaby.ico",
         },
         ...ELECTROBUN_STATIC_BUILD,
     },

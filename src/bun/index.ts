@@ -165,11 +165,16 @@ async function createWindow(): Promise<void> {
             mainWindow = null;
         });
 
-        // Apply the correct title bar colour immediately on Windows
+        // Apply the correct title bar colour on Windows.
+        // We wait 1500ms for the OS to make the window fully visible before
+        // our EnumWindows scan runs — otherwise IsWindowVisible returns false
+        // on the freshly-created window and the icon/theme never applies.
         if (isWindows) {
-            isSystemDarkMode()
-                .then((isDark) => setTitleBarDarkMode("trackmebaby", isDark))
-                .catch(() => {});
+            setTimeout(() => {
+                isSystemDarkMode()
+                    .then((isDark) => setTitleBarDarkMode("trackmebaby", isDark))
+                    .catch(() => {});
+            }, 1500);
         }
     } catch (err) {
         console.error("[trackmebaby] Failed to create window:", err);
