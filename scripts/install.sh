@@ -14,18 +14,6 @@ success() { echo -e "${GREEN}SUCCESS:${NC} $*"; }
 warn()    { echo -e "${YELLOW}WARNING:${NC} $*"; }
 error()   { echo -e "${RED}Error:${NC} $*" >&2; }
 
-detect_shell_config() {
-    case "$(basename "$SHELL" 2>/dev/null || echo bash)" in
-        zsh)  printf '%s\n' "${ZDOTDIR:-$HOME}/.zshrc" ;;
-        fish) printf '%s\n' "${HOME}/.config/fish/config.fish" ;;
-        bash) [ -f "$HOME/.bash_profile" ] && printf '%s\n' "$HOME/.bash_profile" || printf '%s\n' "$HOME/.bashrc" ;;
-        *)    printf '%s\n' "$HOME/.bashrc" ;;
-    esac
-}
-
-path_prepend() {
-    case ":$PATH:" in *":$1:"*) ;; *) PATH="$1:$PATH" ;; esac
-}
 
 if ! command -v curl >/dev/null 2>&1; then
     error "curl is required but is not installed."
@@ -179,14 +167,14 @@ tar -xzf "$FILENAME"
 
 case "$OS" in
     Linux)
-        if [ -x ./installer ]; then
+        if [ -f ./installer ]; then
             info "Running installer..."
-            chmod +x installer
+            chmod +x ./installer
             ./installer
             success "trackmebaby has been installed!"
             echo "You can now launch it from your application menu."
         else
-            error "No 'installer' binary found in the downloaded archive."
+            error "No 'installer' found in the downloaded archive."
             exit 1
         fi
         ;;
@@ -212,25 +200,20 @@ case "$OS" in
 
         if [ -d "/Applications/trackmebaby.app" ]; then
             info "Removing existing installation..."
-            rm -rf "/Applications/trackmebaby.app" || {
-                if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-                    sudo rm -rf "/Applications/trackmebaby.app"
-                else
-                    error "Could not remove existing installation at /Applications/trackmebaby.app"
-                    exit 1
-                fi
+            rm -rf "/Applications/trackmebaby.app" 2>/dev/null || {
+                error "Could not remove existing installation at /Applications/trackmebaby.app"
+                error "Remove it manually: sudo rm -rf \"/Applications/trackmebaby.app\""
+                exit 1
             }
         fi
 
         if mv "$APP_NAME" /Applications/ 2>/dev/null; then
             success "trackmebaby installed to /Applications"
-        elif command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
-            info "Requesting permission..."
-            sudo mv "$APP_NAME" /Applications/ && success "trackmebaby installed to /Applications"
         else
-            error "Failed to install $APP_NAME to /Applications."
-            error "Move it manually: sudo mv \"$APP_NAME\" /Applications/"
-            exit 1
+            mkdir -p "$HOME/Applications" || exit 1
+            mv "$APP_NAME" "$HOME/Applications/"
+            success "trackmebaby installed to ~/Applications"
+            info "To move to /Applications later: sudo mv \"$HOME/Applications/$(basename "$APP_NAME")\" /Applications/"
         fi
         ;;
 esac

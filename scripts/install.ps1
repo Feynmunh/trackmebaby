@@ -50,7 +50,7 @@ $tempDir = [System.IO.Path]::GetTempPath()
 $destFile = Join-Path $tempDir $fileName
 
 try {
-    Invoke-WebRequest -Uri $url -OutFile $destFile -MaximumRetryCount 3 -RetryIntervalSec 1 -UseBasicParsing
+    Invoke-WebRequest -Uri $url -OutFile $destFile -MaximumRetryCount 3 -RetryIntervalSec 1
 } catch {
     Write-Host "Error: Download failed. Check your network connection and verify the release asset exists." -ForegroundColor Red
     Write-Host "URL: $url" -ForegroundColor Red
