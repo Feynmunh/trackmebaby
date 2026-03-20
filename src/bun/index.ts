@@ -172,7 +172,9 @@ async function createWindow(): Promise<void> {
         if (isWindows) {
             setTimeout(() => {
                 isSystemDarkMode()
-                    .then((isDark) => setTitleBarDarkMode("trackmebaby", isDark))
+                    .then((isDark) =>
+                        setTitleBarDarkMode("trackmebaby", isDark),
+                    )
                     .catch(() => {});
             }, 1500);
         }

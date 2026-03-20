@@ -23,14 +23,31 @@ export async function setTitleBarDarkMode(
     // bundled assets live one level up under Resources/. We probe several
     // candidate paths in order and use the first one that exists.
     const iconCandidates = [
-        join(process.cwd(), "..", "Resources", "app", "views", "assets", "trackmebaby.png"),
-        join(process.cwd(), "..", "Resources", "app", "views", "assets", "trackmebaby.ico"),
+        join(
+            process.cwd(),
+            "..",
+            "Resources",
+            "app",
+            "views",
+            "assets",
+            "trackmebaby.png",
+        ),
+        join(
+            process.cwd(),
+            "..",
+            "Resources",
+            "app",
+            "views",
+            "assets",
+            "trackmebaby.ico",
+        ),
         join(process.cwd(), "views", "assets", "trackmebaby.png"),
         join(process.cwd(), "assets", "trackmebaby.png"),
         join(process.cwd(), "views", "assets", "trackmebaby.ico"),
         join(process.cwd(), "assets", "trackmebaby.ico"),
     ];
-    const iconPath = iconCandidates.find((p) => fs.existsSync(p)) ?? iconCandidates[0];
+    const iconPath =
+        iconCandidates.find((p) => fs.existsSync(p)) ?? iconCandidates[0];
 
     const pinvoke = `
 using System;
