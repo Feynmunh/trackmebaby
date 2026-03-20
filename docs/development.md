@@ -28,6 +28,8 @@ Use these commands to run and verify your changes.
 | `bun run dev:native` | Runs the Electrobun dev server with --watch enabled |
 | `bun run build` | Performs both Vite build and electrobun build |
 | `bun run build:prod` | Creates a production build using the prod channel |
+| `bun run preview` | Builds and runs the app in dev mode |
+| `bun run start` | Alias for `bun run dev` |
 | `bun run lint` | Runs Biome to check linting and formatting |
 | `bun run format` | Uses Biome to format all source files |
 | `bun run typecheck` | Executes tsc to verify types without emitting files |
