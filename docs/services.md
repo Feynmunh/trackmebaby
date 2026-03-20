@@ -105,7 +105,7 @@ Manages secure credential storage across platforms.
 - Uses `bun:secrets` API for OS keychain access (macOS Keychain, Windows Credential Manager, Linux Secret Service).
 - Falls back to local unencrypted SQLite-based storage (`storageMode: "local_unencrypted"`) when the keychain is unavailable; avoid storing highly sensitive secrets when running in this mode.
 - Caches keychain availability with a configurable TTL (default 30s) to avoid repeated probes.
-- Provides `storeSecret()`, `getSecret()`, and `deleteSecret()` methods.
+- Provides `setSecret()`, `getSecret()`, `clearSecret()`, and `getStorageMode()` methods.
 - Used by the AI integration to store API keys securely.
 
 ### WindowsTitlebar (windows-titlebar.ts)
