@@ -104,16 +104,15 @@ jobs:
         if: matrix.platform == 'win'
         shell: bash
         run: |
-          SETUP_PATH=$(find artifacts -name "stable-win-*-*-Setup.exe" | head -n 1)
+          SETUP_PATH=$(find artifacts -name "stable-win-*-*-Setup.zip" | head -n 1)
           if [ -z "$SETUP_PATH" ]; then
-            SETUP_PATH=$(find build -path '*/stable-win-*' -name "*-Setup.exe" | head -n 1)
+            SETUP_PATH=$(find build -path '*/stable-win-*' -name "*-Setup.zip" | head -n 1)
           fi
           if [ -z "$SETUP_PATH" ]; then
-            echo "::error ::Could not find Windows setup exe"
+            echo "::error ::Could not find Windows setup zip"
             exit 1
           fi
-          # Align naming with matrix platform (win) as recommended in review
-          cp "$SETUP_PATH" "$GITHUB_WORKSPACE/trackmebaby-win-${{ matrix.arch }}-setup.exe"
+          cp "$SETUP_PATH" "$GITHUB_WORKSPACE/trackmebaby-win-${{ matrix.arch }}-setup.zip"
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
