@@ -48,7 +48,7 @@ Alternatively, download and run the installer manually from the [Releases](https
 > [!NOTE]
 > Currently, we only support Groq and Google Gemini. Support for more providers (OpenAI, Anthropic, and Local LLMs) is coming soon.
 
-3. **Connect GitHub**: Sign in via the GitHub tab to sync your issues and PRs.
+3. **Connect GitHub**: Sign in via the Settings tab to sync your issues and PRs.
 
 ---
 
