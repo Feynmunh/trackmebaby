@@ -17,7 +17,7 @@ type ElectrobunConfigWithWatch = ElectrobunConfig & {
 export default {
     app: {
         name: "trackmebaby",
-        identifier: "dev.trackmebaby.app",
+        identifier: "trackmebaby",
         version: packageJson.version,
         description: packageJson.description,
     },
