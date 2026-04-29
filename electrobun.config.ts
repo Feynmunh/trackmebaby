@@ -41,7 +41,7 @@ export default {
             "dist/index.html": "views/mainview/index.html",
             "dist/assets": "views/mainview/assets",
             "node_modules/@parcel/watcher-wasm/watcher.wasm":
-                "app/bun/watcher.wasm",
+                "bun/watcher.wasm",
             "assets/trackmebaby.png": "views/assets/trackmebaby.png",
             "assets/trackmebaby.ico": "views/assets/trackmebaby.ico",
         },

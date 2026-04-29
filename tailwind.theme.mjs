@@ -19,15 +19,15 @@ const theme = {
         },
         fontFamily: {
             sans: [
+                "Prompt",
                 "-apple-system",
                 "BlinkMacSystemFont",
                 '"SF Pro Display"',
                 '"SF Pro Text"',
-                "Inter",
                 "sans-serif",
             ],
             playfair: ['"Playfair Display"', "serif"],
-            jura: ['"Jura"', "sans-serif"],
+            jura: ["Prompt", "sans-serif"],
         },
         boxShadow: {
             "app-sm": "0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04)",

@@ -59,6 +59,9 @@ interface WatcherInstance {
 }
 
 let parcelLoadFailed = false;
+const FORCE_PARCEL_WATCHER = process.env.TRACKMEBABY_FORCE_PARCEL === "1";
+const CAN_USE_PARCEL_BY_DEFAULT =
+    typeof process.versions.bun === "undefined" || FORCE_PARCEL_WATCHER;
 
 type ParcelSubscription = { unsubscribe: () => Promise<void> };
 
@@ -93,11 +96,15 @@ export class WatcherService {
     private debounceMs: number;
     private db: Database;
     private callbacks: EventCallback[] = [];
-    private useParcel: boolean = true;
+    private useParcel: boolean = CAN_USE_PARCEL_BY_DEFAULT;
 
     constructor(db: Database, debounceMs: number = 500) {
         this.db = db;
         this.debounceMs = debounceMs;
+
+        if (!this.useParcel) {
+            logger.info("using fs.watch backend on bun runtime");
+        }
     }
 
     /**
