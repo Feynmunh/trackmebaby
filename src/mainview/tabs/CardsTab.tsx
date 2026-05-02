@@ -1,289 +1,283 @@
-import { Search, Briefcase } from "lucide-react";
+import { Briefcase, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
 import ProjectsGrid from "../features/projects/components/ProjectsGrid.tsx";
 import { useProjectData } from "../hooks/useProjectData.ts";
 import {
-    deleteProject,
-    getPlatform,
-    getSettings,
-    scanProjects,
-    selectFolder,
-    updateSettings,
+  deleteProject,
+  getPlatform,
+  getSettings,
+  scanProjects,
+  selectFolder,
+  updateSettings,
 } from "../rpc";
 
 const scoreFuzzyMatch = (query: string, text: string): number | null => {
-    if (!query) {
-        return 0;
+  if (!query) {
+    return 0;
+  }
+
+  let score = 0;
+  let queryIndex = 0;
+  let textIndex = 0;
+  let consecutive = 0;
+
+  while (queryIndex < query.length && textIndex < text.length) {
+    if (query[queryIndex] === text[textIndex]) {
+      score += 10 + consecutive * 5;
+      consecutive += 1;
+      queryIndex += 1;
+    } else {
+      consecutive = 0;
     }
+    textIndex += 1;
+  }
 
-    let score = 0;
-    let queryIndex = 0;
-    let textIndex = 0;
-    let consecutive = 0;
+  if (queryIndex < query.length) {
+    return null;
+  }
 
-    while (queryIndex < query.length && textIndex < text.length) {
-        if (query[queryIndex] === text[textIndex]) {
-            score += 10 + consecutive * 5;
-            consecutive += 1;
-            queryIndex += 1;
-        } else {
-            consecutive = 0;
-        }
-        textIndex += 1;
-    }
-
-    if (queryIndex < query.length) {
-        return null;
-    }
-
-    return score - (text.length - query.length);
+  return score - (text.length - query.length);
 };
 
 export default function CardsTab({
-    onNavigateToSettings,
-    onProjectView,
+  onNavigateToSettings,
+  onProjectView,
 }: {
-    onNavigateToSettings?: () => void;
-    onProjectView?: (projectId: string, projectName: string) => void;
+  onNavigateToSettings?: () => void;
+  onProjectView?: (projectId: string, projectName: string) => void;
 }) {
-    const {
-        projects,
-        gitSnapshots,
-        projectEvents,
-        projectStats,
-        projectActivitySummary,
-        statsLoading,
-        lastUpdated,
-        loading,
-        viewMode,
-        activeIndex,
-        fetchStatsForProject,
-        openDashboard,
-        closeDashboard,
-        loadProjects,
-    } = useProjectData();
+  const {
+    projects,
+    gitSnapshots,
+    projectEvents,
+    projectStats,
+    projectActivitySummary,
+    statsLoading,
+    lastUpdated,
+    loading,
+    viewMode,
+    activeIndex,
+    fetchStatsForProject,
+    openDashboard,
+    closeDashboard,
+    loadProjects,
+  } = useProjectData();
 
-    const [platform, setPlatform] = useState<string>("");
-    const [selectingFolder, setSelectingFolder] = useState(false);
-    const [basePathInput, setBasePathInput] = useState("");
-    const [savingPath, setSavingPath] = useState(false);
-    const [search, setSearch] = useState("");
-    const [aiRefreshKeys, setAiRefreshKeys] = useState<Record<string, number>>(
-        {},
-    );
+  const [platform, setPlatform] = useState<string>("");
+  const [selectingFolder, setSelectingFolder] = useState(false);
+  const [basePathInput, setBasePathInput] = useState("");
+  const [savingPath, setSavingPath] = useState(false);
+  const [search, setSearch] = useState("");
+  const [aiRefreshKeys, setAiRefreshKeys] = useState<Record<string, number>>(
+    {},
+  );
 
-    const trimmedSearch = search.trim();
-    const normalizedSearch = trimmedSearch.toLowerCase();
+  const trimmedSearch = search.trim();
+  const normalizedSearch = trimmedSearch.toLowerCase();
 
-    const filteredProjects = useMemo(() => {
-        if (!normalizedSearch) {
-            return projects;
-        }
-
-        const scored = projects
-            .map((project) => {
-                const nameScore = scoreFuzzyMatch(
-                    normalizedSearch,
-                    project.name.toLowerCase(),
-                );
-                const pathScore = scoreFuzzyMatch(
-                    normalizedSearch,
-                    project.path.toLowerCase(),
-                );
-                const score = Math.max(
-                    nameScore ?? Number.NEGATIVE_INFINITY,
-                    pathScore ?? Number.NEGATIVE_INFINITY,
-                );
-
-                if (score === Number.NEGATIVE_INFINITY) {
-                    return null;
-                }
-
-                return { project, score };
-            })
-            .filter(
-                (
-                    entry,
-                ): entry is {
-                    project: (typeof projects)[number];
-                    score: number;
-                } => Boolean(entry),
-            );
-
-        scored.sort((a, b) => {
-            if (b.score !== a.score) {
-                return b.score - a.score;
-            }
-
-            return a.project.name.localeCompare(b.project.name);
-        });
-
-        return scored.map((entry) => entry.project);
-    }, [normalizedSearch, projects]);
-
-    useEffect(() => {
-        getPlatform().then(setPlatform);
-    }, []);
-
-    const isLinux = platform === "linux";
-
-    const handleSelectFolder = async () => {
-        setSelectingFolder(true);
-        try {
-            const settings = await getSettings();
-            const selected = await selectFolder(settings.basePath || undefined);
-            if (selected) {
-                await scanProjects(selected);
-                // Small delay to allow the DB write from scanProjects to flush before reload
-                await new Promise((resolve) => setTimeout(resolve, 100));
-                window.location.reload();
-            }
-        } finally {
-            setSelectingFolder(false);
-        }
-    };
-
-    const handleSavePath = async () => {
-        if (!basePathInput.trim()) return;
-        setSavingPath(true);
-        try {
-            await updateSettings({ basePath: basePathInput.trim() });
-            await scanProjects(basePathInput.trim());
-            // Small delay to allow the DB write from scanProjects to flush before reload
-            await new Promise((resolve) => setTimeout(resolve, 100));
-            window.location.reload();
-        } catch (err) {
-            console.error("Failed to save path:", err);
-        } finally {
-            setSavingPath(false);
-        }
-    };
-
-    const handleRefreshStats = (projectId: string) => {
-        fetchStatsForProject(projectId, true);
-        setAiRefreshKeys((prev) => ({
-            ...prev,
-            [projectId]: (prev[projectId] ?? 0) + 1,
-        }));
-    };
-
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-3">
-                    <div className="w-8 h-8 border-2 border-app-accent border-t-transparent rounded-full animate-spin" />
-                    <p className="text-sm text-app-text-muted">
-                        Loading projects...
-                    </p>
-                </div>
-            </div>
-        );
+  const filteredProjects = useMemo(() => {
+    if (!normalizedSearch) {
+      return projects;
     }
 
-    if (projects.length === 0) {
-        return (
-            <ProjectsEmptyState
-                isLinux={isLinux}
-                basePathInput={basePathInput}
-                onBasePathChange={setBasePathInput}
-                onSavePath={handleSavePath}
-                savingPath={savingPath}
-                selectingFolder={selectingFolder}
-                onSelectFolder={handleSelectFolder}
-            />
+    const scored = projects
+      .map((project) => {
+        const nameScore = scoreFuzzyMatch(
+          normalizedSearch,
+          project.name.toLowerCase(),
         );
-    }
+        const pathScore = scoreFuzzyMatch(
+          normalizedSearch,
+          project.path.toLowerCase(),
+        );
+        const score = Math.max(
+          nameScore ?? Number.NEGATIVE_INFINITY,
+          pathScore ?? Number.NEGATIVE_INFINITY,
+        );
 
+        if (score === Number.NEGATIVE_INFINITY) {
+          return null;
+        }
+
+        return { project, score };
+      })
+      .filter(
+        (
+          entry,
+        ): entry is {
+          project: (typeof projects)[number];
+          score: number;
+        } => Boolean(entry),
+      );
+
+    scored.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+
+      return a.project.name.localeCompare(b.project.name);
+    });
+
+    return scored.map((entry) => entry.project);
+  }, [normalizedSearch, projects]);
+
+  useEffect(() => {
+    getPlatform().then(setPlatform);
+  }, []);
+
+  const isLinux = platform === "linux";
+
+  const handleSelectFolder = async () => {
+    setSelectingFolder(true);
+    try {
+      const settings = await getSettings();
+      const selected = await selectFolder(settings.basePath || undefined);
+      if (selected) {
+        await scanProjects(selected);
+        // Small delay to allow the DB write from scanProjects to flush before reload
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        window.location.reload();
+      }
+    } finally {
+      setSelectingFolder(false);
+    }
+  };
+
+  const handleSavePath = async () => {
+    if (!basePathInput.trim()) return;
+    setSavingPath(true);
+    try {
+      await updateSettings({ basePath: basePathInput.trim() });
+      await scanProjects(basePathInput.trim());
+      // Small delay to allow the DB write from scanProjects to flush before reload
+      await new Promise((resolve) => setTimeout(resolve, 100));
+      window.location.reload();
+    } catch (err) {
+      console.error("Failed to save path:", err);
+    } finally {
+      setSavingPath(false);
+    }
+  };
+
+  const handleRefreshStats = (projectId: string) => {
+    fetchStatsForProject(projectId, true);
+    setAiRefreshKeys((prev) => ({
+      ...prev,
+      [projectId]: (prev[projectId] ?? 0) + 1,
+    }));
+  };
+
+  if (loading) {
     return (
-        <div className="relative h-full w-full overflow-hidden">
-            <div
-                className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
-            >
-                <div className="max-w-6xl mx-auto mb-6">
-                    <div className="flex items-center justify-between pb-6 mb-6 border-b border-app-border/40">
-                        <div className="flex items-center gap-3">
-                            <Briefcase className="w-[18px] h-[18px] text-app-text-muted" strokeWidth={2} />
-                            <h1 className="text-[17px] font-semibold text-app-text-main leading-tight tracking-wide">
-                                Projects
-                            </h1>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <div className="relative mr-2 flex items-center group">
-                                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-text-muted pointer-events-none transition-colors group-focus-within:text-app-accent" strokeWidth={2} />
-                                <input
-                                    id="projects-search"
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                    placeholder="Search..."
-                                    title="Search projects..."
-                                    aria-label="Search projects"
-                                    className={`bg-transparent border border-app-border/50 rounded-md pl-8 pr-3 py-1.5 text-[13px] text-app-text-main placeholder-app-text-muted/50 focus:outline-none focus:border-app-accent/50 focus:bg-app-surface-elevated transition-all duration-300 ${search ? 'w-48 bg-app-surface-elevated cursor-text' : 'w-32 focus:w-48 cursor-pointer focus:cursor-text'}`}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <ProjectsGrid
-                    projects={filteredProjects}
-                    gitSnapshots={gitSnapshots}
-                    onOpenDashboard={(projectId) => {
-                        openDashboard(projectId);
-                        const project = projects.find(
-                            (p) => p.id === projectId,
-                        );
-                        if (project && onProjectView) {
-                            onProjectView(project.id, project.name);
-                        }
-                    }}
-                    onDeleteProject={async (projectId) => {
-                        try {
-                            await deleteProject(projectId);
-                            await loadProjects();
-                        } catch (err) {
-                            console.error("Failed to delete project:", err);
-                        }
-                    }}
-                />
-            </div>
-
-            <div
-                className={`absolute inset-0 h-full w-full bg-app-bg transition-all duration-500 ${viewMode === "dashboard" ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}`}
-            >
-                {projects[activeIndex] && (
-                    <div className="h-full w-full">
-                        <ProjectDashboard
-                            project={projects[activeIndex]}
-                            gitSnapshot={gitSnapshots[projects[activeIndex].id]}
-                            projectStats={
-                                projectStats[projects[activeIndex].id]
-                            }
-                            events={
-                                projectEvents[projects[activeIndex].id] ?? []
-                            }
-                            activitySummary={
-                                projectActivitySummary[projects[activeIndex].id]
-                            }
-                            statsLoading={
-                                statsLoading[projects[activeIndex].id] ?? false
-                            }
-                            statsLastUpdated={
-                                lastUpdated[projects[activeIndex].id]
-                            }
-                            onRefreshStats={() =>
-                                handleRefreshStats(projects[activeIndex].id)
-                            }
-                            aiRefreshKey={
-                                aiRefreshKeys[projects[activeIndex].id] ?? 0
-                            }
-                            onBack={closeDashboard}
-                            onNavigateToSettings={onNavigateToSettings}
-                        />
-                    </div>
-                )}
-            </div>
+      <div className="flex items-center justify-center h-full">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-app-accent border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-app-text-muted">Loading projects...</p>
         </div>
+      </div>
     );
+  }
+
+  if (projects.length === 0) {
+    return (
+      <ProjectsEmptyState
+        isLinux={isLinux}
+        basePathInput={basePathInput}
+        onBasePathChange={setBasePathInput}
+        onSavePath={handleSavePath}
+        savingPath={savingPath}
+        selectingFolder={selectingFolder}
+        onSelectFolder={handleSelectFolder}
+      />
+    );
+  }
+
+  return (
+    <div className="relative h-full w-full overflow-hidden">
+      <div
+        className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
+      >
+        <div className="max-w-6xl mx-auto mb-6">
+          <div className="flex items-center justify-between pb-6 mb-6 border-b border-app-border/40">
+            <div className="flex items-center gap-3">
+              <Briefcase
+                className="w-[18px] h-[18px] text-app-text-muted"
+                strokeWidth={2}
+              />
+              <h1 className="text-[17px] font-semibold text-app-text-main leading-tight tracking-wide">
+                Projects
+              </h1>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="relative mr-2 flex items-center group">
+                <Search
+                  className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-text-muted pointer-events-none transition-colors group-focus-within:text-app-accent"
+                  strokeWidth={2}
+                />
+                <input
+                  id="projects-search"
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search..."
+                  title="Search projects..."
+                  aria-label="Search projects"
+                  className={`bg-transparent border border-app-border/50 rounded-md pl-8 pr-3 py-1.5 text-[13px] text-app-text-main placeholder-app-text-muted/50 focus:outline-none focus:border-app-accent/50 focus:bg-app-surface-elevated transition-all duration-300 ${
+                    search
+                      ? "w-48 bg-app-surface-elevated cursor-text"
+                      : "w-32 focus:w-48 cursor-pointer focus:cursor-text"
+                  }`}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+        <ProjectsGrid
+          projects={filteredProjects}
+          gitSnapshots={gitSnapshots}
+          onOpenDashboard={(projectId) => {
+            openDashboard(projectId);
+            const project = projects.find((p) => p.id === projectId);
+            if (project && onProjectView) {
+              onProjectView(project.id, project.name);
+            }
+          }}
+          onDeleteProject={async (projectId) => {
+            try {
+              await deleteProject(projectId);
+              await loadProjects();
+            } catch (err) {
+              console.error("Failed to delete project:", err);
+            }
+          }}
+        />
+      </div>
+
+      <div
+        className={`absolute inset-0 h-full w-full bg-app-bg transition-all duration-500 ${viewMode === "dashboard" ? "translate-y-0 opacity-100" : "translate-y-10 opacity-0 pointer-events-none"}`}
+      >
+        {projects[activeIndex] && (
+          <div className="h-full w-full">
+            <ProjectDashboard
+              project={projects[activeIndex]}
+              gitSnapshot={gitSnapshots[projects[activeIndex].id]}
+              projectStats={projectStats[projects[activeIndex].id]}
+              events={projectEvents[projects[activeIndex].id] ?? []}
+              activitySummary={projectActivitySummary[projects[activeIndex].id]}
+              statsLoading={statsLoading[projects[activeIndex].id] ?? false}
+              statsLastUpdated={lastUpdated[projects[activeIndex].id]}
+              onRefreshStats={() =>
+                handleRefreshStats(projects[activeIndex].id)
+              }
+              aiRefreshKey={aiRefreshKeys[projects[activeIndex].id] ?? 0}
+              onBack={closeDashboard}
+              onNavigateToSettings={onNavigateToSettings}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
