@@ -1,3 +1,4 @@
+import { BrainCircuit, FolderKanban } from "lucide-react";
 import type { MouseEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import logoUrl from "../../assets/trackmebaby.png";
@@ -35,41 +36,12 @@ const tabs = [
     {
         id: "cards",
         label: "Projects",
-        icon: (
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.6}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-[22px] h-[22px]"
-            >
-                <rect x="3" y="3" width="7" height="7" rx="2" />
-                <rect x="14" y="3" width="7" height="7" rx="2" />
-                <rect x="3" y="14" width="7" height="7" rx="2" />
-                <rect x="14" y="14" width="7" height="7" rx="2" />
-            </svg>
-        ),
+        icon: <FolderKanban className="w-[19px] h-[19px]" strokeWidth={2.2} />,
     },
     {
         id: "ai",
         label: "AI Chat",
-        icon: (
-            <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth={1.6}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                className="w-[22px] h-[22px]"
-            >
-                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            </svg>
-        ),
+        icon: <BrainCircuit className="w-[19px] h-[19px]" strokeWidth={2.2} />,
     },
 ] as const satisfies Array<{ id: TabId; label: string; icon: JSX.Element }>;
 
@@ -233,7 +205,7 @@ function App() {
                     )}
 
                     {/* Main Application Area */}
-                    <div className="flex flex-row flex-1 overflow-hidden text-app-text-main">
+                    <div className="flex flex-row flex-1 overflow-hidden text-app-text-main bg-app-bg">
                         {/* macOS-style translucent sidebar */}
                         <TabBar
                             activeTab={activeTab}

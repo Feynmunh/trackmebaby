@@ -1,3 +1,5 @@
+import { Settings2 } from "lucide-react";
+
 interface TabOption<TTab extends string> {
     id: TTab;
     label: string;
@@ -12,19 +14,7 @@ interface TabBarProps<TTab extends string> {
 }
 
 const SettingsIcon = () => (
-    <svg
-        xmlns="http://www.w3.org/2000/svg"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={1.7}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        className="w-[20px] h-[20px]"
-    >
-        <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-        <circle cx="12" cy="12" r="3" />
-    </svg>
+    <Settings2 className="w-[19px] h-[19px]" strokeWidth={2.2} />
 );
 
 interface NavButtonProps {
@@ -48,14 +38,23 @@ function NavButton({
                 id={`tab-${buttonId}`}
                 onClick={onClick}
                 className={[
-                    "relative flex items-center justify-center w-12 h-12 rounded-2xl",
-                    "transition-all duration-150 ease-out outline-none focus-visible:ring-2 focus-visible:ring-app-accent/40",
+                    "relative flex items-center justify-center w-11 h-11 rounded-2xl border",
+                    "transition-all duration-200 ease-out outline-none focus-visible:ring-2 focus-visible:ring-app-accent/40",
                     isActive
-                        ? "bg-app-surface text-app-text-main shadow-sm"
-                        : "text-app-text-muted hover:text-app-text-main hover:bg-app-surface/50 active:scale-95",
+                        ? "bg-app-surface-elevated text-app-accent border-app-accent/35"
+                        : "bg-transparent text-app-text-muted border-transparent hover:text-app-text-main hover:bg-app-surface/45 hover:border-app-border/80 active:scale-95",
                 ].join(" ")}
             >
-                {icon}
+                <span className="flex items-center justify-center">{icon}</span>
+                <span
+                    aria-hidden
+                    className={[
+                        "absolute -right-[9px] top-1/2 -translate-y-1/2 w-[4px] h-[18px] rounded-full transition-all duration-200",
+                        isActive
+                            ? "bg-app-accent opacity-100"
+                            : "bg-app-border opacity-0 group-hover:opacity-60",
+                    ].join(" ")}
+                />
             </button>
 
             {/* Floating label tooltip */}
@@ -82,9 +81,12 @@ export default function TabBar<TTab extends string>({
     settingsId,
 }: TabBarProps<TTab>) {
     return (
-        <nav className="flex flex-col w-[72px] h-full items-center py-5 gap-0 select-none shrink-0 bg-app-surface-elevated border-r border-app-border">
+        <nav className="flex flex-col w-[80px] h-full items-center py-5 gap-4 select-none shrink-0 bg-app-surface/40 backdrop-blur-xl border-r border-app-border/40 text-sm font-medium z-50">
+            {/* Minimal App Brand Element (Optional Top Decorator) */}
+            <div className="w-10 h-1 rounded-full bg-gradient-to-r from-transparent via-app-border to-transparent mt-1 opacity-60" />
+
             {/* Main nav */}
-            <div className="flex flex-col items-center gap-2 flex-1 w-full px-3">
+            <div className="flex flex-col items-center gap-2 flex-1 w-full px-3 py-2 mt-4">
                 {tabs.map((tab) => (
                     <NavButton
                         key={tab.id}
@@ -98,7 +100,8 @@ export default function TabBar<TTab extends string>({
             </div>
 
             {/* Settings pinned at bottom */}
-            <div className="mt-auto w-full px-3 shrink-0">
+            <div className="mt-auto w-full px-3 pb-3 shrink-0 flex flex-col items-center">
+                <div className="w-6 h-px bg-app-border/40 my-3" />
                 <NavButton
                     buttonId="settings"
                     label="Settings"

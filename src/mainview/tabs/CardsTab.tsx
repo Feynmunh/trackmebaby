@@ -1,4 +1,4 @@
-import { Search } from "lucide-react";
+import { Briefcase, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import ProjectDashboard from "../features/projects/components/ProjectDashboard.tsx";
 import ProjectsEmptyState from "../features/projects/components/ProjectsEmptyState.tsx";
@@ -201,26 +201,39 @@ export default function CardsTab({
             <div
                 className={`h-full w-full px-10 py-10 overflow-y-auto ${viewMode === "grid" ? "opacity-100" : "opacity-0 pointer-events-none absolute"}`}
             >
-                <div className="max-w-6xl mx-auto mb-5">
-                    <div className="flex items-center justify-between mb-3">
-                        <h1 className="text-[32px] font-bold text-app-text-main leading-tight tracking-wide">
-                            Projects
-                        </h1>
-                        <div className="text-xs font-medium text-app-text-muted border border-app-border bg-transparent px-3 py-1.5 rounded-full">
-                            {filteredProjects.length} PROJECTS
+                <div className="max-w-6xl mx-auto mb-6">
+                    <div className="flex items-center justify-between pb-6 mb-6 border-b border-app-border/40">
+                        <div className="flex items-center gap-3">
+                            <Briefcase
+                                className="w-[18px] h-[18px] text-app-text-muted"
+                                strokeWidth={2}
+                            />
+                            <h1 className="text-[17px] font-semibold text-app-text-main leading-tight tracking-wide">
+                                Projects
+                            </h1>
                         </div>
-                    </div>
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-text-muted pointer-events-none" />
-                        <input
-                            id="projects-search"
-                            type="text"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            placeholder="Search projects..."
-                            aria-label="Search projects"
-                            className="w-full bg-app-surface border border-app-border rounded-xl pl-8 pr-4 py-2.5 text-[13px] text-app-text-main placeholder-app-text-muted focus:outline-none focus:ring-2 focus:ring-app-accent/30"
-                        />
+                        <div className="flex items-center gap-3">
+                            <div className="relative mr-2 flex items-center group">
+                                <Search
+                                    className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-app-text-muted pointer-events-none transition-colors group-focus-within:text-app-accent"
+                                    strokeWidth={2}
+                                />
+                                <input
+                                    id="projects-search"
+                                    type="text"
+                                    value={search}
+                                    onChange={(e) => setSearch(e.target.value)}
+                                    placeholder="Search..."
+                                    title="Search projects..."
+                                    aria-label="Search projects"
+                                    className={`bg-transparent border border-app-border/50 rounded-md pl-8 pr-3 py-1.5 text-[13px] text-app-text-main placeholder-app-text-muted/50 focus:outline-none focus:border-app-accent/50 focus:bg-app-surface-elevated transition-all duration-300 ${
+                                        search
+                                            ? "w-48 bg-app-surface-elevated cursor-text"
+                                            : "w-32 focus:w-48 cursor-pointer focus:cursor-text"
+                                    }`}
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <ProjectsGrid

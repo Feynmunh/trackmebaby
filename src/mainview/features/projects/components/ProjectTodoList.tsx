@@ -273,7 +273,7 @@ export default function ProjectTodoList({
 
                             <button
                                 onClick={() => handleDeleteTodo(todo.id)}
-                                className="flex-shrink-0 p-1 text-app-text-muted hover:text-app-error opacity-0 group-hover:opacity-100 transition-all"
+                                className="flex-shrink-0 p-1 text-app-text-muted hover:text-app-error opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 transition-all"
                             >
                                 <svg
                                     xmlns="http://www.w3.org/2000/svg"
