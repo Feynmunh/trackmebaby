@@ -54,7 +54,7 @@ export default function ProjectsGrid({
                                 <button
                                     type="button"
                                     onClick={() => setConfirmingId(project.id)}
-                                    className="absolute top-2 right-2 p-1.5 rounded-md text-app-text-muted/60 opacity-0 group-hover:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition-all z-10"
+                                    className="absolute top-2 right-2 p-1.5 rounded-md text-app-text-muted/60 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:opacity-100 hover:text-red-400 hover:bg-red-500/10 transition-all z-10"
                                     aria-label={`Delete ${project.name}`}
                                 >
                                     <Trash2 className="w-3.5 h-3.5" />
